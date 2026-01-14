@@ -1008,13 +1008,11 @@ fn resolve_session_input_from_cwd(
     default_date: Date,
     cwd: &Path,
 ) -> anyhow::Result<ResolvedSessionInput> {
-    let repo_root = match args.repo_root.as_ref() {
-        Some(repo_root) => repo_root.clone(),
-        None => match discover_repo_root(cwd) {
-            Some(repo_root) => repo_root,
-            None => cwd.to_path_buf(),
-        },
-    };
+    let repo_root = args
+        .repo_root
+        .clone()
+        .or_else(|| discover_repo_root(cwd))
+        .map_or_else(|| cwd.to_path_buf(), PathBuf::from);
     let session_date = match args.date.as_deref() {
         Some(date) => parse_date_ymd(date)?,
         None => default_date,

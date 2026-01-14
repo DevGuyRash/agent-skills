@@ -1600,10 +1600,8 @@ pub fn finalize_review(params: FinalizeReviewParams) -> anyhow::Result<FinalizeR
     f.flush()
         .with_context(|| format!("flush report file {}", report_path.display()))?;
 
-    let report_file = match strip_repo_root_best_effort(&repo_root, &report_path) {
-        Some(rel) => rel.to_string_lossy().to_string(),
-        None => filename.clone(),
-    };
+    let report_file = strip_repo_root_best_effort(&repo_root, &report_path)
+        .map_or(filename, |rel| rel.to_string_lossy().to_string());
 
     // Step 3: update session JSON (locked) to point at the report.
     {
