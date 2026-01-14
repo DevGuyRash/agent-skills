@@ -15,6 +15,8 @@ Both workflows coordinate artifacts under `.local/reports/code_reviews/{YYYY-MM-
 
 Path: `skills/code-review/`
 
+**Migration note:** `perform-code-review` and `apply-code-review` were consolidated into `code-review`. Update any tooling or docs that reference `skills/perform-code-review/` or `skills/apply-code-review/` to use `skills/code-review/`.
+
 ## Container bootstrap scripts
 
 These scripts are repo-wide (not skill-specific) and are intended for:
