@@ -810,8 +810,8 @@ After completing all structured rounds, set aside the checklists and evaluate th
 **Merge strategy**:
 
 - You SHALL use **squash and merge** as the default and preferred strategy.
-- WHEN you squash and merge THEN you SHALL write the squash commit message using the format in section 10.4.
-- You MAY use fast-forward or rebase merges for trivial single-commit PRs WHERE the original commit already conforms to section 10.
+- WHEN you squash and merge THEN you SHALL write the squash commit message using the format in section 3.4.
+- You MAY use fast-forward or rebase merges for trivial single-commit PRs WHERE the original commit already conforms to section 3 (Commit conventions).
 
 **Commit receipts**:
 
