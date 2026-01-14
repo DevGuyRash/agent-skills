@@ -16,10 +16,9 @@ use clap::builder::PossibleValue;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::ffi::OsStr;
 use std::fs;
 use std::io::Write;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use time::format_description::well_known::Rfc3339;
 use time::{Date, OffsetDateTime};
 
@@ -660,26 +659,6 @@ pub struct ReviewSummary {
     pub notes: Option<Vec<SessionNote>>,
 }
 
-fn suffix_from_component(path: &Path, component: &str) -> Option<PathBuf> {
-    let mut found = false;
-    let mut suffix = PathBuf::new();
-    for part in path.components() {
-        if !found {
-            if part == Component::Normal(OsStr::new(component)) {
-                found = true;
-                suffix.push(part.as_os_str());
-            }
-            continue;
-        }
-        suffix.push(part.as_os_str());
-    }
-    if found {
-        Some(suffix)
-    } else {
-        None
-    }
-}
-
 fn strip_repo_root_best_effort(repo_root: &Path, path: &Path) -> Option<PathBuf> {
     if let Ok(stripped) = path.strip_prefix(repo_root) {
         return Some(stripped.to_path_buf());
@@ -702,8 +681,7 @@ fn strip_repo_root_best_effort(repo_root: &Path, path: &Path) -> Option<PathBuf>
         }
     }
 
-    // Heuristic fallback for our default layout under `.local/...`.
-    suffix_from_component(path, ".local")
+    None
 }
 
 fn resolve_report_file_path(repo_root: &Path, session_dir: &Path, report_file: &str) -> PathBuf {
@@ -1232,7 +1210,7 @@ mod tests {
     }
 
     #[test]
-    fn strip_repo_root_best_effort_falls_back_to_local_suffix() -> anyhow::Result<()> {
+    fn strip_repo_root_best_effort_returns_none_for_unrelated_local_root() -> anyhow::Result<()> {
         let dir = tempdir()?;
         let real_repo_root = dir.path().join("repo");
         let other_root = dir.path().join("other");
@@ -1251,10 +1229,7 @@ mod tests {
         fs::create_dir_all(parent)?;
         fs::write(&report_path, "report")?;
 
-        let Some(actual) = strip_repo_root_best_effort(&other_root, &report_path) else {
-            bail!("expected Some(..) via .local suffix fallback");
-        };
-        ensure!(actual == expected);
+        ensure!(strip_repo_root_best_effort(&other_root, &report_path).is_none());
         Ok(())
     }
 
