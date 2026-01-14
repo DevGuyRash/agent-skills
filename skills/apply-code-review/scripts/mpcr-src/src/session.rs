@@ -673,7 +673,11 @@ fn suffix_from_component(path: &Path, component: &str) -> Option<PathBuf> {
         }
         suffix.push(part.as_os_str());
     }
-    if found { Some(suffix) } else { None }
+    if found {
+        Some(suffix)
+    } else {
+        None
+    }
 }
 
 fn strip_repo_root_best_effort(repo_root: &Path, path: &Path) -> Option<PathBuf> {
@@ -721,15 +725,17 @@ fn resolve_report_file_path(repo_root: &Path, session_dir: &Path, report_file: &
 impl ReviewEntry {
     /// Produce a summarized view suitable for report listings.
     #[must_use]
-    pub fn summary(&self, repo_root: &Path, session_dir: &Path, options: ReportsOptions) -> ReviewSummary {
-        let report_path = self
-            .report_file
-            .as_ref()
-            .map(|file| {
-                resolve_report_file_path(repo_root, session_dir, file)
-                    .to_string_lossy()
-                    .to_string()
-            });
+    pub fn summary(
+        &self,
+        repo_root: &Path,
+        session_dir: &Path,
+        options: ReportsOptions,
+    ) -> ReviewSummary {
+        let report_path = self.report_file.as_ref().map(|file| {
+            resolve_report_file_path(repo_root, session_dir, file)
+                .to_string_lossy()
+                .to_string()
+        });
         let notes = if options.include_notes {
             Some(self.notes.clone())
         } else {

@@ -113,7 +113,9 @@ fn register_and_finalize_writes_report_and_updates_session() -> anyhow::Result<(
         .ok_or_else(|| anyhow::anyhow!("expected review entry"))?;
     ensure!(
         entry.report_file.as_deref()
-            == Some(".local/reports/code_reviews/2026-01-11/12-34-56-789_refs_heads_main_deadbeef.md")
+            == Some(
+                ".local/reports/code_reviews/2026-01-11/12-34-56-789_refs_heads_main_deadbeef.md"
+            )
     );
     ensure!(entry.finished_at.is_some());
     Ok(())

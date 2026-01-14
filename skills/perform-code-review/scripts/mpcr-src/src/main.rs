@@ -12,8 +12,8 @@ use mpcr::session::{
     append_note, collect_reports, finalize_review, load_session, register_reviewer,
     set_initiator_status, update_review, AppendNoteParams, FinalizeReviewParams, InitiatorStatus,
     NoteRole, NoteType, RegisterReviewerParams, ReportsFilters, ReportsOptions, ReportsResult,
-    ReportsView, ReviewPhase, ReviewVerdict, ReviewerStatus, SessionLocator, SetInitiatorStatusParams,
-    SeverityCounts, UpdateReviewParams,
+    ReportsView, ReviewPhase, ReviewVerdict, ReviewerStatus, SessionLocator,
+    SetInitiatorStatusParams, SeverityCounts, UpdateReviewParams,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -1183,8 +1183,7 @@ fn wait_for_reviews(
     let mut delay = std::time::Duration::from_secs(1);
     let max_delay = std::time::Duration::from_secs(60);
     let session = SessionLocator::new(session_dir.to_path_buf());
-    let should_wait_for_session =
-        target_ref.is_some() || session_id.is_some();
+    let should_wait_for_session = target_ref.is_some() || session_id.is_some();
 
     if session_dir.exists() && !session_dir.is_dir() {
         return Err(anyhow::anyhow!(
