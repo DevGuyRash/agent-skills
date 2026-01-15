@@ -1027,15 +1027,12 @@ fn resolve_session_input_from_cwd(
     default_date: Date,
     cwd: &Path,
 ) -> anyhow::Result<ResolvedSessionInput> {
-    let repo_root = match args
+    let repo_root = args
         .repo_root
         .clone()
         .or_else(|| opt_env_pathbuf(use_env, "MPCR_REPO_ROOT"))
         .or_else(|| discover_repo_root(cwd))
-    {
-        Some(path) => path,
-        None => cwd.to_path_buf(),
-    };
+        .map_or_else(|| cwd.to_path_buf(), std::convert::identity);
     let date_raw = args
         .date
         .as_deref()
@@ -1045,14 +1042,14 @@ fn resolve_session_input_from_cwd(
         Some(date) => parse_date_ymd(date)?,
         None => default_date,
     };
-    let session_dir = match args
+    let session_dir = args
         .session_dir
         .clone()
         .or_else(|| opt_env_pathbuf(use_env, "MPCR_SESSION_DIR"))
-    {
-        Some(path) => path,
-        None => mpcr::paths::session_paths(&repo_root, session_date).session_dir,
-    };
+        .map_or_else(
+            || mpcr::paths::session_paths(&repo_root, session_date).session_dir,
+            std::convert::identity,
+        );
 
     Ok(ResolvedSessionInput {
         session_dir,
