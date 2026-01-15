@@ -148,7 +148,12 @@ EOF
 
 ```sh
 mkdir -p ".local/scratch/code_reviews/<reviewer_id>/<session_id>"
-# ... write scratch files under that directory ...
+
+# Example of using a scratch report file:
+#   SCRATCH_REPORT=".local/scratch/code_reviews/<reviewer_id>/<session_id>/report.md"
+#   echo "report content" > "$SCRATCH_REPORT"
+#   mpcr reviewer finalize --session-dir <DIR> --reviewer-id <ID8> --session-id <ID8> --report-file "$SCRATCH_REPORT" --verdict APPROVE
+
 rm -rf ".local/scratch/code_reviews/<reviewer_id>/<session_id>"
 # Optional: cleanup all scratch for this reviewer id:
 #   rm -rf ".local/scratch/code_reviews/<reviewer_id>"
