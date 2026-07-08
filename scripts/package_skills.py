@@ -36,6 +36,56 @@ def load_config() -> dict[str, dict[str, object]]:
     return data["skills"]
 
 
+def load_vendor_copies() -> list[dict[str, object]]:
+    with open(CONFIG_PATH, "rb") as fh:
+        data = tomllib.load(fh)
+    vendor = data.get("vendor", {})
+    copies = vendor.get("copies", [])
+    if not isinstance(copies, list):
+        raise SystemExit("packaging config error: vendor.copies must be an array of tables")
+    return copies
+
+
+def vendor_copies(check_only: bool) -> None:
+    """Materialize (or verify) committed copies of shared skill scripts.
+
+    Skills are self-contained distribution units on every harness, so shared
+    scripts are vendored as real files rather than referenced across skill
+    directories. Source of truth is vendor.copies[].source; drift between a
+    source and its targets fails the check."""
+    copies = load_vendor_copies()
+    if not copies:
+        print("no vendor copies configured")
+        return
+    drift: list[str] = []
+    for entry in copies:
+        source = REPO_ROOT / str(entry["source"])
+        if not source.is_file():
+            raise SystemExit(f"vendor source missing: {source}")
+        src_bytes = source.read_bytes()
+        targets = entry.get("targets", [])
+        if not isinstance(targets, list) or not targets:
+            raise SystemExit(f"vendor entry for {entry['source']} has no targets")
+        for raw_target in targets:
+            target = REPO_ROOT / str(raw_target)
+            if check_only:
+                if not target.is_file() or target.read_bytes() != src_bytes:
+                    drift.append(f"{raw_target} (from {entry['source']})")
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(src_bytes)
+                shutil.copymode(source, target)
+                print(f"vendored {entry['source']} -> {raw_target}")
+    if check_only:
+        if drift:
+            listing = "\n  ".join(drift)
+            raise SystemExit(
+                "vendored copies out of sync (run: python3 scripts/package_skills.py vendor --sync):\n  "
+                + listing
+            )
+        print(f"vendor check ok ({len(copies)} sources)")
+
+
 def load_toml(path: Path) -> dict[str, object]:
     with open(path, "rb") as fh:
         return tomllib.load(fh)
@@ -547,6 +597,7 @@ def stage_host(skill_names: list[str] | None = None) -> None:
 
 
 def verify_host() -> None:
+    vendor_copies(check_only=True)
     config = load_config()
     platform_id = host_platform_id()
     stage_host()
@@ -678,6 +729,8 @@ def main() -> None:
     sync.add_argument("--artifacts-root", required=True)
     sync.add_argument("--platform-set", choices=["host", "required", "ci", "all"], default="ci")
     sub.add_parser("smoke-launchers")
+    vendor = sub.add_parser("vendor")
+    vendor.add_argument("--sync", action="store_true")
     watch = sub.add_parser("watch-paths")
     watch.add_argument("--skill", action="append", default=[])
     watch.add_argument("--include-tests", action="store_true")
@@ -701,6 +754,8 @@ def main() -> None:
         sync_artifacts(Path(args.artifacts_root), args.platform_set)
     elif args.cmd == "smoke-launchers":
         smoke_launchers()
+    elif args.cmd == "vendor":
+        vendor_copies(check_only=not args.sync)
     elif args.cmd == "watch-paths":
         for path in watched_repo_paths(load_config(), args.skill, include_tests=args.include_tests):
             print(path)

@@ -377,5 +377,66 @@ class PackageSkillsTests(unittest.TestCase):
         )
 
 
+class VendorCopyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory(prefix="package-skills-vendor-test-")
+        self.repo = Path(self.tmpdir.name)
+        self.original_repo_root = package_skills.REPO_ROOT
+        self.original_config_path = package_skills.CONFIG_PATH
+        package_skills.REPO_ROOT = self.repo
+        package_skills.CONFIG_PATH = self.repo / "packaging" / "skills.toml"
+        self.addCleanup(self.restore_module_paths)
+
+    def tearDown(self) -> None:
+        self.tmpdir.cleanup()
+
+    def restore_module_paths(self) -> None:
+        package_skills.REPO_ROOT = self.original_repo_root
+        package_skills.CONFIG_PATH = self.original_config_path
+
+    def write_vendor_config(self) -> None:
+        write(
+            package_skills.CONFIG_PATH,
+            textwrap.dedent(
+                """
+                [[vendor.copies]]
+                source = "plugins/a/skills/a/scripts/shared.sh"
+                targets = ["plugins/a/skills/b/scripts/shared.sh"]
+                """
+            ).strip()
+            + "\n",
+        )
+
+    def test_vendor_sync_then_check(self) -> None:
+        self.write_vendor_config()
+        source = self.repo / "plugins/a/skills/a/scripts/shared.sh"
+        target = self.repo / "plugins/a/skills/b/scripts/shared.sh"
+        write(source, "#!/bin/sh\necho shared\n")
+
+        with self.assertRaises(SystemExit):
+            package_skills.vendor_copies(check_only=True)
+
+        package_skills.vendor_copies(check_only=False)
+        self.assertEqual(source.read_bytes(), target.read_bytes())
+        package_skills.vendor_copies(check_only=True)
+
+    def test_vendor_check_detects_drift(self) -> None:
+        self.write_vendor_config()
+        source = self.repo / "plugins/a/skills/a/scripts/shared.sh"
+        target = self.repo / "plugins/a/skills/b/scripts/shared.sh"
+        write(source, "#!/bin/sh\necho shared\n")
+        write(target, "#!/bin/sh\necho drifted\n")
+
+        with self.assertRaises(SystemExit) as ctx:
+            package_skills.vendor_copies(check_only=True)
+        self.assertIn("out of sync", str(ctx.exception))
+
+    def test_vendor_missing_source_fails(self) -> None:
+        self.write_vendor_config()
+        with self.assertRaises(SystemExit) as ctx:
+            package_skills.vendor_copies(check_only=True)
+        self.assertIn("vendor source missing", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

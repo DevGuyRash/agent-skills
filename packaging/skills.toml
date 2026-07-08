@@ -39,3 +39,29 @@ launcher = "scripts/render-table.sh"
 smoke_args = ["--help"]
 required_platforms = ["linux-x86_64"]
 ci_platforms = ["linux-x86_64"]
+
+# Vendored copies of shared skill scripts. Skills are self-contained
+# distribution units on every harness (Agent Skills spec), so shared code is
+# committed as real per-skill copies; the source below is the single source
+# of truth and `package_skills.py vendor` keeps targets byte-identical
+# (--sync to refresh, default mode checks and fails on drift).
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/scripts/_common.sh"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/_common.sh"]
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/scripts/query-friction.sh"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/query-friction.sh"]
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/scripts/generate-report.sh"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/generate-report.sh"]
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/scripts/build-index.sh"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/build-index.sh"]
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/friction-event-schema.json"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/friction-event-schema.json"]
