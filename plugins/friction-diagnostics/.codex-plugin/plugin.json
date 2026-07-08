@@ -1,7 +1,7 @@
 {
   "name": "friction-diagnostics",
-  "version": "4.0.0",
-  "description": "REQUIRED for every task. Log every error, failure, unexpected outcome, or friction encountered \u2014 no exceptions. Covers: (1) Any tool, command, script, or build step that fails or produces unexpected results, (2) Any instruction, workflow, or environment that behaves differently than expected, (3) Code bugs, compilation errors, test failures, or runtime exceptions, (4) MCP server, subagent, or integration misbehavior, (5) User-requested friction or diagnostic reporting, (6) Any problem, error, or divergence from expected behavior during task execution. If anything goes wrong, it gets logged here. Do not skip this skill.",
+  "version": "5.1.3",
+  "description": "Friction diagnostics for agents: log genuine surprises — moments when reality diverged from what you predicted, in any domain (code, writing, research, ops) — as structured JSONL with recurrence tracking, then batch-mend the accumulated corpus on request: cluster open events, root-cause them, fix the sources that misled, and distill known traps read at session start. Predicted or engineered outcomes (intended test failures, expected error paths, probes) are not friction.",
   "author": {
     "name": "Agent Tooling Contributors"
   },
@@ -10,18 +10,19 @@
     "diagnostics",
     "friction",
     "logging",
+    "mending",
     "troubleshooting"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Friction Diagnostics",
-    "shortDescription": "REQUIRED for every task",
-    "longDescription": "REQUIRED for every task. Log every error, failure, unexpected outcome, or friction encountered \u2014 no exceptions. Covers: (1) Any tool, command, script, or build step that fails or produces unexpected results, (2) Any instruction, workflow, or environment that behaves differently than expected, (3) Code bugs, compilation errors, test failures, or runtime exceptions, (4) MCP server, subagent, or integration misbehavior, (5) User-requested friction or diagnostic reporting, (6) Any problem, error, or divergence from expected behavior during task execution. If anything goes wrong, it gets logged here. Do not skip this skill.",
+    "shortDescription": "Log genuine surprises; mend recurring friction",
+    "longDescription": "Friction diagnostics for agents: log genuine surprises — moments when reality diverged from what you predicted, in any domain (code, writing, research, ops) — as structured JSONL with recurrence tracking, then batch-mend the accumulated corpus on request: cluster open events, root-cause them, fix the sources that misled, and distill known traps read at session start. Predicted or engineered outcomes (intended test failures, expected error paths, probes) are not friction.",
     "developerName": "Agent Tooling Contributors",
     "category": "Diagnostics",
     "capabilities": [
       "Read"
     ],
-    "defaultPrompt": "Use $friction-diagnostics for required for every task."
+    "defaultPrompt": "Use $friction-diagnostics when something behaved differently than you predicted."
   }
 }

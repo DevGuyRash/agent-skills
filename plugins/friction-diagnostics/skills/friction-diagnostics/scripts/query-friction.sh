@@ -17,12 +17,21 @@ Input:
                             */.local*/reports/friction/events.jsonl
 
 Filters:
+  --kind VALUE              friction | recurrence | resolution (records without
+                            a kind are v4 friction events)
+  --open                    Only records not closed by a resolution. Friction
+                            events are open until an id appears in a
+                            resolution's resolves list; recurrence records
+                            inherit their anchor's state; resolutions are
+                            never open.
+  --key VALUE               Exact recurrence key (falls back to v4 fingerprint)
+  --recurs EVENT_ID         Recurrence records pointing at this anchor
   --impact VALUE            blocked | degraded | noisy | continued
-  --fingerprint VALUE
+  --fingerprint VALUE       (deprecated v4 alias of --key)
   --tag VALUE               Substring match across tags (e.g. "auth" matches "ssh-auth-sock")
   --tag-exact VALUE         Exact tag match
-  --alias VALUE             Substring match across aliases
-  --alias-exact VALUE       Exact alias match
+  --alias VALUE             Substring match across aliases (v4 events)
+  --alias-exact VALUE       Exact alias match (v4 events)
   --text PATTERN            Case-insensitive substring search across narrative fields
   --date YYYY-MM-DD
   --date-from YYYY-MM-DD
@@ -41,6 +50,10 @@ EOF
 
 events_file=${FRICTION_EVENTS_FILE-}
 scan_dirs=
+kind=
+open_only=0
+key=
+recurs=
 impact=
 fingerprint=
 tag=
@@ -83,6 +96,10 @@ while [ $# -gt 0 ]; do
         esac
       done
       ;;
+    --kind) kind=${2-}; shift 2 ;;
+    --open) open_only=1; shift ;;
+    --key) key=${2-}; shift 2 ;;
+    --recurs) recurs=${2-}; shift 2 ;;
     --impact) impact=${2-}; shift 2 ;;
     --fingerprint) fingerprint=${2-}; shift 2 ;;
     --tag) tag=${2-}; shift 2 ;;
@@ -155,6 +172,10 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 jq -s \
+  --arg kind "$kind" \
+  --arg open_only "$open_only" \
+  --arg key "$key" \
+  --arg recurs "$recurs" \
   --arg impact "$impact" \
   --arg fingerprint "$fingerprint" \
   --arg tag "$tag" \
@@ -169,6 +190,8 @@ jq -s \
   --arg before "$before" \
   --arg source_ref "$source_ref" \
   '
+  def record_kind: (.kind // "friction");
+  def record_key: (.recurrence_key // .fingerprint // "");
   def event_tags:
     (.tags // [] | map(tostring | ascii_downcase));
   def event_aliases:
@@ -190,16 +213,29 @@ jq -s \
   def text_match($needle):
     if $needle == "" then true
     else
-      ([.title, .actual_outcome, .reading, .hindsight, .expected_outcome]
+      ([.title, .actual_outcome, .reading, .decision, .pivot_information, .hindsight, .expected_outcome, .note, .action]
        | map((. // "") | ascii_downcase)
        | join("\u0000")
        | contains($needle | ascii_downcase))
     end;
 
+  # Lifecycle is derived, never stored: closed ids come from resolution records.
+  (map(select(record_kind == "resolution") | .resolves // []) | flatten | unique) as $resolved_ids
+  | def is_open($resolved):
+      record_kind as $k
+      | if $k == "resolution" then false
+        elif $k == "recurrence" then ((.recurs // "") as $a | ($resolved | index($a)) == null)
+        else ((.event_id // "") as $i | ($resolved | index($i)) == null)
+        end;
+
   map(
     select(
+      ($kind == "" or record_kind == $kind) and
+      ($open_only != "1" or is_open($resolved_ids)) and
+      ($key == "" or record_key == $key) and
+      ($recurs == "" or (.recurs // "") == $recurs) and
       ($impact == "" or (.impact // "") == $impact) and
-      ($fingerprint == "" or (.fingerprint // "") == $fingerprint) and
+      ($fingerprint == "" or record_key == $fingerprint) and
       matches_tag_fuzzy($tag) and
       matches_tag_exact($tag_exact) and
       matches_alias_fuzzy($alias_filter) and
@@ -244,10 +280,13 @@ case "$format" in
         printf -- '- Entries: %s\n\n' "$(jq 'length' "$filtered_tmp")"
         jq -r '
           .[]
-          | "## \(.event_id // ""): \(.title // "")\n"
+          | "## \(.event_id // ""): \(.title // (.action // ""))\n"
             + "\n- Recorded: \(.recorded_at // "")"
-            + "\n- Impact: \(.impact // "")"
-            + "\n- Fingerprint: \(.fingerprint // "")"
+            + "\n- Kind: \(.kind // "friction")"
+            + (if (.impact // "") != "" then "\n- Impact: \(.impact)" else "" end)
+            + (if (.recurrence_key // .fingerprint // "") != "" then "\n- Key: \(.recurrence_key // .fingerprint)" else "" end)
+            + (if (.recurs // "") != "" then "\n- Recurs: \(.recurs)" else "" end)
+            + (if ((.resolves // []) | length) > 0 then "\n- Resolves: " + (.resolves | join(", ")) else "" end)
             + (if ((.sources // []) | length) > 0 then
                 "\n- Sources: " + ([(.sources // [])[] |
                   (.ref // "") + (if (.line // null) != null then ":" + (.line | tostring) + (if (.end_line // null) != null then "-" + (.end_line | tostring) else "" end) else "" end)
@@ -258,7 +297,11 @@ case "$format" in
             + (if ((.expected_outcome // "") | length) > 0 then "\n\n**Expected:** \(.expected_outcome)" else "" end)
             + (if ((.actual_outcome // "") | length) > 0 then "\n\n**Actual:** \(.actual_outcome)" else "" end)
             + (if ((.reading // "") | length) > 0 then "\n\n**Reading:** \(.reading)" else "" end)
+            + (if ((.decision // "") | length) > 0 then "\n\n**Decision:** \(.decision)" else "" end)
+            + (if ((.pivot_information // "") | length) > 0 then "\n\n**Pivot information:** \(.pivot_information)" else "" end)
             + (if ((.hindsight // "") | length) > 0 then "\n\n**Hindsight:** \(.hindsight)" else "" end)
+            + (if ((.action // "") | length) > 0 then "\n\n**Action:** \(.action)" else "" end)
+            + (if ((.note // "") | length) > 0 then "\n\n**Note:** \(.note)" else "" end)
             + "\n"
         ' "$filtered_tmp"
       }

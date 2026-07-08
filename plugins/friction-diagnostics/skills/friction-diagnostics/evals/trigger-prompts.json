@@ -1,65 +1,46 @@
 {
   "skill_name": "friction-diagnostics",
+  "comment": "Boundary probes for the categorical trigger. This is a test artifact: it probes the edge of the intent, it does not define or enumerate the trigger. The TDD-red negative (negative-01) is the acceptance gate.",
   "queries": [
     {
       "id": "trigger-01",
       "should_trigger": true,
-      "query": "Please keep a durable log of every MCP, tool, and instruction friction we hit during this debugging run."
+      "query": "The build passed locally but CI failed because the linter config silently ignored the whole directory — that genuinely surprised me. Log this friction."
     },
     {
       "id": "trigger-02",
       "should_trigger": true,
-      "query": "Capture agent frictions in the system temp directory so another agent can repair them later."
+      "query": "While drafting chapter 3 I discovered the outline contradicts the character sheet I was writing from. Record the friction."
     },
     {
       "id": "trigger-03",
       "should_trigger": true,
-      "query": "I want a structured markdown report of every ambiguity, server mismatch, and workflow breakdown you encounter."
+      "query": "Keep a durable log of any genuine surprises — tools, docs, or instructions behaving differently than predicted — while you work through this."
     },
     {
       "id": "trigger-04",
       "should_trigger": true,
-      "query": "Document what the skill told you to do, what you tried, and why it broke."
-    },
-    {
-      "id": "trigger-05",
-      "should_trigger": true,
-      "query": "Set up a temp-directory friction log for this multi-agent run."
-    },
-    {
-      "id": "trigger-06",
-      "should_trigger": true,
-      "query": "Don't just fix issues as you go \u2014 record the diagnostic frictions in a durable log."
+      "query": "That same zsh read-only variable trap just bit again — file it against the earlier event."
     },
     {
       "id": "negative-01",
       "should_trigger": false,
-      "query": "Fix this Python traceback in my app."
+      "query": "Run the test suite now; the new tests should fail because we haven't implemented the feature yet."
     },
     {
       "id": "negative-02",
       "should_trigger": false,
-      "query": "Summarize why the tests failed."
+      "query": "The command failed — just fix it and move on."
     },
     {
       "id": "negative-03",
       "should_trigger": false,
-      "query": "Refactor this function and add comments."
+      "query": "Summarize why the tests failed."
     },
     {
       "id": "negative-04",
       "should_trigger": false,
-      "query": "Review this pull request for security problems."
-    },
-    {
-      "id": "negative-05",
-      "should_trigger": false,
-      "query": "Investigate the build and fix whatever is broken."
-    },
-    {
-      "id": "negative-06",
-      "should_trigger": false,
-      "query": "Explain what MCP is."
+      "query": "Start on the task and report your status as you go."
     }
   ]
 }

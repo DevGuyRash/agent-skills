@@ -1,17 +1,7 @@
 ## Friction diagnostics
 
-WHEN any error, failure, unexpected outcome, or friction of any kind occurs THEN you SHALL log it using the `friction-diagnostics` skill.
-WHEN the same issue repeats without materially new evidence THEN you SHALL NOT add a duplicate entry.
-
-Filing is a single command. You SHALL provide:
-
-- **`--reading`** — your full first-person account: what you consulted, what you did, what you observed, how you interpreted it, and why you made the decisions you made.
-- **`--actual-outcome`** — the verbatim error message, exit code, or output. Do not paraphrase.
-- **`--expected-outcome`** — what you expected to happen and why.
-- **`--impact`** — `blocked`, `degraded`, `noisy`, or `continued`.
-- **`--source-ref`** and **`--source-type`** — where the friction originated.
-- **`--tags`** — specific labels (e.g., `git-signing,ssh-auth-sock`).
-- **`--aliases`** — broader groupings (e.g., `auth,git`).
-
-WHEN the friction can be localized to a specific file THEN you SHALL populate the `sources` array with file path and line range.
-WHEN text from multiple sources shaped the action THEN you SHALL use `--from-json -` with a `sources` array containing multiple entries.
+WHEN `.local/reports/friction/known-traps.md` exists THEN you SHALL read it before acting (it is at most 15 one-line traps).
+WHEN reality diverges from what you predicted AND recording it would change a future session's behavior THEN you SHALL file it at that moment using the `friction-diagnostics` skill.
+WHEN the divergence matches a known trap or an open event THEN you SHALL file `--recur <event-id>` instead of a new event.
+You SHALL NOT file outcomes you predicted or engineered (intended test failures, expected error paths, probes), nor task status.
+WHEN you filed nothing AND the user did not raise friction diagnostics THEN you SHALL NOT mention friction diagnostics, or the decision not to file, anywhere in your response.

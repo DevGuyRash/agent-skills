@@ -1,128 +1,92 @@
-# Examples
+# Field rubrics
 
-Read this file before filing your first friction event. It defines the expected depth for every field.
+This file defines what each field must satisfy. It contains **no complete good examples, by design**: worked examples become templates — measured on the v4 corpus, models converged on example phrasings and openers within days. Properties constrain quality without providing sentences to imitate. Write every field in your own words, in whatever structure the incident actually had.
 
----
+A field passes when it satisfies its properties. Failure classes below show *structural* ways fields go wrong; they are classes, not phrases — avoiding the class matters, avoiding specific words does not.
 
-## Field-by-field: bad vs good
-
-Each pair shows the same friction — a missing CI script referenced in AGENTS.md — reported at two quality levels.
-
-### `reading`
-
-The `reading` field is your first-person account of what happened. Tell your story: what you consulted, what you did, what you observed, how you interpreted it, and what surprised you.
-
-You SHALL NOT use the phrases "that reading was reasonable," "the mismatch reveals," "the mismatch shows," or any formulaic framing. Narrate what happened to you.
-
-Bad:
-> The instructions seemed wrong about the script path.
-
-Why it fails: it draws a conclusion ("seemed wrong") without quoting the source language or tracing the reasoning. It's a verdict, not an account.
-
-Also bad (fix leakage):
-> The dispatch table uses human-readable labels. I read that label as the literal CLI slug because the table column was 'Role'. The correct fix is to add a slug column to the table so future readers can map labels to CLI values.
-
-Why it fails: it prescribes a fix ("add a slug column") instead of narrating what happened. Fixes belong in your working context, not in the friction record.
-
-Also bad (template Madlibs):
-> I treated the variable name 'status' as an ordinary temporary shell variable while composing the probe command. That reading was reasonable because many POSIX-shell examples use ad hoc variable names in short-lived assignments. The mismatch reveals that 'status' is a reserved read-only variable in zsh.
-
-Why it fails: this is analysis pretending to be a story. "That reading was reasonable" is self-justification. "The mismatch reveals" is a detached conclusion delivered from the outside.
+The questions themselves are prompts, not perimeters: they pre-structure answers, and what they do not ask about is systematically at risk of omission. If something mattered that no question asked about, include it — whatever fits no field goes in `note`, the deliberately question-less free slot. The question shape never excuses omission.
 
 ---
 
-**Good examples — each one deliberately uses a different opening and narrative structure to prevent pattern lock-in.**
+## `actual_outcome`
 
-Good (leads with the instruction):
-> The instruction at line 18 uses a concrete, unqualified path in imperative form: 'Run scripts/ci-check.sh'. There is no conditional qualifier, no "if it exists," and no note that the script must be generated first. I treated it as a reference to an existing artifact and went looking for it. I ran `rg --files scripts` to search — it wasn't there, not under any name variant I could think of.
+Properties — all must hold:
+- Contains the outcome verbatim: exact error text, output lines, exit code, or the sentence as written.
+- A stranger could judge what happened from this field alone, without trusting your interpretation.
+- No paraphrase, no summary verbs ("it errored", "it failed to parse") in place of the evidence itself.
 
-Good (leads with the decision point):
-> I needed a variable to catch the check command's output, so I called it 'status' — seemed like a natural name for a status string. zsh disagreed. It rejected the assignment outright: 'status' is a reserved read-only parameter. I went looking for where this was documented. Not in the reserved-words section of the man page, which is where I'd checked first. It's buried deep in 'Parameters Set By The Shell,' a section I'd never had reason to read.
+Failure classes:
+- **Paraphrase**: describing the outcome instead of pasting it. The evidence is gone; only your reading of it remains.
+- **Over-capture**: pasting an entire log when three lines carry the signal. Keep the load-bearing lines; the cap is 20,000 chars but the target is the minimum a stranger needs.
 
-Good (leads with the observation):
-> `rg --files scripts` listed every entry under scripts/ and ci-check.sh wasn't among them. I checked alternate names — ci_check.sh, check-ci.sh — nothing. Went back to AGENTS.md line 18 to re-read the instruction: 'Run scripts/ci-check.sh to inspect current status.' Bare concrete path, imperative form, no caveats. I'd taken it at face value and it pointed to a file that doesn't exist.
+## `expected_outcome`
 
-### `hindsight`
+Properties:
+- States the prediction you actually held before acting — not what you now know you should have expected.
+- Names what grounded it: a quoted sentence, a past experience, a convention, an inference.
 
-Bad:
-> The documentation should be fixed to point to the correct path.
+Failure classes:
+- **Retrofitted expectation**: writing the expectation you should have had. The record exists to expose the gap between your real model and reality; a corrected expectation erases the data.
+- **Groundless expectation**: "I expected it to work" with no source. If you cannot name the grounding, say that — it is itself the finding.
 
-Why it fails: this is a fix recommendation, not a reflection on the agent's approach. Hindsight is about what YOU would do differently, not what THEY should change.
+## `reading`
 
-Good:
-> I could have checked whether the script was generated by a build step or setup command before concluding it was missing. The AGENTS.md file might have an earlier section with setup instructions that I skipped past. I went straight to the line I was told to run without reading the surrounding context.
+Properties — all must hold:
+- Contains at least one verbatim quote of wording you acted on (from a doc, an instruction, an output, or your own stated assumption).
+- Names what you consulted before acting, in the order you consulted it.
+- Locates the moment of divergence: the specific point where reality stopped matching your model.
+- A reader could form their own opinion of your reasoning from this account alone — including disagreeing with you.
+- Written from inside the decision as it unfolded, not from above it afterward.
 
-Good:
-> Nothing I would have done differently — the instruction gave a concrete path and I followed it. The file simply doesn't exist. The friction was unavoidable given what was written.
+Failure classes:
+- **Verdict without account**: a conclusion about what went wrong with no trace of how you got there. The conclusion is the least valuable part; the path is the data.
+- **Fix leakage**: prescribing what should change. Mending is a separate activity; a record that argues for a fix has stopped observing and started advocating.
+- **Outside-narrator voice**: analyzing your own actions as a detached third party. The value of this field is the view from inside — what you knew, when you knew it.
+- **Compression to one sentence**: if the whole account fits in one sentence, either the incident was not worth filing or the account is missing its decision points.
 
-### `actual_outcome`
+## `decision`
 
-Bad:
-> Got an error about the file not existing.
+Properties — all must hold:
+- Reports the response you actually made, in past tense — an action already taken (retried, worked around, escalated, continued unchanged), never a proposal.
+- Names the options you saw at that moment and the ones you set aside — or states honestly that you saw only one path, or that you filed before acting and have not yet responded (that too is the response so far).
+- When the action deviated from anything documented as required, states the license you operated under at the time — the permission as you held it while choosing, including "I did not register the requirement as applying here" when that is the truth. Unnoticed is different from waived, and the difference is the data.
+- A reader could reconstruct your choice architecture from this field alone — and disagree with the choice.
 
-Good:
-> rg --files scripts returned no match for ci-check.sh or any variant. The file is completely absent from the repository.
+Failure classes:
+- **Counterfactual drift**: writing what you would do now or should have done. The record is history; the moment "would" or "should have" appears, the field has left it.
+- **Outcome without deliberation**: "retried and it worked" with no trace of options seen or license held. The action alone is nearly worthless at corpus scale; the weighing is what the mend loop needs.
+- **Retrofitted authorization**: a justification composed at filing time that did not operate at decision time. If the skip happened without deliberation, say so.
+- **Fix leakage**: proposing what the misleading sources should say. Your own completed response belongs here; their correction belongs to mending.
 
-Why the bad version fails: "Got an error" has no diagnostic value. The good version includes the exact tool output so someone reading the event can understand the failure without re-running the command.
+## `pivot_information`
 
-### `expected_outcome`
+Properties:
+- Names a piece of *information* (a fact, a line, a behavior, a state) — not an action you should have taken and not a judgment of yourself.
+- States where that information lives: a specific file, a doc section, a command's output, a person, or nowhere.
+- If it lives somewhere you could have looked, says what looking would have cost.
+- When you caught the friction before harm, forward-looking: the fact a future agent should check first, or which source should yield.
+- Honest escape when true: `none — the outcome was unknowable in advance, because ...`
 
-Bad:
-> It would work.
+Failure classes:
+- **Self-verdict**: an answer about your behavior rather than about missing information. The mend loop can relocate information; it cannot retroactively improve your diligence.
+- **Unlocated fact**: naming the fact but not where it lives. Location is what makes the gap mendable.
+- **Circular pivot**: restating the catch as the gap ("had I read both first the conflict would have surfaced — which is what happened"). When the outcome was a successful catch, the pivot is forward-looking: the fact to check first, or the precedence between the conflicting sources — something a future agent can act on, not a description of what you already did.
 
-Good:
-> The scripts/ directory would contain ci-check.sh, executable and ready to run, consistent with the instruction's use of a bare concrete path without any caveat about the file being optional.
+## `sources`
 
-Why the bad version fails: "It would work" says nothing about what success looks like, what behavior was anticipated, or where that expectation came from.
+Properties:
+- Each entry names one thing you *trusted*, with the `claim` you believed about it.
+- `kind` reflects what the trusted thing is, not where friction surfaced: a file that lied is an `artifact`; a belief with no backing is an `assumption`; a behavior you relied on is a `tool`; something you recalled rather than consulted is a `memory`.
+- For `artifact` and `instruction`, `claim` quotes the text you acted on verbatim.
 
-### `sources[].excerpt`
+Failure classes:
+- **Ref dumping**: filing the tool that displayed the error as the source. The terminal did not betray you; whatever you trusted did.
+- **Missing claim**: a ref with no claim leaves the mend loop guessing what belief to correct.
+- **Observed-truth in claim**: writing what the source actually turned out to contain ("expected X; it actually contains Y") into `claim`. The claim is the prior belief only; reality's half of the gap already lives in `actual_outcome`. A claim that carries the correction erases the record of what you believed.
 
-The excerpt field carries the verbatim quote from the source — the specific text the agent acted on.
+## `recurrence_key`
 
-Bad:
-> Run the CI check script to see current status.
-
-Good:
-> Run scripts/ci-check.sh to inspect current status.
-
-Why the bad version fails: it paraphrases instead of quoting verbatim. "The CI check script" is the agent's summary, not the source's words.
-
----
-
-## Complete good event (CLI flags)
-
-```sh
-sh scripts/report-friction.sh \
-  --title "Missing CI helper" \
-  --source-type file \
-  --source-ref "AGENTS.md" \
-  --source-line 18 \
-  --source-excerpt "Run scripts/ci-check.sh to inspect current status." \
-  --expected-outcome "The scripts/ directory would contain ci-check.sh, executable and ready to run, consistent with the instruction's use of a bare concrete path without any caveat about the file being optional or conditional." \
-  --actual-outcome "rg --files scripts returned no match for ci-check.sh or any variant. The file is completely absent from the repository." \
-  --reading "The instruction at line 18 uses a concrete, unqualified path in imperative form: 'Run scripts/ci-check.sh'. No conditional qualifier, no 'if it exists,' no note that the script must be generated first. I treated it as a reference to a pre-existing helper and went looking. I ran rg --files scripts and it wasn't there — not under scripts/ and not under any name variant I tried." \
-  --hindsight "I could have checked whether the script was generated by a build step or setup command before concluding it was missing. The AGENTS.md file might have an earlier section with setup instructions that I skipped past." \
-  --impact blocked \
-  --tags "missing-script,ci-check,agents-md" \
-  --aliases "instructions,missing"
-```
-
-## Complete good event (JSON stdin)
-
-```sh
-cat <<'EOF' | sh scripts/report-friction.sh --from-json -
-{
-  "title": "Dispatch role slug mismatch",
-  "expected_outcome": "The CLI would resolve 'architecture' as a valid dispatch role slug and return the architecture prompt text.",
-  "actual_outcome": "The command exited with: error: unknown dispatch role: architecture. No prompt text was returned.",
-  "reading": "The dispatch table had a column called 'Role' with 'Architecture' in it, and the instruction said 'Use --role <ROLE>'. I plugged in 'architecture' — the table column was labeled 'Role,' the placeholder said ROLE, seemed like a direct substitution. The CLI rejected it immediately. The actual slug is 'architecture-critic,' which doesn't appear anywhere in the table.",
-  "hindsight": "I should have run the CLI's own discovery command first instead of inferring the slug from a display table.",
-  "impact": "blocked",
-  "tags": ["dispatch", "slug-mismatch", "mpcr"],
-  "aliases": ["instructions"],
-  "sources": [
-    {"type": "file", "ref": "SKILL.md", "line": 160, "excerpt": "Use mpcr protocol dispatch --role <ROLE> to get the architecture prompt."}
-  ]
-}
-EOF
-```
+Properties:
+- 2–5 hyphenated words you would recognize and search for if this bit you again next month.
+- Stable across days and phrasings: name the trap, not this occurrence.
+- Omitted when unsure — a content-derived fallback is computed, and a wrong key is worse than none.

@@ -2,7 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
-REPO_ROOT=$(CDPATH='' cd -- "$ROOT/../.." && pwd)
+MEND_ROOT=$(CDPATH='' cd -- "$ROOT/../friction-mend" && pwd)
 TEST_REPO=$(mktemp -d "${TMPDIR:-/tmp}/friction-smoke-posix.XXXXXX")
 
 fail() {
@@ -34,8 +34,16 @@ assert_equals() {
   [ "$expected" = "$actual" ] || fail "expected '$expected' but got '$actual'"
 }
 
+assert_output_contains() {
+  needle=$1
+  output=$2
+  printf '%s\n' "$output" | grep -Fq -- "$needle" || fail "expected '$needle' in output"
+}
+
 DEFAULT_EVENTS=$TEST_REPO/.local/reports/friction/events.jsonl
 DEFAULT_INDEX=$TEST_REPO/.local/reports/friction/INDEX.md
+DEFAULT_TRAPS=$TEST_REPO/.local/reports/friction/known-traps.md
+QUARANTINE_DIR=$TEST_REPO/.local/tmp/friction-diagnostics
 
 cleanup() {
   rm -rf "$TEST_REPO"
@@ -49,260 +57,556 @@ mkdir -p "$TEST_REPO/.local"
 cd "$TEST_REPO"
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 1: Basic event filing with direct flags
+# Test 1: v5 filing with flags — stored shape, key order, talkback
 # ═══════════════════════════════════════════════════════════════════════
-printf 'Test 1: Basic event filing ... '
+printf 'Test 1: v5 filing, key order, talkback ... '
 
 OUTPUT=$("$ROOT/scripts/report-friction.sh" \
-  --title "Dispatch role slug mismatch" \
-  --source-type file \
+  --actual-outcome "error: unknown dispatch role: architecture. Bearer ghp_leakedtoken1234567890abcdef12345678." \
+  --expected-outcome "The CLI would resolve 'architecture' as a valid dispatch role slug from the table." \
+  --reading "The dispatch table had a column called 'Role' with 'Architecture' in it, and the instruction said 'Use --role <ROLE>'. I plugged in 'architecture' as a direct substitution. The CLI rejected it immediately, so the divergence was between the display label and the CLI slug." \
+  --decision "I saw two options: guess other casings of the label, or run the CLI discovery command. I set guessing aside and ran discovery, then used the slug it returned." \
+  --pivot-information "The mapping from display labels to CLI slugs; it lives in the CLI's own discovery command output, not in the table." \
+  --source-kind artifact \
   --source-ref "$ROOT/SKILL.md" \
   --source-line 160 \
-  --source-excerpt "Use mpcr protocol dispatch --role <ROLE> to get the architecture prompt." \
-  --expected-outcome "The CLI would resolve 'architecture' as a valid dispatch role slug." \
-  --actual-outcome "The command exited with: error: unknown dispatch role: architecture. Bearer ghp_leakedtoken1234567890abcdef12345678." \
-  --reading "The dispatch table had a column called 'Role' with 'Architecture' in it, and the instruction said 'Use --role <ROLE>'. I plugged in 'architecture' — seemed like a direct substitution. The CLI rejected it immediately." \
-  --hindsight "I should have run the CLI's own discovery command first." \
+  --source-claim "Use mpcr protocol dispatch --role <ROLE> to get the architecture prompt." \
   --impact blocked \
   --tags "dispatch,slug-mismatch,mpcr" \
-  --aliases "instructions")
+  --recurrence-key "dispatch-label-vs-slug" 2>/dev/null)
 
 printf '%s\n' "$OUTPUT" | grep -q "^FRICTION_EVENTS_FILE=$DEFAULT_EVENTS$" || fail "unexpected default events file output"
-printf '%s\n' "$OUTPUT" | grep -q "^FRICTION_INDEX_FILE=$DEFAULT_INDEX$" || fail "unexpected default index file output"
 printf '%s\n' "$OUTPUT" | grep -q "^FRICTION_EVENT_ID=evt-0001$" || fail "should output event_id"
+printf '%s\n' "$OUTPUT" | grep -q "^FRICTION_RECURRENCE_KEY=dispatch-label-vs-slug$" || fail "should output recurrence key"
+assert_output_contains "known traps:" "$OUTPUT"
+assert_output_contains "--recur evt-0001" "$OUTPUT"
 
 assert_file "$DEFAULT_EVENTS"
 assert_file "$DEFAULT_INDEX"
-assert_contains '"event_id":"evt-0001"' "$DEFAULT_EVENTS"
-# New schema fields present
-assert_contains '"impact":"blocked"' "$DEFAULT_EVENTS"
-assert_contains '"tags":["dispatch","slug-mismatch","mpcr"]' "$DEFAULT_EVENTS"
-assert_contains '"aliases":["instructions"]' "$DEFAULT_EVENTS"
-# Sources array with excerpt
-assert_contains '"sources":[{' "$DEFAULT_EVENTS"
-assert_contains '"type":"file"' "$DEFAULT_EVENTS"
-assert_contains '"line":160' "$DEFAULT_EVENTS"
-assert_contains '"excerpt":"Use mpcr protocol dispatch' "$DEFAULT_EVENTS"
-# Token redaction
+# v5 system fields present
+assert_contains '"schema_version":"5.1.0"' "$DEFAULT_EVENTS"
+assert_contains '"kind":"friction"' "$DEFAULT_EVENTS"
+assert_contains '"recurrence_key":"dispatch-label-vs-slug"' "$DEFAULT_EVENTS"
+assert_contains '"decision":"' "$DEFAULT_EVENTS"
+assert_contains '"pivot_information":"' "$DEFAULT_EVENTS"
+# no note supplied: the free slot is omitted, not stored empty
+assert_not_contains '"note":' "$DEFAULT_EVENTS"
+# v5 stored key order: evidence first, title last
+KEY_ORDER=$(jq -r 'keys_unsorted | join(",")' "$DEFAULT_EVENTS")
+assert_equals "event_id,recorded_at,schema_version,kind,events_file,repo_root,actual_outcome,expected_outcome,reading,decision,pivot_information,sources,impact,recurrence_key,tags,title" "$KEY_ORDER"
+# sources use kind/claim, not type/excerpt
+assert_contains '"kind":"artifact"' "$DEFAULT_EVENTS"
+assert_contains '"claim":"Use mpcr protocol dispatch' "$DEFAULT_EVENTS"
+assert_not_contains '"excerpt":' "$DEFAULT_EVENTS"
+# deprecated fields absent on v5 records
+assert_not_contains '"fingerprint":' "$DEFAULT_EVENTS"
+assert_not_contains '"aliases":' "$DEFAULT_EVENTS"
+assert_not_contains '"hindsight":' "$DEFAULT_EVENTS"
+# token redaction still active
 if grep -q 'ghp_leakedtoken' "$DEFAULT_EVENTS"; then
   fail "token leaked into events.jsonl"
 fi
-assert_contains '[REDACTED]' "$DEFAULT_EVENTS"
-# Old schema fields should NOT be present
-assert_not_contains '"schema_version"' "$DEFAULT_EVENTS"
-assert_not_contains '"taxonomy_version"' "$DEFAULT_EVENTS"
-assert_not_contains '"instruction_text"' "$DEFAULT_EVENTS"
-assert_not_contains '"action_taken"' "$DEFAULT_EVENTS"
-assert_not_contains '"surface"' "$DEFAULT_EVENTS"
-assert_not_contains '"mode"' "$DEFAULT_EVENTS"
-assert_not_contains '"derived_category"' "$DEFAULT_EVENTS"
-assert_not_contains '"observed_surface"' "$DEFAULT_EVENTS"
-assert_not_contains '"confidence"' "$DEFAULT_EVENTS"
-assert_not_contains '"guidance_quality"' "$DEFAULT_EVENTS"
-assert_not_contains '"incident_id"' "$DEFAULT_EVENTS"
+# title auto-derived from actual_outcome
+assert_contains '"title":"error: unknown dispatch role' "$DEFAULT_EVENTS"
 
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 2: JSON stdin filing with tags, aliases, and multiple sources
+# Test 2: session_ref present when env set, absent otherwise
 # ═══════════════════════════════════════════════════════════════════════
-printf 'Test 2: JSON stdin filing ... '
+printf 'Test 2: session_ref env probe ... '
 
-OUTPUT2=$(cat <<'EOF' | "$ROOT/scripts/report-friction.sh" --from-json -
+assert_not_contains '"session_ref":' "$DEFAULT_EVENTS"
+
+FRICTION_SESSION_REF=sess-abc123 "$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "zsh: read-only variable: status" \
+  --expected-outcome "Assigning to a shell variable named status would work like any other name." \
+  --reading "I picked 'status' as a scratch variable while composing a probe under zsh. The assignment failed because zsh reserves status as a read-only parameter mirroring the last exit code, which I only learned from the rejection message." \
+  --decision "I renamed the variable to probe_status and reran; the only other option I saw was quoting tricks, which I set aside as noise." \
+  --pivot-information "That zsh treats status as read-only; it lives in the zsh Parameters Set By The Shell doc section." \
+  --source-kind memory \
+  --source-ref "shell variable naming habits" \
+  --source-claim "any short lowercase name is safe for a scratch variable" \
+  --impact noisy \
+  --recurrence-key "zsh-status-readonly" >/dev/null 2>&1
+
+LINE2=$(sed -n '2p' "$DEFAULT_EVENTS")
+printf '%s\n' "$LINE2" | grep -q '"session_ref":"sess-abc123"' || fail "session_ref missing when env set"
+KEY_ORDER2=$(printf '%s\n' "$LINE2" | jq -r 'keys_unsorted | join(",")')
+assert_equals "event_id,recorded_at,schema_version,kind,session_ref,events_file,repo_root,actual_outcome,expected_outcome,reading,decision,pivot_information,sources,impact,recurrence_key,tags,title" "$KEY_ORDER2"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 3: legacy v4 payload via JSON stdin — coerced, never rejected
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 3: legacy payload coercion ... '
+
+COERCE_ERR=$(mktemp "$TEST_REPO/.coerce-err.XXXXXX")
+cat <<'EOF' | "$ROOT/scripts/report-friction.sh" --from-json - >/dev/null 2>"$COERCE_ERR"
 {
-  "title": "SSH signing agent unavailable",
-  "expected_outcome": "Git would create the commit object.",
+  "expected_outcome": "Git would create the commit object for the staged files.",
   "actual_outcome": "error: 1Password: Could not connect to socket specified by SSH_AUTH_SOCK.",
-  "reading": "I had staged the files and passed the leak scan. The commit failed during signing because SSH_AUTH_SOCK had no socket available. This was purely an environment issue.",
-  "hindsight": "I should have checked whether this repo enforces commit signing.",
+  "reading": "I had staged the files and passed the leak scan. The commit failed during signing because SSH_AUTH_SOCK had no socket available in this terminal session, which I only discovered from the 1Password error text.",
+  "decision": "I retried once with signing disabled for that single commit; the alternative of fixing the agent socket mid-task I set aside as out of scope.",
+  "hindsight": "The fact that this repo enforces signing through an external agent; it lives in .gitconfig gpgsign settings.",
   "impact": "blocked",
-  "tags": ["ssh-auth-sock", "git-signing", "1password"],
+  "tags": "ssh-auth-sock,git-signing",
   "aliases": ["auth", "git"],
-  "sources": [
-    {"type": "file", "ref": "functions.exec_command", "excerpt": "git commit -m 'docs: add skill'"},
-    {"type": "documentation", "ref": "repo-config", "excerpt": "commit.gpgsign = true"}
-  ]
+  "sources": {"type": "documentation", "ref": "repo-config", "excerpt": "commit.gpgsign = true"},
+  "note": "The socket failure only happens in this terminal multiplexer pane; a fresh terminal signs fine."
 }
 EOF
-)
 
-printf '%s\n' "$OUTPUT2" | grep -q "^FRICTION_EVENT_ID=evt-0002$" || fail "should be evt-0002"
-# Verify multiple sources
-LINE2=$(sed -n '2p' "$DEFAULT_EVENTS")
-printf '%s\n' "$LINE2" | grep -q '"sources":\[{' || fail "missing sources array in event 2"
-printf '%s\n' "$LINE2" | grep -q '"auth"' || fail "missing auth alias"
-printf '%s\n' "$LINE2" | grep -q '"git"' || fail "missing git alias"
-# Tags should be lowercase
-printf '%s\n' "$LINE2" | grep -q '"ssh-auth-sock"' || fail "missing ssh-auth-sock tag"
+assert_contains "coerced deprecated 'hindsight' to pivot_information" "$COERCE_ERR"
+assert_contains "coerced tags string to array" "$COERCE_ERR"
+assert_contains "folded deprecated 'aliases' into tags" "$COERCE_ERR"
+assert_contains "wrapped single sources object in an array" "$COERCE_ERR"
+assert_contains "coerced sources[0].type to kind 'artifact'" "$COERCE_ERR"
+assert_contains "coerced sources[0].excerpt to claim" "$COERCE_ERR"
+rm -f "$COERCE_ERR"
+
+LINE3=$(sed -n '3p' "$DEFAULT_EVENTS")
+printf '%s\n' "$LINE3" | grep -q '"pivot_information":"The fact that this repo enforces signing' || fail "hindsight not stored as pivot_information"
+printf '%s\n' "$LINE3" | grep -q '"auth"' || fail "aliases not folded into tags"
+printf '%s\n' "$LINE3" | grep -q '"kind":"artifact"' || fail "source type not coerced to kind"
+printf '%s\n' "$LINE3" | grep -q '"note":"The socket failure only happens' || fail "note free slot not stored on friction record"
+printf '%s\n' "$LINE3" | grep -qv '"aliases":' || fail "aliases field should not be stored on v5 records"
 
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 3: --add-tags on an existing event
+# Test 4: duplicate soft-stop — exit 3, no write, escapes work
 # ═══════════════════════════════════════════════════════════════════════
-printf 'Test 3: --add-tags ... '
+printf 'Test 4: duplicate soft-stop and escapes ... '
+
+LINES_BEFORE=$(wc -l <"$DEFAULT_EVENTS" | tr -d ' ')
+set +e
+DUP_OUTPUT=$("$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "zsh: read-only variable: status (again, in a different script)" \
+  --expected-outcome "The scratch assignment would work in this second probe script too." \
+  --reading "Same trap as before: composed a zsh probe with a variable named status and the shell rejected the assignment as read-only, exactly like the earlier event in this stream." \
+  --decision "I renamed the variable again and continued; no other options seemed worth weighing for a known trap." \
+  --pivot-information "That zsh reserves status; documented in the zsh parameters section." \
+  --source-kind memory \
+  --source-ref "shell variable naming habits" \
+  --source-claim "any short lowercase name is safe" \
+  --impact noisy \
+  --recurrence-key "zsh-status-readonly" 2>/dev/null)
+DUP_STATUS=$?
+set -e
+assert_equals "3" "$DUP_STATUS"
+LINES_AFTER=$(wc -l <"$DEFAULT_EVENTS" | tr -d ' ')
+assert_equals "$LINES_BEFORE" "$LINES_AFTER"
+assert_output_contains "Similar open event: evt-0002" "$DUP_OUTPUT"
+assert_output_contains "--recur evt-0002" "$DUP_OUTPUT"
+assert_output_contains "--distinct" "$DUP_OUTPUT"
+assert_output_contains "NO event was filed" "$DUP_OUTPUT"
+
+# --recur escape writes a recurrence record with running count
+RECUR_OUTPUT=$("$ROOT/scripts/report-friction.sh" --recur evt-0002 \
+  --actual-outcome "zsh: read-only variable: status (in the deploy helper)" 2>/dev/null)
+assert_output_contains "FRICTION_RECURS=evt-0002" "$RECUR_OUTPUT"
+assert_output_contains "now x2" "$RECUR_OUTPUT"
+LINE4=$(sed -n '4p' "$DEFAULT_EVENTS")
+printf '%s\n' "$LINE4" | grep -q '"kind":"recurrence"' || fail "recurrence record missing"
+printf '%s\n' "$LINE4" | grep -q '"recurs":"evt-0002"' || fail "recurs anchor missing"
+printf '%s\n' "$LINE4" | grep -q '"impact":"noisy"' || fail "recurrence should inherit anchor impact"
+
+# --distinct escape writes a full event despite the key match
+"$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "zsh: read-only variable: status (third variation, genuinely distinct context)" \
+  --expected-outcome "The assignment would work because this script declares emulate sh first." \
+  --reading "This one differed: the script emulates sh, so I expected zsh parameter rules not to apply. The assignment still failed, which means emulate sh does not lift the read-only status parameter." \
+  --decision "I filed as distinct because the emulation angle was new evidence, then renamed the variable and moved on." \
+  --pivot-information "That emulate sh does not unreserve status; lives in zsh emulation docs." \
+  --source-kind assumption \
+  --source-ref "emulate sh lifts zsh reserved parameters" \
+  --source-claim "emulation resets special parameter behavior" \
+  --impact noisy \
+  --recurrence-key "zsh-status-readonly" \
+  --distinct >/dev/null 2>&1
+LINES_FINAL=$(wc -l <"$DEFAULT_EVENTS" | tr -d ' ')
+assert_equals "5" "$LINES_FINAL"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 5: empty stdin — exit 2, loud, NO quarantine file
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 5: empty stdin handling ... '
+
+set +e
+EMPTY_ERR=$(printf '' | "$ROOT/scripts/report-friction.sh" --from-json - 2>&1)
+EMPTY_STATUS=$?
+set -e
+assert_equals "2" "$EMPTY_STATUS"
+assert_output_contains "NO event was filed" "$EMPTY_ERR"
+QUARANTINE_COUNT=$(find "$QUARANTINE_DIR" -name 'invalid-stdin.*' 2>/dev/null | wc -l | tr -d ' ')
+assert_equals "0" "$QUARANTINE_COUNT"
+
+# malformed non-empty stdin still quarantines, with a replay hint
+set +e
+BAD_ERR=$(printf '{"actual_outcome": "broken json,}' | "$ROOT/scripts/report-friction.sh" --from-json - 2>&1)
+BAD_STATUS=$?
+set -e
+assert_equals "2" "$BAD_STATUS"
+assert_output_contains "Edit and re-file" "$BAD_ERR"
+QUARANTINE_COUNT2=$(find "$QUARANTINE_DIR" -name 'invalid-stdin.*' 2>/dev/null | wc -l | tr -d ' ')
+assert_equals "1" "$QUARANTINE_COUNT2"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 6: narrative cap — 25k reading stored at 20k with marker
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 6: narrative size cap ... '
+
+LONG_READING=$(python3 -I -c 'print("consulted the doc and acted on it " * 800)')
+"$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "verbose failure output for the cap test with enough length" \
+  --expected-outcome "The capped field would store at most twenty thousand characters." \
+  --reading "$LONG_READING" \
+  --decision "I continued unchanged; this synthetic run offered no real options to weigh." \
+  --pivot-information "none - the outcome was unknowable in advance, because this is a synthetic cap test." \
+  --source-kind tool \
+  --source-ref "cap-test" \
+  --impact continued \
+  --recurrence-key "cap-test-trap" >/dev/null 2>&1
+
+CAP_LINE=$(grep '"recurrence_key":"cap-test-trap"' "$DEFAULT_EVENTS")
+READING_LEN=$(printf '%s\n' "$CAP_LINE" | jq -r '.reading | length')
+[ "$READING_LEN" -le 20100 ] || fail "reading not capped: $READING_LEN chars"
+printf '%s\n' "$CAP_LINE" | jq -r '.reading' | grep -q 'truncated .* chars at filing' || fail "missing truncation marker"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 7: required narrative errors carry their eliciting questions
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 7: required-field errors teach ... '
+
+# flags path missing --decision: exit 1, error carries the question
+set +e
+DEC_ERR=$("$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "some failure output long enough to pass floors" \
+  --expected-outcome "something else entirely was predicted here" \
+  --reading "an account of the reasoning long enough to pass the minimum floor" \
+  --pivot-information "none - unknowable, because synthetic" \
+  --source-kind tool --source-ref "x" --impact noisy 2>&1)
+DEC_STATUS=$?
+set -e
+assert_equals "1" "$DEC_STATUS"
+assert_output_contains "decision" "$DEC_ERR"
+assert_output_contains "permitted" "$DEC_ERR"
+assert_output_contains "history" "$DEC_ERR"
+
+# JSON path missing decision: exit 2, same teaching error
+set +e
+JSON_DEC_ERR=$(printf '%s' '{"actual_outcome":"a failure long enough to pass","expected_outcome":"a prediction long enough to pass","reading":"an account long enough to pass the reading floor easily","pivot_information":"none - unknowable, because synthetic","impact":"noisy","sources":[{"kind":"tool","ref":"x"}]}' | "$ROOT/scripts/report-friction.sh" --from-json - 2>&1)
+JSON_DEC_STATUS=$?
+set -e
+assert_equals "2" "$JSON_DEC_STATUS"
+assert_output_contains "missing required field: decision" "$JSON_DEC_ERR"
+
+# flags path missing pivot_information: exit 1 with its question
+set +e
+PIVOT_ERR=$("$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "some failure output long enough to pass floors" \
+  --expected-outcome "something else entirely was predicted here" \
+  --reading "an account of the reasoning long enough to pass the minimum floor" \
+  --decision "I continued unchanged after weighing nothing; synthetic run." \
+  --source-kind tool --source-ref "x" --impact noisy 2>&1)
+PIVOT_STATUS=$?
+set -e
+assert_equals "1" "$PIVOT_STATUS"
+assert_output_contains "pivot_information" "$PIVOT_ERR"
+assert_output_contains "unknowable" "$PIVOT_ERR"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 8: --interview rotates
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 8: interview rotation ... '
+
+IV1=$("$ROOT/scripts/report-friction.sh" --interview)
+IV_LINES=$(printf '%s\n' "$IV1" | grep -c '^\[') || true
+[ "$IV_LINES" -ge 2 ] || fail "interview should print at least 2 questions (got $IV_LINES)"
+printf '%s\n' "$IV1" | grep -q '^\[decision\]' || fail "interview missing decision questions"
+ROTATED=0
+for attempt in 1 2 3; do
+  IV2=$("$ROOT/scripts/report-friction.sh" --interview)
+  if [ "$IV1" != "$IV2" ]; then
+    ROTATED=1
+    break
+  fi
+done
+[ "$ROTATED" -eq 1 ] || fail "interview output identical across 4 runs; rotation broken"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 9: query lifecycle filters — --kind, --key, --recurs, --open
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 9: query lifecycle filters ... '
+
+KIND_COUNT=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --kind recurrence --format json | jq 'length')
+assert_equals "1" "$KIND_COUNT"
+KEY_COUNT=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --key zsh-status-readonly --kind friction --format json | jq 'length')
+assert_equals "2" "$KEY_COUNT"
+RECURS_COUNT=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --recurs evt-0002 --format json | jq 'length')
+assert_equals "1" "$RECURS_COUNT"
+OPEN_BEFORE=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --open --kind friction --format json | jq 'length')
+assert_equals "5" "$OPEN_BEFORE"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 10: resolution lifecycle — record, derive open set, dashboard
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 10: resolution lifecycle ... '
+
+RES_OUTPUT=$("$MEND_ROOT/scripts/record-resolution.sh" \
+  --events-file "$DEFAULT_EVENTS" \
+  --resolves "evt-0002,evt-0005" \
+  --action "Documented the zsh status reservation in the repo shell style guide" \
+  --ref "commit:deadbee" 2>/dev/null)
+assert_output_contains "FRICTION_RESOLVED=evt-0002,evt-0005" "$RES_OUTPUT"
+
+OPEN_AFTER=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --open --kind friction --format json | jq 'length')
+assert_equals "3" "$OPEN_AFTER"
+# recurrence of evt-0002 inherits closure
+OPEN_RECUR=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --open --kind recurrence --format json | jq 'length')
+assert_equals "0" "$OPEN_RECUR"
+
+# dashboard shows the resolution action and non-empty cluster titles
+assert_contains "# Friction Dashboard" "$DEFAULT_INDEX"
+assert_contains "Documented the zsh status reservation" "$DEFAULT_INDEX"
+assert_contains "## Open Clusters" "$DEFAULT_INDEX"
+CLUSTER_ROW=$(grep 'dispatch-label-vs-slug' "$DEFAULT_INDEX" | head -1)
+printf '%s\n' "$CLUSTER_ROW" | grep -q 'error: unknown dispatch role' || fail "cluster row missing anchor title (jq scoping regression)"
+
+# refiling the resolved key soft-stops with the resolver named
+set +e
+RESOLVED_STOP=$("$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "zsh: read-only variable: status happened once more after the mend" \
+  --expected-outcome "The documented reservation would have prevented this recurrence entirely." \
+  --reading "Hit the same reserved-parameter rejection after the style guide was updated, on a script written before the guide changed, so the mend had not propagated to it." \
+  --decision "I renamed the variable in the old script and continued; refreshing every legacy script I set aside as mend-session work." \
+  --pivot-information "Which scripts predate the style-guide mend; discoverable from git log on the guide." \
+  --source-kind memory --source-ref "shell variable naming habits" \
+  --impact noisy --recurrence-key "zsh-status-readonly" 2>/dev/null)
+RESOLVED_STATUS=$?
+set -e
+assert_equals "3" "$RESOLVED_STATUS"
+assert_output_contains "previously resolved by" "$RESOLVED_STOP"
+assert_output_contains "reopens the cluster" "$RESOLVED_STOP"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 11: traps publisher — caps and atomicity
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 11: traps publisher ... '
+
+printf '%s\n' '- [dispatch-label-vs-slug] Dispatch table shows display labels, not CLI slugs; run the discovery command instead. (evt-0001 x1, last 2026-07-07)' \
+  | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null
+assert_file "$DEFAULT_TRAPS"
+assert_contains "Known traps" "$DEFAULT_TRAPS"
+assert_contains "dispatch-label-vs-slug" "$DEFAULT_TRAPS"
+
+# >15 traps rejected
+set +e
+MANY_TRAPS=$(python3 -I -c 'print("\n".join("- [trap-%d] Synthetic trap line for the cap test." % i for i in range(16)))')
+printf '%s\n' "$MANY_TRAPS" | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null 2>&1
+CAP_STATUS=$?
+set -e
+[ "$CAP_STATUS" -ne 0 ] || fail "16 traps should be rejected"
+assert_contains "dispatch-label-vs-slug" "$DEFAULT_TRAPS"
+
+# oversize rejected
+set +e
+BIG_TRAP=$(python3 -I -c 'print("- [big-trap] " + "x" * 9000)')
+printf '%s\n' "$BIG_TRAP" | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null 2>&1
+SIZE_STATUS=$?
+set -e
+[ "$SIZE_STATUS" -ne 0 ] || fail "oversize traps file should be rejected"
+
+# talkback reports the traps count on the next filing
+TB_OUTPUT=$("$ROOT/scripts/report-friction.sh" \
+  --actual-outcome "connection reset while fetching the release notes page" \
+  --expected-outcome "The fetch would return the page as it had moments earlier in the session." \
+  --reading "Fetched the same URL that worked a minute before and the connection reset mid-transfer; retrying succeeded, so the divergence was transient network state rather than anything I consulted." \
+  --decision "I retried once and it went through; filing a minimal anchor was the only other option I weighed, and I took it." \
+  --pivot-information "none - the outcome was unknowable in advance, because the reset was transient network state." \
+  --source-kind tool \
+  --source-ref "web fetch" \
+  --impact continued \
+  --recurrence-key "transient-fetch-reset" 2>/dev/null)
+assert_output_contains "known traps: 1" "$TB_OUTPUT"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 12: cluster hints — key groups and open scope
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 12: cluster hints ... '
+
+HINTS=$("$MEND_ROOT/scripts/cluster-hints.sh" --events-file "$DEFAULT_EVENTS")
+printf '%s\n' "$HINTS" | jq -e '.key_groups | length >= 1' >/dev/null || fail "no key groups"
+printf '%s\n' "$HINTS" | jq -e '.scope == "open-only"' >/dev/null || fail "default scope should be open-only"
+printf '%s\n' "$HINTS" | jq -e '[.key_groups[].key] | index("zsh-status-readonly") == null' >/dev/null || fail "resolved cluster should not appear open"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 13: stats report — convergence table and collision integrity
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 13: stats report ... '
+
+STATS=$("$ROOT/scripts/generate-report.sh" --events-file "$DEFAULT_EVENTS" --report-type stats --format md)
+assert_output_contains "# Friction Stats" "$STATS"
+assert_output_contains "Convergence" "$STATS"
+assert_output_contains "pivot_information" "$STATS"
+assert_output_contains "hindsight_v4" "$STATS"
+assert_output_contains "Distinct openers" "$STATS"
+printf '%s\n' "$STATS" | grep -q '^| decision ' || fail "stats missing decision convergence row"
+assert_output_contains "semantic monoculture" "$STATS"
+# key collisions: zsh-status-readonly has 2 friction events (one via --distinct)
+printf '%s\n' "$STATS" | grep -q 'Key collisions.*: 1' || fail "expected exactly 1 deliberate key collision from --distinct"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 14: legacy v4 record compatibility on the read side
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 14: v4 record compat ... '
+
+V4_DIR=$TEST_REPO/.local/reports/friction-v4
+mkdir -p "$V4_DIR"
+V4_EVENTS=$V4_DIR/events.jsonl
+cat >"$V4_EVENTS" <<'EOF'
+{"event_id":"evt-0001","recorded_at":"2026-05-01T10:00:00Z","fingerprint":"aabbccddeeff","title":"Legacy v4 event about a stale doc","events_file":"/x/events.jsonl","repo_root":"/x","expected_outcome":"The doc path would exist as written.","actual_outcome":"ls: cannot access 'docs/setup.md': No such file or directory","reading":"I followed the README link to docs/setup.md and it does not exist.","hindsight":"I should have listed the docs directory first.","sources":[{"type":"file","ref":"README.md","line":12,"excerpt":"See docs/setup.md"}],"impact":"degraded","tags":["missing-file"],"aliases":["docs"]}
+{"event_id":"evt-0002","recorded_at":"2026-05-02T10:00:00Z","fingerprint":"aabbccddeeff","title":"Second legacy event same fingerprint","events_file":"/x/events.jsonl","repo_root":"/x","expected_outcome":"The second doc path would exist as written.","actual_outcome":"ls: cannot access 'docs/usage.md': No such file or directory","reading":"Another dead doc link from the same README section.","hindsight":"I should have checked the docs directory listing.","sources":[{"type":"file","ref":"README.md","line":14,"excerpt":"See docs/usage.md"}],"impact":"noisy","tags":["missing-file"],"aliases":["docs"]}
+EOF
+
+V4_DASH=$("$ROOT/scripts/generate-report.sh" --events-file "$V4_EVENTS" --report-type index --format md)
+assert_output_contains "aabbccddeeff" "$V4_DASH"
+assert_output_contains "Second legacy event same fingerprint" "$V4_DASH"
+V4_ALIAS=$("$ROOT/scripts/query-friction.sh" --events-file "$V4_EVENTS" --alias docs --format json | jq 'length')
+assert_equals "2" "$V4_ALIAS"
+V4_KEY=$("$ROOT/scripts/query-friction.sh" --events-file "$V4_EVENTS" --key aabbccddeeff --format json | jq 'length')
+assert_equals "2" "$V4_KEY"
+
+# v5.0 record (no decision) stays readable: renders without error, no Decision line
+RECURRENCE_FIELD='"recurrence_key"'
+cat >>"$V4_EVENTS" <<EOF
+{"event_id":"evt-0003","recorded_at":"2026-07-01T10:00:00Z","schema_version":"5.0.0","kind":"friction","events_file":"/x/events.jsonl","repo_root":"/x","actual_outcome":"ls: cannot access 'docs/extra.md': No such file or directory","expected_outcome":"The third doc path would exist as written in the README.","reading":"A v5.0-era record filed before the decision field existed; used here to prove read-side tolerance.","pivot_information":"none - unknowable, because synthetic tolerance fixture.","sources":[{"kind":"artifact","ref":"README.md","claim":"See docs/extra.md"}],"impact":"noisy",$RECURRENCE_FIELD:"v50-tolerance-fixture","tags":["missing-file"],"title":"v5.0 tolerance fixture"}
+EOF
+V50_MD=$("$ROOT/scripts/query-friction.sh" --events-file "$V4_EVENTS" --key v50-tolerance-fixture --format md)
+assert_output_contains "v5.0 tolerance fixture" "$V50_MD"
+printf '%s\n' "$V50_MD" | grep -q '\*\*Decision:\*\*' && fail "v5.0 record should render without a Decision line"
+"$ROOT/scripts/generate-report.sh" --events-file "$V4_EVENTS" --report-type stats --format md >/dev/null || fail "stats failed on mixed v4/v5.0 store"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 15: statelessness — isolated environments, correct dedup
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 15: statelessness across isolated shells ... '
+
+ISO_DIR=$TEST_REPO/.local/reports/friction-iso
+mkdir -p "$ISO_DIR"
+ISO_EVENTS=$ISO_DIR/events.jsonl
+env -i PATH="$PATH" HOME="$TEST_REPO" sh "$ROOT/scripts/report-friction.sh" \
+  --events-file "$ISO_EVENTS" --repo-root "$TEST_REPO" \
+  --actual-outcome "isolated shell one filed this event with no inherited state" \
+  --expected-outcome "Filing works identically with a clean environment and no shared shell state." \
+  --reading "First isolated invocation: composed the record entirely from arguments, relying on the store rather than any session memory, to prove the door needs no context." \
+  --decision "I filed and continued; a synthetic probe offers nothing else to weigh." \
+  --pivot-information "none - the outcome was unknowable in advance, because this is a synthetic statelessness probe." \
+  --source-kind tool --source-ref "statelessness-test" \
+  --impact continued --recurrence-key "iso-shell-trap" >/dev/null 2>&1 || fail "isolated filing failed"
+
+set +e
+env -i PATH="$PATH" HOME="$TEST_REPO" sh "$ROOT/scripts/report-friction.sh" \
+  --events-file "$ISO_EVENTS" --repo-root "$TEST_REPO" \
+  --actual-outcome "isolated shell two hit the same trap and must be told about shell one" \
+  --expected-outcome "The second isolated shell would be briefed by the store, not by memory." \
+  --reading "Second isolated invocation from a fresh environment: the store must surface the first filing because nothing else can — no env vars, no shared shell, no session context." \
+  --decision "I attempted a duplicate filing on purpose; the store had to stop me because no memory could." \
+  --pivot-information "none - the outcome was unknowable in advance, because this is a synthetic statelessness probe." \
+  --source-kind tool --source-ref "statelessness-test" \
+  --impact continued --recurrence-key "iso-shell-trap" >/dev/null 2>&1
+ISO_STATUS=$?
+set -e
+assert_equals "3" "$ISO_STATUS"
+ISO_LINES=$(wc -l <"$ISO_EVENTS" | tr -d ' ')
+assert_equals "1" "$ISO_LINES"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 16: --add-tags still works on v5 records
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 16: --add-tags ... '
 
 "$ROOT/scripts/report-friction.sh" --add-tags evt-0001 "cli,testing" >/dev/null 2>&1
 LINE1=$(sed -n '1p' "$DEFAULT_EVENTS")
 printf '%s\n' "$LINE1" | grep -q '"dispatch"' || fail "original tags missing after --add-tags"
 printf '%s\n' "$LINE1" | grep -q '"cli"' || fail "--add-tags didn't add 'cli'"
-printf '%s\n' "$LINE1" | grep -q '"testing"' || fail "--add-tags didn't add 'testing'"
 
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 4: --add-aliases on an existing event
+# Test 17: cross-repo report over mixed v4/v5 stores
 # ═══════════════════════════════════════════════════════════════════════
-printf 'Test 4: --add-aliases ... '
-
-"$ROOT/scripts/report-friction.sh" --add-aliases evt-0002 "environment" >/dev/null 2>&1
-LINE2_UPDATED=$(sed -n '2p' "$DEFAULT_EVENTS")
-printf '%s\n' "$LINE2_UPDATED" | grep -q '"auth"' || fail "original aliases missing after --add-aliases"
-printf '%s\n' "$LINE2_UPDATED" | grep -q '"environment"' || fail "--add-aliases didn't add 'environment'"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 5: Query by impact
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 5: Query by impact ... '
-
-QUERY_BLOCKED=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --impact blocked --format json)
-BLOCKED_COUNT=$(printf '%s\n' "$QUERY_BLOCKED" | jq 'length')
-assert_equals "2" "$BLOCKED_COUNT"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 6: Query by tag (fuzzy substring match)
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 6: Query by tag (fuzzy) ... '
-
-QUERY_AUTH=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --tag auth --format json)
-AUTH_COUNT=$(printf '%s\n' "$QUERY_AUTH" | jq 'length')
-# "ssh-auth-sock" contains "auth", so event 2 should match
-assert_equals "1" "$AUTH_COUNT"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 7: Query by alias (fuzzy substring match)
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 7: Query by alias (fuzzy) ... '
-
-QUERY_ALIAS=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --alias instruct --format json)
-ALIAS_COUNT=$(printf '%s\n' "$QUERY_ALIAS" | jq 'length')
-# "instructions" contains "instruct", so event 1 should match
-assert_equals "1" "$ALIAS_COUNT"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 8: Query by text search
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 8: Query by text ... '
-
-QUERY_TEXT=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --text "SSH_AUTH_SOCK" --format json)
-TEXT_COUNT=$(printf '%s\n' "$QUERY_TEXT" | jq 'length')
-assert_equals "1" "$TEXT_COUNT"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 9: Query by source-ref
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 9: Query by source-ref ... '
-
-QUERY_SRC=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --source-ref "functions.exec_command" --format json)
-SRC_COUNT=$(printf '%s\n' "$QUERY_SRC" | jq 'length')
-assert_equals "1" "$SRC_COUNT"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 10: INDEX structure
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 10: INDEX structure ... '
-
-assert_file "$DEFAULT_INDEX"
-assert_contains "# Friction Index" "$DEFAULT_INDEX"
-assert_contains "**Created:**" "$DEFAULT_INDEX"
-assert_contains "**Last event:**" "$DEFAULT_INDEX"
-assert_contains "**Index rebuilt:**" "$DEFAULT_INDEX"
-assert_contains "**Events:**" "$DEFAULT_INDEX"
-assert_contains "**Blocked:**" "$DEFAULT_INDEX"
-assert_contains "## Events" "$DEFAULT_INDEX"
-assert_contains "## By Alias" "$DEFAULT_INDEX"
-assert_contains "## By Source" "$DEFAULT_INDEX"
-assert_contains "## Tags" "$DEFAULT_INDEX"
-assert_contains "## Date Distribution" "$DEFAULT_INDEX"
-# Should contain event titles
-assert_contains "Dispatch role slug mismatch" "$DEFAULT_INDEX"
-assert_contains "SSH signing agent" "$DEFAULT_INDEX"
-# Should contain impact column
-assert_contains "blocked" "$DEFAULT_INDEX"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 11: Add a continued event and verify mixed impact in INDEX
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 11: Mixed impact events ... '
-
-"$ROOT/scripts/report-friction.sh" \
-  --title "Repo-wide rustfmt spillover" \
-  --source-type file \
-  --source-ref "chatmux-ui/Cargo.toml" \
-  --expected-outcome "Only the touched file would be formatted." \
-  --actual-outcome "rustfmt reformatted many unrelated files." \
-  --reading "I used the crate-level formatter for convenience but it covered many files beyond the bounded fix surface." \
-  --impact continued \
-  --tags "rustfmt,formatting" \
-  --aliases "tool" >/dev/null 2>&1
-
-TOTAL_EVENTS=$(jq -s 'length' "$DEFAULT_EVENTS")
-assert_equals "3" "$TOTAL_EVENTS"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 12: Markdown query output
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 12: Markdown query output ... '
-
-MD_OUTPUT=$("$ROOT/scripts/query-friction.sh" --events-file "$DEFAULT_EVENTS" --format md)
-printf '%s\n' "$MD_OUTPUT" | grep -q "# Friction Query Results" || fail "missing md header"
-printf '%s\n' "$MD_OUTPUT" | grep -q "Impact:" || fail "missing Impact in md output"
-printf '%s\n' "$MD_OUTPUT" | grep -q "Aliases:" || fail "missing Aliases in md output"
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 13: Fingerprint grouping (same source + date = same fingerprint)
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 13: Fingerprint grouping ... '
-
-FP1=$(jq -r '.fingerprint' "$DEFAULT_EVENTS" | sed -n '1p')
-# Event 1 and 3 have different source_refs, so different fingerprints
-FP3=$(jq -r '.fingerprint' "$DEFAULT_EVENTS" | sed -n '3p')
-if [ "$FP1" = "$FP3" ]; then
-  fail "events with different sources should have different fingerprints"
-fi
-
-printf 'OK\n'
-
-# ═══════════════════════════════════════════════════════════════════════
-# Test 14: Cross-repo report
-# ═══════════════════════════════════════════════════════════════════════
-printf 'Test 14: Cross-repo report ... '
+printf 'Test 17: cross-repo report ... '
 
 CROSS_OUTPUT=$("$ROOT/scripts/generate-report.sh" --scan-dirs "$TEST_REPO" --report-type cross-repo --format md)
 printf '%s\n' "$CROSS_OUTPUT" | grep -q "Cross-Repo Friction Index" || fail "missing cross-repo header"
-printf '%s\n' "$CROSS_OUTPUT" | grep -q "Impact Summary" || fail "missing Impact Summary section"
+printf '%s\n' "$CROSS_OUTPUT" | grep -q "Top Keys" || fail "missing Top Keys section"
 
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Cleanup
+# Test 18: session hook — fail-open on every path, env-file exports
 # ═══════════════════════════════════════════════════════════════════════
+HOOK_SCRIPT=$(CDPATH='' cd -- "$ROOT/../.." && pwd)/hooks/friction-session-env.sh
+if [ -x "$HOOK_SCRIPT" ]; then
+  printf 'Test 18: session hook ... '
+
+  HOOK_ENV=$TEST_REPO/.hook-env
+  rm -f "$HOOK_ENV"
+  HOOK_OUT=$(printf '%s' '{"session_id":"abc-123","transcript_path":"/tmp/x y.jsonl"}' | CLAUDE_ENV_FILE=$HOOK_ENV sh "$HOOK_SCRIPT")
+  assert_equals "" "$HOOK_OUT"
+  assert_file "$HOOK_ENV"
+  assert_contains "export FRICTION_SESSION_REF='abc-123'" "$HOOK_ENV"
+  assert_contains "export FRICTION_TRANSCRIPT_PATH='/tmp/x y.jsonl'" "$HOOK_ENV"
+
+  # no env file: silent no-op, exit 0
+  printf '%s' '{"session_id":"abc-123"}' | env -u CLAUDE_ENV_FILE sh "$HOOK_SCRIPT" || fail "hook must exit 0 without CLAUDE_ENV_FILE"
+
+  # garbage stdin: exit 0, nothing harmful written
+  HOOK_ENV2=$TEST_REPO/.hook-env2
+  rm -f "$HOOK_ENV2"
+  printf 'not json at all' | CLAUDE_ENV_FILE=$HOOK_ENV2 sh "$HOOK_SCRIPT" || fail "hook must exit 0 on garbage stdin"
+  if [ -f "$HOOK_ENV2" ] && grep -q 'FRICTION_SESSION_REF' "$HOOK_ENV2"; then
+    fail "garbage stdin must not export a session ref"
+  fi
+
+  # injection attempt: sanitizer rejects a shell-hostile session id
+  HOOK_ENV3=$TEST_REPO/.hook-env3
+  rm -f "$HOOK_ENV3"
+  printf '%s' '{"session_id":"abc; rm -rf /"}' | CLAUDE_ENV_FILE=$HOOK_ENV3 sh "$HOOK_SCRIPT" || fail "hook must exit 0 on hostile session id"
+  if [ -f "$HOOK_ENV3" ] && grep -q 'FRICTION_SESSION_REF' "$HOOK_ENV3"; then
+    fail "hostile session id must not be exported"
+  fi
+
+  printf 'OK\n'
+else
+  printf 'Test 18: session hook ... SKIPPED (hook not present in standalone skill install)\n'
+fi
+
 printf '\nAll smoke tests passed.\n'

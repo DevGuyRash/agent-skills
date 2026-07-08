@@ -31,7 +31,9 @@ Filters:
   --source-ref PATH
 
 Report:
-  --report-type TYPE        index|cross-repo|per-repo|timeseries
+  --report-type TYPE        index|stats|cross-repo|per-repo|timeseries
+                            index: synthesis dashboard (bounded size)
+                            stats: health metrics incl. noise and convergence
   --group-by VALUE          impact|alias|tag
   --format md|json
   --output PATH
@@ -105,7 +107,7 @@ while [ $# -gt 0 ]; do
 done
 
 case "$report_type" in
-  index|cross-repo|per-repo|timeseries) ;;
+  index|stats|cross-repo|per-repo|timeseries) ;;
   *) die "Unsupported report type: $report_type" ;;
 esac
 
@@ -163,6 +165,9 @@ EOF
 if [ "$report_type" = "index" ] && [ "$resolved_events_file_count" -ne 1 ]; then
   die "--report-type index requires exactly one events file"
 fi
+if [ "$report_type" = "stats" ] && [ "$resolved_events_file_count" -ne 1 ]; then
+  die "--report-type stats requires exactly one events file"
+fi
 
 # Build query command
 set -- "$SCRIPT_DIR/query-friction.sh"
@@ -205,71 +210,194 @@ generated=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
 case "$report_type" in
   index)
+    # Synthesis dashboard: bounded sections regardless of corpus size. The
+    # full manifest lives in events.jsonl and is reachable via query-friction.
     jq --arg generated "$generated" '
-      def pct($count; $total):
-        if $total <= 0 then "0%"
-        else (((($count * 100) / $total) + 0.5) | floor | tostring) + "%"
-        end;
       def count_rows(stream):
         [stream | select(. != null and . != "")]
         | group_by(.)
         | map({value: .[0], count: length})
         | sort_by([-.count, .value]);
-      def count_rows_pct(stream; $total):
-        count_rows(stream) | map(. + {percent: pct(.count; $total)});
+      def record_kind: (.kind // "friction");
+      def record_key: (.recurrence_key // .fingerprint // "");
+      def short_title: ((.title // .actual_outcome // .action // "") | gsub("\\s+"; " ") | .[0:60]);
 
       . as $events
       | ($events | sort_by(.recorded_at // "", .event_id // "")) as $sorted
-      | ($sorted | length) as $total
-      | ($sorted | map(select((.impact // "") == "blocked")) | length) as $blocked
+      | ($sorted | map(select(record_kind == "resolution"))) as $resolutions
+      | ($resolutions | map(.resolves // []) | flatten | unique) as $resolved_ids
+      | ($sorted | map(select(record_kind == "friction"))) as $frictions
+      | ($sorted | map(select(record_kind == "recurrence"))) as $recurrences
+      | ($frictions | map(select((.event_id // "") as $i | ($resolved_ids | index($i)) == null))) as $open_frictions
       | {
           report_type: "index",
           index_rebuilt: $generated,
           repo_root: ($sorted[-1].repo_root // ""),
           events_file: ($sorted[-1].events_file // ""),
-          entries: $total,
-          blocked: $blocked,
           earliest_event: ($sorted[0].recorded_at // ""),
           latest_event: ($sorted[-1].recorded_at // ""),
-          events_list: [
-            $sorted[] | {
-              event_id: .event_id,
-              recorded_at: .recorded_at,
-              title: .title,
-              impact: (.impact // ""),
-              aliases: (.aliases // []),
-              tags: (.tags // []),
-              sources: [(.sources // [])[] | {ref: .ref, line: .line, end_line: .end_line}]
-            }
-          ],
-          recurring_patterns: (
-            count_rows($sorted[] | .fingerprint // empty)
-            | map(select(.count > 1))
-            | map(. + {
-                latest_title: ([$sorted[] | select(.fingerprint == .value)] | last | .title // ""),
-                latest_impact: ([$sorted[] | select(.fingerprint == .value)] | last | .impact // "")
+          totals: {
+            records: ($sorted | length),
+            friction: ($frictions | length),
+            recurrence: ($recurrences | length),
+            resolution: ($resolutions | length),
+            open: ($open_frictions | length),
+            resolved: (($frictions | length) - ($open_frictions | length)),
+            blocked_open: ($open_frictions | map(select((.impact // "") == "blocked")) | length)
+          },
+          open_clusters: (
+            $frictions
+            | group_by(record_key)
+            | map(select((.[0] | record_key) != ""))
+            | map(
+                . as $group
+                | ($group | map(.event_id // "")) as $anchor_ids
+                | ($recurrences | map(select((.recurs // "") as $a | ($anchor_ids | index($a)) != null))) as $recs
+                | ($group + $recs) as $sightings
+                | {
+                    key: ($group[0] | record_key),
+                    sightings: ($sightings | length),
+                    anchor: ($group | last | .event_id // ""),
+                    title: ($group | last | short_title),
+                    last_seen: (($sightings | map(.recorded_at // "") | max // "")[0:10]),
+                    open: ([$group[] | select((.event_id // "") as $i | ($resolved_ids | index($i)) == null)] | length > 0),
+                    impact_mix: ($sightings | count_rows(.[] | .impact // empty) | map("\(.value) x\(.count)") | join(", "))
+                  }
+              )
+            | map(select(.open))
+            | sort_by([-.sightings, .last_seen])
+            | .[:15]
+          ),
+          recent: (
+            $sorted
+            | .[-10:]
+            | map({
+                event_id: (.event_id // ""),
+                kind: record_kind,
+                date: ((.recorded_at // "")[0:10]),
+                title: short_title,
+                impact: (.impact // "")
               })
+            | reverse
+          ),
+          source_refs: (count_rows($frictions[] | (.sources // [])[]? | .ref // empty) | .[:8]),
+          source_kinds: (count_rows($frictions[] | (.sources // [])[]? | (.kind // .type) // empty)),
+          resolutions: (
+            $resolutions
+            | .[-10:]
+            | map({
+                event_id: (.event_id // ""),
+                resolves: ((.resolves // []) | join(", ")),
+                action: ((.action // "") | gsub("\\s+"; " ") | .[0:60])
+              })
+            | reverse
+          ),
+          date_counts: ([count_rows($sorted[] | (.recorded_at // "")[0:10])[]] | sort_by(.value) | .[-14:])
+        }
+    ' "$filtered_tmp" >"$report_tmp"
+    ;;
+  stats)
+    # Health metrics: noise volume, recurrence adoption, dedup integrity, and
+    # opening-trigram concentration (the convergence measure; hindsight_v4 is
+    # the legacy baseline the v5 fields are compared against).
+    jq --arg generated "$generated" '
+      def count_rows(stream):
+        [stream | select(. != null and . != "")]
+        | group_by(.)
+        | map({value: .[0], count: length})
+        | sort_by([-.count, .value]);
+      def record_kind: (.kind // "friction");
+      def record_key: (.recurrence_key // .fingerprint // "");
+      def pct($count; $total):
+        if $total <= 0 then "0%"
+        else ((($count * 10000 / $total) | floor) / 100 | tostring) + "%"
+        end;
+      def percentile($p):
+        sort | if length == 0 then 0 else .[([((length * $p / 100) | floor), length - 1] | min)] end;
+      def trigram: ascii_downcase | [scan("[a-z]+")] | .[0:3] | join(" ");
+      def trigram_stats(stream):
+        [stream | select(. != null and . != "") | trigram | select(. != "")] as $tris
+        | ($tris | length) as $n
+        | (count_rows($tris[]) | .[:5]) as $top
+        | {
+            samples: $n,
+            distinct_openers: ($tris | unique | length),
+            top5_share: (if $n == 0 then "0%" else pct(($top | map(.count) | add // 0); $n) end),
+            top_openers: ($top | map({opener: .value, count: .count}))
+          };
+
+      . as $records
+      | ($records | sort_by(.recorded_at // "", .event_id // "")) as $sorted
+      | ($sorted | map(select(record_kind == "resolution"))) as $resolutions
+      | ($resolutions | map(.resolves // []) | flatten | unique) as $resolved_ids
+      | ($sorted | map(select(record_kind == "friction"))) as $frictions
+      | ($sorted | map(select(record_kind == "recurrence"))) as $recurrences
+      | ($frictions | map(select((.event_id // "") as $i | ($resolved_ids | index($i)) == null))) as $open_frictions
+      | (($sorted[-1].recorded_at // "")[0:10]) as $window_end
+      | (if $window_end == "" then ""
+         else ($window_end | strptime("%Y-%m-%d") | mktime - 13 * 86400 | strftime("%Y-%m-%d"))
+         end) as $window_start
+      | ($sorted | map(select($window_start != "" and ((.recorded_at // "")[0:10]) >= $window_start))) as $window_records
+      | ([$frictions[] | (.sources // [])[]?] | length) as $source_entries
+      | ([$frictions[] | (.sources // [])[]? | select(((.kind // .type) // "") == "other")] | length) as $other_sources
+      | {
+          report_type: "stats",
+          index_rebuilt: $generated,
+          events_file: ($sorted[-1].events_file // ""),
+          totals: {
+            records: ($sorted | length),
+            friction: ($frictions | length),
+            recurrence: ($recurrences | length),
+            resolution: ($resolutions | length),
+            open: ($open_frictions | length),
+            resolved: (($frictions | length) - ($open_frictions | length))
+          },
+          impact: count_rows(($frictions + $recurrences)[] | .impact // empty),
+          window_14d: {
+            start: $window_start,
+            end: $window_end,
+            records: ($window_records | length),
+            per_day: ((($window_records | length) * 10 / 14) | floor / 10)
+          },
+          recurrence_share: pct(($recurrences | length); (($frictions | length) + ($recurrences | length))),
+          key_collisions: (
+            $frictions
+            | group_by(record_key)
+            | map(select((.[0] | record_key) != "" and length > 1))
+            | {
+                keys: length,
+                examples: (sort_by(-length) | .[:5] | map({key: (.[0] | record_key), events: length}))
+              }
+          ),
+          top_keys: (
+            $frictions
+            | group_by(record_key)
+            | map(select((.[0] | record_key) != ""))
+            | map(
+                . as $g
+                | ($g | map(.event_id // "")) as $ids
+                | {
+                    key: ($g[0] | record_key),
+                    sightings: (($g | length) + ($recurrences | map(select((.recurs // "") as $a | ($ids | index($a)) != null)) | length)),
+                    open: ([$g[] | select((.event_id // "") as $i | ($resolved_ids | index($i)) == null)] | length > 0)
+                  }
+              )
+            | sort_by(-.sightings)
             | .[:10]
           ),
-          alias_counts: (
-            [$sorted | to_entries[] | .key as $idx | (.value.aliases // [])[] | select(. != null and . != "") | {alias: ., event_idx: $idx, blocked: (if $sorted[$idx].impact == "blocked" then 1 else 0 end)}]
-            | group_by(.alias)
-            | map({
-                value: .[0].alias,
-                count: (map(.event_idx) | unique | length),
-                blocked: (map(select(.blocked == 1)) | map(.event_idx) | unique | length)
-              })
-            | sort_by([-.count, .value])
-          ),
-          source_counts: (count_rows($sorted[] | (.sources // [])[]? | .ref // empty) | .[:10]),
-          tag_counts: (
-            [$sorted | to_entries[] | .key as $idx | (.value.tags // [])[] | select(. != null and . != "") | {tag: ., event_idx: $idx}]
-            | unique_by([.tag, .event_idx])
-            | group_by(.tag)
-            | map({value: .[0].tag, count: length})
-            | sort_by([-.count, .value])
-          ),
-          date_counts: ([count_rows($sorted[] | (.recorded_at // "")[0:10])[]] | sort_by(.value))
+          field_lengths: {
+            reading: ([$sorted[] | .reading // empty | length] | {median: percentile(50), p95: percentile(95)}),
+            decision: ([$sorted[] | .decision // empty | length] | {median: percentile(50), p95: percentile(95)}),
+            pivot_information: ([$sorted[] | .pivot_information // empty | length] | {median: percentile(50), p95: percentile(95)})
+          },
+          convergence: {
+            reading: trigram_stats($sorted[] | .reading),
+            decision: trigram_stats($sorted[] | .decision),
+            pivot_information: trigram_stats($sorted[] | .pivot_information),
+            hindsight_v4: trigram_stats($sorted[] | .hindsight)
+          },
+          source_kinds: count_rows($frictions[] | (.sources // [])[]? | (.kind // .type) // empty),
+          other_kind_share: pct($other_sources; $source_entries)
         }
     ' "$filtered_tmp" >"$report_tmp"
     ;;
@@ -310,7 +438,7 @@ case "$report_type" in
           impact_summary: count_rows($sorted[] | .impact // empty),
           alias_counts: count_rows_pct($sorted[] | (.aliases // [])[]? // empty; $total),
           tag_counts: count_rows_pct($sorted[] | (.tags // [])[]? // empty; $total),
-          fingerprint_counts: (count_rows($sorted[] | .fingerprint // empty) | .[:10])
+          key_counts: (count_rows($sorted[] | (.recurrence_key // .fingerprint) // empty) | .[:10])
         }
     ' "$filtered_tmp" >"$report_tmp"
     ;;
@@ -351,7 +479,7 @@ case "$report_type" in
                     impact_summary: count_rows($repo_sorted[] | .impact // empty),
                     alias_counts: count_rows_pct($repo_sorted[] | (.aliases // [])[]? // empty; $total),
                     tag_counts: count_rows_pct($repo_sorted[] | (.tags // [])[]? // empty; $total),
-                    fingerprint_counts: (count_rows($repo_sorted[] | .fingerprint // empty) | .[:10])
+                    key_counts: (count_rows($repo_sorted[] | (.recurrence_key // .fingerprint) // empty) | .[:10])
                   }
               )
             | sort_by([-.entries, .repo_root, .events_file])
@@ -440,65 +568,90 @@ case "$format" in
               + "\n| " + ([$headers[] | gsub("."; "-")] | join(" | ")) + " |"
               + "\n" + ([$rows[] | md_table_row(.)] | join("\n"))
             end;
-          def source_display:
-            (.ref // "")
-            + (if (.line // null) != null then
-                ":" + (.line | tostring)
-                + (if (.end_line // null) != null then "-" + (.end_line | tostring) else "" end)
-              else "" end);
-          def days_between($a; $b):
-            if ($a == "" or $b == "") then null
-            else
-              (($b[0:10] | split("-") | map(tonumber)) as [$by, $bm, $bd] |
-               ($a[0:10] | split("-") | map(tonumber)) as [$ay, $am, $ad] |
-               (($by - $ay) * 365 + ($bm - $am) * 30 + ($bd - $ad)))
-            end;
 
-          (days_between(.earliest_event; .latest_event)) as $span
-          |
-          "# Friction Index\n\n"
-          + "**Created:** \(.earliest_event // "(not available)")\n"
-          + "**Last event:** \(.latest_event // "(not available)")\n"
-          + "**Index rebuilt:** \(.index_rebuilt)\n"
-          + "**Events:** \(.entries) | **Blocked:** \(.blocked)"
-          + (if $span != null then " | **Span:** \($span) days" else "" end)
-          + "\n\n## Events\n\n"
-          + md_table(["ID", "Time", "Title", "Impact", "Aliases"];
-              [.events_list[] | [
-                .event_id,
-                ((.recorded_at // "")[5:16]),
-                (.title // "" | if length > 50 then .[:47] + "..." else . end),
-                (.impact // ""),
-                ((.aliases // []) | join(", "))
+          "# Friction Dashboard\n\n"
+          + "**Rebuilt:** \(.index_rebuilt) | **Span:** \((.earliest_event // "")[0:10]) to \((.latest_event // "")[0:10])\n"
+          + "**Records:** \(.totals.records) (\(.totals.friction) friction, \(.totals.recurrence) recurrences, \(.totals.resolution) resolutions)\n"
+          + "**Open:** \(.totals.open) | **Resolved:** \(.totals.resolved) | **Blocked open:** \(.totals.blocked_open)\n"
+          + "\n## Open Clusters (top \(.open_clusters | length))\n\n"
+          + md_table(["Key", "Sightings", "Anchor", "Title", "Last seen", "Impact"];
+              [.open_clusters[] | [
+                .key, (.sightings | tostring), .anchor, .title, .last_seen, .impact_mix
               ]];
-              "_No events._")
-          + "\n\n## Recurring Patterns\n\n"
-          + (if (.recurring_patterns | length) == 0 then "_No recurring patterns._"
-             else md_table(["Fingerprint", "Count", "Latest Title", "Impact"];
-              [.recurring_patterns[] | [
-                .value,
-                (.count | tostring),
-                (.latest_title // "" | if length > 40 then .[:37] + "..." else . end),
-                (.latest_impact // "")
-              ]];
-              "_No recurring patterns._")
-            end)
-          + "\n\n## By Alias\n\n"
-          + md_table(["Alias", "Events", "Blocked"];
-              [.alias_counts[] | [.value, (.count | tostring), (.blocked | tostring)]];
-              "_No aliases recorded._")
-          + "\n\n## By Source\n\n"
-          + md_table(["Source", "Events"];
-              [.source_counts[] | [.value, (.count | tostring)]];
+              "_No open clusters._")
+          + "\n\n## Recent Records (last \(.recent | length))\n\n"
+          + md_table(["ID", "Kind", "Date", "Title", "Impact"];
+              [.recent[] | [.event_id, .kind, .date, .title, .impact]];
+              "_No records._")
+          + "\n\n## Top Sources\n\n"
+          + md_table(["Ref", "Records"];
+              [.source_refs[] | [.value, (.count | tostring)]];
               "_No sources recorded._")
-          + "\n\n## Tags\n\n"
-          + md_table(["Tag", "Events"];
-              [.tag_counts[] | [.value, (.count | tostring)]];
-              "_No tags recorded._")
-          + "\n\n## Date Distribution\n\n"
+          + (if (.source_kinds | length) > 0 then
+              "\n\n**Source kinds:** " + ([.source_kinds[] | "\(.value) x\(.count)"] | join(", "))
+            else "" end)
+          + "\n\n## Resolutions (last \(.resolutions | length))\n\n"
+          + md_table(["ID", "Resolves", "Action"];
+              [.resolutions[] | [.event_id, .resolves, .action]];
+              "_No resolutions yet._")
+          + "\n\n## Date Distribution (last \(.date_counts | length) active days)\n\n"
           + md_table(["Date", "Count"];
               [.date_counts[] | [.value, (.count | tostring)]];
               "_No date counts available._")
+        ' "$report_tmp")
+        ;;
+      stats)
+        result=$(jq -r '
+          def md_table_row($cells): "| " + ($cells | join(" | ")) + " |";
+          def md_table($headers; $rows; $empty_msg):
+            if ($rows | length) == 0 then $empty_msg
+            else
+              md_table_row($headers)
+              + "\n| " + ([$headers[] | gsub("."; "-")] | join(" | ")) + " |"
+              + "\n" + ([$rows[] | md_table_row(.)] | join("\n"))
+            end;
+
+          "# Friction Stats\n\n"
+          + "**Generated:** \(.index_rebuilt)\n"
+          + "**Records:** \(.totals.records) (\(.totals.friction) friction, \(.totals.recurrence) recurrences, \(.totals.resolution) resolutions) | **Open:** \(.totals.open) | **Resolved:** \(.totals.resolved)\n"
+          + "\n## Volume\n\n"
+          + "- Window \(.window_14d.start) to \(.window_14d.end): \(.window_14d.records) records (\(.window_14d.per_day)/day)\n"
+          + "- Recurrence share (cheap repeats vs full events): \(.recurrence_share)\n"
+          + "- Key collisions (distinct friction events sharing one key; target 0): \(.key_collisions.keys)"
+          + (if (.key_collisions.examples | length) > 0 then
+              " — " + ([.key_collisions.examples[] | "\(.key) x\(.events)"] | join(", "))
+            else "" end)
+          + "\n\n## Impact\n\n"
+          + md_table(["Impact", "Count"];
+              [.impact[] | [.value, (.count | tostring)]];
+              "_No events._")
+          + "\n\n## Top Keys\n\n"
+          + md_table(["Key", "Sightings", "Open"];
+              [.top_keys[] | [.key, (.sightings | tostring), (if .open then "yes" else "no" end)]];
+              "_No keys._")
+          + "\n\n## Field Lengths (chars)\n\n"
+          + md_table(["Field", "Median", "P95"];
+              [["reading", (.field_lengths.reading.median | tostring), (.field_lengths.reading.p95 | tostring)],
+               ["decision", (.field_lengths.decision.median | tostring), (.field_lengths.decision.p95 | tostring)],
+               ["pivot_information", (.field_lengths.pivot_information.median | tostring), (.field_lengths.pivot_information.p95 | tostring)]];
+              "_No data._")
+          + "\n\n## Convergence (top-5 opening-trigram share; lower is healthier)\n\n"
+          + md_table(["Field", "Samples", "Distinct openers", "Top-5 share", "Most common opener"];
+              [(.convergence | to_entries[]) | [
+                .key,
+                (.value.samples | tostring),
+                (.value.distinct_openers | tostring),
+                .value.top5_share,
+                ((.value.top_openers[0].opener // "") + (if (.value.top_openers[0].count // 0) > 0 then " x\(.value.top_openers[0].count)" else "" end))
+              ]];
+              "_No narrative fields._")
+          + "\n\n_hindsight_v4 is the legacy baseline; compare pivot_information against it._\n"
+          + "_Read top-5 share together with distinct openers: high share with many distinct openers is benign form convergence (the eliciting question orders narratives); high share with few distinct openers is template capture — the v4 disease was semantic monoculture, not opener form._\n"
+          + "\n## Source Kinds\n\n"
+          + (if (.source_kinds | length) > 0 then
+              ([.source_kinds[] | "\(.value) x\(.count)"] | join(", "))
+              + " | other share: \(.other_kind_share) (high other = ontology strain)"
+            else "_No sources._" end)
         ' "$report_tmp")
         ;;
       cross-repo)
@@ -530,10 +683,10 @@ case "$format" in
           + md_table(["Tag", "Count", "%"];
               [.tag_counts[] | [.value, (.count | tostring), .percent]];
               "_No tags recorded._")
-          + "\n\n## Top Fingerprints\n\n"
-          + md_table(["Fingerprint", "Count"];
-              [.fingerprint_counts[] | [.value, (.count | tostring)]];
-              "_No fingerprints._")
+          + "\n\n## Top Keys\n\n"
+          + md_table(["Key", "Count"];
+              [.key_counts[] | [.value, (.count | tostring)]];
+              "_No keys._")
         ' "$report_tmp")
         ;;
       per-repo)

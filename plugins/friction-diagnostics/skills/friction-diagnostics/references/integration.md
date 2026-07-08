@@ -2,62 +2,43 @@
 
 ## Paste-ready `AGENTS.md` snippet
 
+The ambient repo-level contract — this is how policy survives into subagents without per-agent prompting. Canonical copy: `assets/agents-md-snippet.md`.
+
 ```markdown
 ## Friction diagnostics
-WHEN any error, failure, unexpected outcome, or friction of any kind occurs THEN you SHALL immediately log it using the `friction-diagnostics` skill.
-WHEN the same issue repeats without materially new evidence THEN you SHALL NOT create a duplicate entry.
-WHEN friction is logged THEN you SHALL use the canonical repo-scoped `events.jsonl` target unless an explicit `--events-file` path is required.
-WHEN the friction can be localized to a specific file, document, or URL THEN you SHALL populate the `sources` array in the event.
+
+WHEN `.local/reports/friction/known-traps.md` exists THEN you SHALL read it before acting (it is at most 15 one-line traps).
+WHEN reality diverges from what you predicted AND recording it would change a future session's behavior THEN you SHALL file it at that moment using the `friction-diagnostics` skill.
+WHEN the divergence matches a known trap or an open event THEN you SHALL file `--recur <event-id>` instead of a new event.
+You SHALL NOT file outcomes you predicted or engineered (intended test failures, expected error paths, probes), nor task status.
+WHEN you filed nothing AND the user did not raise friction diagnostics THEN you SHALL NOT mention friction diagnostics, or the decision not to file, anywhere in your response.
 ```
 
-## Filing workflow
+## Filing
 
-Filing is a single command. Use direct flags for simple payloads; `--from-json -` for shell-sensitive or multiline text.
+JSON via stdin is the primary path. The skeleton's placeholders are the eliciting questions — compose in the order shown, no `--title`:
 
 ```sh
-sh scripts/report-friction.sh \
-  --title "Referenced CI check script does not exist" \
-  --source-type file \
-  --source-ref "AGENTS.md" \
-  --source-line 18 \
-  --source-excerpt "Run scripts/ci-check.sh to see the current build status." \
-  --expected-outcome "The scripts/ directory would contain ci-check.sh as an executable helper." \
-  --actual-outcome "rg --files scripts returned no match for ci-check.sh. The file is absent." \
-  --reading "The instruction at line 18 uses a concrete path in imperative form: 'Run scripts/ci-check.sh'. No conditional qualifier or note about generating the script first. Imperative instructions with literal paths refer to existing artifacts, so I treated it as a pre-existing helper. I searched with rg and found nothing. Its absence means the documentation references a file that does not exist." \
-  --hindsight "I could have run ls scripts/ or rg -l ci-check before assuming the script existed." \
-  --impact blocked \
-  --tags "missing-script,ci-check" \
-  --aliases "instructions,missing"
+printf '%s' '{
+  "actual_outcome":    "<what actually happened - verbatim>",
+  "expected_outcome":  "<what you predicted, and what grounded it>",
+  "reading":           "<from inside the decision: consulted, believed, did, diverged>",
+  "decision":          "<the response as history: options seen, set aside, action taken, and the license for any deviation>",
+  "pivot_information": "<the information that would have changed the outcome, and where it lives>",
+  "sources":           [{"kind": "<artifact|instruction|tool|assumption|memory|observation>", "ref": "<...>", "claim": "<what you believed about it - the prior belief only>"}],
+  "impact":            "<blocked|degraded|noisy|continued>",
+  "recurrence_key":    "<2-5 hyphenated words; omit if unsure>",
+  "note":              "<optional free slot: whatever mattered that no field asked for>"
+}' | sh scripts/report-friction.sh --from-json -
 ```
 
-Post-hoc tag/alias additions remain available:
+Repeats are one line:
 
 ```sh
-sh scripts/report-friction.sh --add-tags evt-NNNN "new-tag1,new-tag2"
-sh scripts/report-friction.sh --add-aliases evt-NNNN "broader-group"
+sh scripts/report-friction.sh --recur evt-NNNN --actual-outcome "<short verbatim>" [--note "<what differed>"]
 ```
 
-## Structured-input path
-
-`--from-json -` is the recommended path for complex payloads:
-
-```sh
-cat <<'EOF' | sh scripts/report-friction.sh --from-json -
-{
-  "title": "Referenced CI check script does not exist",
-  "expected_outcome": "The scripts/ directory would contain ci-check.sh.",
-  "actual_outcome": "rg --files scripts returned no match for ci-check.sh.",
-  "reading": "The instruction at line 18 uses a concrete path in imperative form...",
-  "hindsight": "I could have verified the file exists before running it.",
-  "impact": "blocked",
-  "tags": ["missing-script", "ci-check"],
-  "aliases": ["instructions", "missing"],
-  "sources": [
-    {"type": "file", "ref": "AGENTS.md", "line": 18, "excerpt": "Run scripts/ci-check.sh to see the current build status."}
-  ]
-}
-EOF
-```
+Post-hoc tag additions: `sh scripts/report-friction.sh --add-tags evt-NNNN "tag1,tag2"`.
 
 ## Canonical target resolution
 
@@ -67,17 +48,40 @@ EOF
 4. Outside git: `<system-temp>/agent-friction/<cwd-hash>/events.jsonl`
 5. Explicit override: `--events-file <path>`
 
-## Index behavior
+The same resolution runs identically in every agent and subagent — a shared store with no coordination needed. Concurrent writers are serialized by a lock directory next to the events file.
 
-`INDEX.md` is auto-maintained next to `events.jsonl`. Agents do not create or rebuild it.
+## The loop
 
-## Querying
+Capture is the default posture; nothing mends autonomously. On user request, the sibling `friction-mend` skill clusters open events, proposes edits to the `sources[].ref` targets that misled, records append-only resolutions, and publishes `known-traps.md` (≤15 one-liners, ≤8KB) — the feed-forward artifact the snippet above makes every future session read before acting.
+
+## Querying and reports
 
 ```sh
-sh scripts/query-friction.sh --impact blocked --format md
+sh scripts/query-friction.sh --open --kind friction --format json
+sh scripts/query-friction.sh --key <recurrence-key> --format md
+sh scripts/query-friction.sh --recurs evt-NNNN
 sh scripts/query-friction.sh --tag auth --date-from 2026-03-01
-sh scripts/query-friction.sh --alias environment --source-ref "SKILL.md"
+sh scripts/generate-report.sh --report-type stats --format md
 sh scripts/generate-report.sh --scan-dirs ~/repos --report-type cross-repo
 ```
 
-Tag queries use substring matching: `--tag auth` matches `ssh-auth-sock`, `auth-failure`, etc. Use `--tag-exact` for exact matches.
+Tag queries use substring matching (`--tag auth` matches `ssh-auth-sock`); `--tag-exact` for exact. `--alias`/`--alias-exact` still query the v4 corpus. `INDEX.md` is a bounded synthesis dashboard; the full stream is reachable only through queries.
+
+## Session linkage (optional)
+
+The plugin ships a SessionStart hook (`hooks/friction-session-env.sh` at the plugin root) that exports `FRICTION_SESSION_REF` and `FRICTION_TRANSCRIPT_PATH` into the session's Bash environment via the documented `$CLAUDE_ENV_FILE` mechanism. Records then carry `session_ref`, linking each record to the transcript where the actual reasoning lives. The hook is fail-open enrichment: it exits 0 on every path, and everything works with hooks absent.
+
+Observed host behavior (2026-07, Claude Code 2.1.x / Codex CLI 0.142):
+
+- **Claude Code**: the hook fires at session start and records carry the session UUID; transcripts live at `~/.claude/projects/<munged-cwd>/<session-id>.jsonl`. Propagation of env-file vars to subagents and resumed sessions is undocumented upstream — treat as best-effort.
+- **Codex**: no hook needed — the runtime natively exports `CODEX_THREAD_ID` (per-thread UUID), which the probe catches; records filed under `codex exec` carried correct per-thread refs, including under `--sandbox workspace-write` (filing mechanics fully functional in the sandbox).
+- **Codex nested under Claude** (companion wrappers): the wrapper injects `CLAUDE_CODE_SESSION_ID` (the *parent* Claude session) into the child environment. The probe deliberately does not read that variable — `CODEX_THREAD_ID` wins, so nested runs attribute to their own thread, not the parent session.
+- Host packaging difference worth knowing: Claude installs a version-keyed cache copy (content changes need a version bump to propagate), while Codex references the marketplace working tree live.
+
+## Session summary
+
+A courtesy rendering for the user at task end (nothing correctness-bearing depends on it):
+
+```sh
+sh scripts/render-summary.sh --events-file <events-file> --after "<lower-bound-timestamp>"
+```

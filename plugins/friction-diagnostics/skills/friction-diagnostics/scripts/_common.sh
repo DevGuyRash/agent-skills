@@ -186,7 +186,7 @@ bounded_slugify() {
 # --- JSON building ---
 
 json_escape() {
-  python3 -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False)[1:-1], end="")' "$1"
+  python3 -I -c 'import json, sys; print(json.dumps(sys.argv[1], ensure_ascii=False)[1:-1], end="")' "$1"
 }
 
 json_string() {
@@ -326,37 +326,94 @@ validate_narrative_length() {
 
 # --- Source validation ---
 
-VALID_SOURCE_TYPES=$(load_schema | jq -r '.properties.sources.items.properties.type.enum // [] | join(" ")' 2>/dev/null)
-if [ -z "$VALID_SOURCE_TYPES" ]; then
-  VALID_SOURCE_TYPES="file url conversation audio visual documentation other"
+VALID_SOURCE_KINDS=$(load_schema | jq -r '.properties.sources.items.properties.kind.enum // [] | join(" ")' 2>/dev/null)
+if [ -z "$VALID_SOURCE_KINDS" ]; then
+  VALID_SOURCE_KINDS="artifact instruction tool assumption memory observation other"
 fi
 
-validate_source_type() {
-  stype=$1
-  for valid in $VALID_SOURCE_TYPES; do
-    if [ "$stype" = "$valid" ]; then
+validate_source_kind() {
+  skind=$1
+  for valid in $VALID_SOURCE_KINDS; do
+    if [ "$skind" = "$valid" ]; then
       return 0
     fi
   done
-  die "Unsupported source type: $stype (expected one of: $VALID_SOURCE_TYPES)"
+  die "Unsupported source kind: $skind (expected one of: $VALID_SOURCE_KINDS)"
 }
 
-# --- Fingerprint ---
+# Map a deprecated v4 source type to its v5 kind. Unknown values map to 'other'.
+coerce_source_type_to_kind() {
+  case "$(lower "$1")" in
+    file|url|documentation) printf 'artifact\n' ;;
+    conversation) printf 'instruction\n' ;;
+    audio|visual) printf 'observation\n' ;;
+    tool) printf 'tool\n' ;;
+    assumption) printf 'assumption\n' ;;
+    memory) printf 'memory\n' ;;
+    observation) printf 'observation\n' ;;
+    *) printf 'other\n' ;;
+  esac
+}
 
-build_event_fingerprint() {
-  source_ref=$1
-  event_date=$2
-  custom_key=${3:-}
+# --- Schema version ---
 
-  if [ -n "$custom_key" ]; then
-    seed=$(lower "$custom_key")
-    seed=$(printf '%s' "$seed" | sed 's/[^a-z0-9][^a-z0-9]*/ /g; s/^[[:space:]]*//; s/[[:space:]]*$//; s/[[:space:]][[:space:]]*/ /g')
-  else
-    source_key=$(lower "$source_ref")
-    source_key=$(printf '%s' "$source_key" | sed 's/[^a-z0-9][^a-z0-9]*/ /g; s/^[[:space:]]*//; s/[[:space:]]*$//; s/[[:space:]][[:space:]]*/ /g')
-    seed="${source_key}|${event_date}"
+schema_version() {
+  load_schema | jq -r '.["x-schema-version"] // "5.1.0"'
+}
+
+# --- Session reference (statelessness contract: optional enrichment, omitted when unset) ---
+
+resolve_session_ref() {
+  for candidate in "${FRICTION_SESSION_REF-}" "${CLAUDE_SESSION_ID-}" "${CODEX_SESSION_ID-}" "${CODEX_THREAD_ID-}"; do
+    if [ -n "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  printf '\n'
+}
+
+# --- Recurrence key ---
+# Stable trap identity that survives across days. Model-supplied slug is primary;
+# the fallback hashes distinctive tokens from the outcome text plus the primary
+# source ref. Deliberately no date component: cross-day recurrence is the signal.
+
+distinctive_tokens() {
+  printf '%s' "$1" | cut -c1-400 |
+    tr '[:upper:]' '[:lower:]' |
+    sed -E \
+      -e "s/'[^']*'/ /g" \
+      -e 's/"[^"]*"/ /g' \
+      -e 's|/[^[:space:]]*| |g' \
+      -e 's/[0-9a-f]{6,}/ /g' \
+      -e 's/[0-9]+/ /g' \
+      -e 's/[^a-z]+/ /g' |
+    tr ' ' '\n' |
+    awk 'length($0) >= 3' |
+    LC_ALL=C sort -u |
+    sed -n '1,8p' |
+    tr '\n' ' ' |
+    sed 's/[[:space:]]*$//'
+}
+
+build_recurrence_key() {
+  model_key=$1
+  outcome_text=$2
+  primary_ref=${3:-}
+
+  if [ -n "$(trim "$model_key")" ]; then
+    bounded_slugify "$model_key" 48
+    return 0
   fi
-  short_hash "$seed" 12
+
+  tokens=$(distinctive_tokens "$outcome_text")
+  ref_key=$(lower "$primary_ref")
+  ref_key=$(printf '%s' "$ref_key" | sed 's/[^a-z0-9][^a-z0-9]*/ /g; s/^[[:space:]]*//; s/[[:space:]]*$//')
+  seed="${tokens}|${ref_key}"
+  if [ "$seed" = "|" ]; then
+    seed=$(printf '%s' "$outcome_text" | cut -c1-400)
+  fi
+  printf 'auto-%s\n' "$(short_hash "$seed" 12)"
 }
 
 extract_primary_source_ref() {
@@ -419,7 +476,7 @@ extract_all_tags() {
     printf '\n'
     return 0
   fi
-  python3 - "$events_path" <<'PY'
+  python3 -I - "$events_path" <<'PY'
 import json, sys
 from pathlib import Path
 tags = set()
@@ -451,7 +508,7 @@ extract_all_aliases() {
     printf '\n'
     return 0
   fi
-  python3 - "$events_path" <<'PY'
+  python3 -I - "$events_path" <<'PY'
 import json, sys
 from pathlib import Path
 aliases = set()
@@ -528,7 +585,7 @@ existing_local_dir_for_repo() {
 
 temp_root_dir() {
   if command -v python3 >/dev/null 2>&1; then
-    python3 - <<'PY'
+    python3 -I - <<'PY'
 import tempfile
 print(tempfile.gettempdir())
 PY

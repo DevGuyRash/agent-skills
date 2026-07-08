@@ -171,7 +171,7 @@ if [ "$event_count" -eq 0 ]; then
 fi
 
 # Flatten sources array into compact display strings
-jq -c '. + {sources_flat: ([.sources[]? | "\(.type):\(.ref)" + (if .line then ":\(.line)" + (if .end_line then "-\(.end_line)" else "" end) else "" end)] | join(" | "))}' "$query_tmp" > "$flatten_tmp"
+jq -c '. + {sources_flat: ([.sources[]? | "\(.kind // .type // "?"):\(.ref)" + (if .line then ":\(.line)" + (if .end_line then "-\(.end_line)" else "" end) else "" end)] | join(" | "))}' "$query_tmp" > "$flatten_tmp"
 
 # Extract last event timestamp for the re-query footer.
 # --before is strict <, so bump by 1 second to include the last event.
@@ -182,7 +182,7 @@ if [ -n "$last_event_time" ]; then
   # Uses python3 if available (reliable); falls back to using the raw value
   # with a "Z+1s" comment hint if python3 is absent.
   if command -v python3 >/dev/null 2>&1; then
-    requery_before=$(python3 -c "
+    requery_before=$(python3 -I -c "
 from datetime import datetime, timedelta, timezone
 t = datetime.fromisoformat('$last_event_time'.replace('Z', '+00:00'))
 print((t + timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%SZ'))
