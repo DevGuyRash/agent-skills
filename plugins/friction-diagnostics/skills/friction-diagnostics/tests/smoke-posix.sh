@@ -40,6 +40,10 @@ assert_output_contains() {
   printf '%s\n' "$output" | grep -Fq -- "$needle" || fail "expected '$needle' in output"
 }
 
+without_session_env() {
+  env -u FRICTION_SESSION_REF -u CLAUDE_SESSION_ID -u CODEX_SESSION_ID -u CODEX_THREAD_ID "$@"
+}
+
 DEFAULT_EVENTS=$TEST_REPO/.local/reports/friction/events.jsonl
 DEFAULT_INDEX=$TEST_REPO/.local/reports/friction/INDEX.md
 DEFAULT_TRAPS=$TEST_REPO/.local/reports/friction/known-traps.md
@@ -61,7 +65,7 @@ cd "$TEST_REPO"
 # ═══════════════════════════════════════════════════════════════════════
 printf 'Test 1: v5 filing, key order, talkback ... '
 
-OUTPUT=$("$ROOT/scripts/report-friction.sh" \
+OUTPUT=$(without_session_env "$ROOT/scripts/report-friction.sh" \
   --actual-outcome "error: unknown dispatch role: architecture. Bearer ghp_leakedtoken1234567890abcdef12345678." \
   --expected-outcome "The CLI would resolve 'architecture' as a valid dispatch role slug from the table." \
   --reading "The dispatch table had a column called 'Role' with 'Architecture' in it, and the instruction said 'Use --role <ROLE>'. I plugged in 'architecture' as a direct substitution. The CLI rejected it immediately, so the divergence was between the display label and the CLI slug." \
