@@ -468,7 +468,7 @@ def stage_and_commit(
     allow_unsigned_retry: bool,
     commit_index: int | None,
 ) -> tuple[str, bool]:
-    add_proc = run(["git", "-C", repo, "add", "--", *paths], cwd=repo, check=False)
+    add_proc = run(["git", "-C", repo, "add", "-A", "--", *paths], cwd=repo, check=False)
     if add_proc.returncode != 0:
         raise SystemExit(output_text(add_proc) or "failed to stage paths")
 
