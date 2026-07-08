@@ -1,8 +1,8 @@
 {
   "name": "goalspec",
   "displayName": "GoalSpec",
-  "version": "1.8.1",
-  "description": "Compile messy intent and project context into bounded, verifiable goal contracts with capability inventory, validation scripts, lifecycle hooks, and goal ledger artifacts.",
+  "version": "4.0.0",
+  "description": "Shape vague intent into clearer product direction with Option Maps, then produce Probe Packs and right-sized context/docs capture after convergence.",
   "author": {
     "name": "GoalSpec Contributors"
   },
@@ -10,11 +10,13 @@
   "keywords": [
     "claude",
     "codex",
-    "goal",
+    "intent",
+    "design",
     "planning",
-    "skills",
-    "hooks",
-    "automation",
-    "governance"
+    "option-map",
+    "probe-pack",
+    "handoff",
+    "requirements",
+    "skills"
   ]
 }

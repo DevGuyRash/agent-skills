@@ -1,91 +1,119 @@
-# Goal Anti-Patterns
+# GoalSpec Anti-Patterns
 
-Flag or rewrite these before launching.
+GoalSpec fails when it produces artifacts before decisions, blocks on safe defaults, or hands execution a context summary without probes.
 
-## Activity verbs without a fixed bar
+## Premature Docs
 
-- improve
-- clean up
-- polish
-- modernize
-- optimize
-- harden
-- stabilize
-- productionize
-- make better
-- follow best practices
-- as much as possible
-- until satisfied
-- keep up to date
+Bad:
 
-Rewrite into fixed targets:
+```md
+Created `context/docs/imports-prd.md` for "Make imports less painful."
+```
 
-| Activity-shaped request | State-shaped rewrite |
-| --- | --- |
-| Improve tests | Tests cover named behaviors and pass under command C |
-| Clean up code | Current lint violations are zero and duplicated helper X is consolidated |
-| Optimize performance | Endpoint E p95 latency is under N ms on benchmark B |
-| Make docs better | Docs include sections A/B/C and pass checklist R |
-| Modernize dependencies | Update package set S to versions available as of date D |
-| Make production-ready | Frozen checklist C has no unresolved P0/P1 items |
-| Research options | Produce a decision memo comparing A/B/C against criteria X/Y/Z |
+The user is still exploring. The first output should be an Option Map, not a durable doc.
 
-## Registry-as-goal
+Better:
 
-Bad: run `/goal` against all of `GOALS.md`.
-Good: select one ready goal and compile `.goals/current.md`.
+```md
+Options:
+1. Correctness first.
+2. Diagnostics first.
+3. Tolerance first.
 
-## Campaign-parent-as-goal
+Recommendation: choose diagnostics first if the pain is support burden; choose correctness first if there is a named broken case.
+```
 
-Bad: render or run a campaign parent (or a multi-objective aspiration) as one *single-goal* `/goal` — one contract, one hash, unbounded scope.
-Good: decompose into finite children, each a full contract. Then either compile at most one ready child into `.goals/current.md` (human-stepped), or render the **locked** campaign as a *chain* via `render_goal.py --campaign` — every child individually frozen, the chain bounded by its own budget and failure policy. The parent is never executed as a single goal.
+## False Blockers
 
-## Kitchen-sink single goal
+Bad:
 
-Bad: one contract that bundles several independent objectives ("fix auth and add search and modernize deps").
-Good: one finite objective per contract; the others become candidates in the campaign/backlog.
+```md
+Stop until the owner decides whether missing owners are represented as `null` or `"unknown"`.
+```
 
-## Greenfield without a verifier
+If either representation is reversible and locally testable, this is not a true blocker.
 
-Bad: a first greenfield goal whose completion is "the app looks done" with no runnable check.
-Good: a minimal artifact plus a smoke test and run instructions, verified by an executing command.
+Better:
 
-## Self-ratified completion
+```md
+Safe default: use `owner: null`, preserve the row, and note that product ops may later choose a different missing-owner representation.
+```
 
-Bad: "Done because the agent says it is better."
-Good: command output, artifact, metric, external review, or evidence path.
+## Option Theater
 
-## Mutable target
+Bad:
 
-Bad: executor can edit `.goals/current.md` mid-run.
-Good: current.md hash is written before launch and audited at close.
+```md
+Option A: write a PRD.
+Option B: write a design doc.
+Option C: write a roadmap.
+```
 
-## Silent adjacency creep
+Those are artifact choices, not product directions.
 
-Bad: while fixing auth, refactor the whole API layer.
-Good: record API refactor as a follow-up candidate.
+Better:
 
-## Single-goal-centered chain handoff
+```md
+Option A: optimize import correctness.
+Option B: optimize error diagnosis.
+Option C: optimize tolerance for messy files.
+```
 
-Bad: the handoff output says "start with G-001" — the same text is injected into every new thread, so every thread re-sees G-001 even after it is done.
-Good: the rendered chain derives the next pending child from `campaign_status.py` every time, skips achieved children, and stops when the status tool says stop; the same line stays correct across the whole campaign lifecycle.
+## Probe-Free Handoff
 
-## Authoring-thread goal wrapper
+Bad:
 
-Bad: after rendering the launch line, the author also creates a host thread goal ("execute the locked campaign when launched") — it persists into every new thread and duplicates the launch line under a second system.
-Good: the final message ends with the launch line verbatim; the host's thread-goal tracker belongs to the thread where the user pastes it. GoalSpec goals are workspace artifacts, not host thread goals.
+```md
+Next worker: implement the Recipe Search MVP according to the PRD.
+```
 
-## Pre-baked review
+This leaves the executor to rediscover what a weak implementation would miss.
 
-Bad: `## Decomposition Review` written in the same pass as the manifest it claims to have reviewed, before validation ever ran — self-attestation shaped like a review.
-Good: validate (copy the review anchor) → independent adversarial review → apply or decline each finding → record per-child verdicts plus the `Anchor:` line; a stale or missing anchor warns on every later validation.
+Better:
 
-## Milestone-wrapper decomposition
+```md
+Probe: query `soup` over `Soup`, `Tomato Soup`, and `Soup Dumplings`; exact `Soup` must rank first.
+Probe: existing code can still iterate non-empty results and read `recipe["title"]`.
+```
 
-Bad: children are the source roadmap's milestone names with status labels and by-reference acceptance criteria — one child bundles a dozen work units the source already defined.
-Good: the wave decomposes to the source's own handoff grain (epics, tickets, numbered work packages), each child fitting its own budget with an oracle derived from its own clauses; the far destination stays visible as deferred GOALS.md entries naming their opening gates.
+## HOW Leakage
 
-## Sketch-only tail
+Bad:
 
-Bad: one deep, locked goal plus a tail of 5-line manifest entries — "materialize at selection" read as "author as little as possible now"; the user asked for goals and got a map legend.
-Good: every named child is a FULL contract written with its sources open — Terminal State enumerating acceptance criteria, a nested `## Tasks` outcome tree — with only the executable horizon locked. Depth is always maximal; locks are the only thing the horizon scopes.
+```md
+Acceptance:
+- Use `csv.reader`.
+- Add a helper function.
+```
+
+Those are implementation moves. They may be good choices, but they are not the user-visible outcome.
+
+Better:
+
+```md
+Acceptance probe:
+- `Ada,ada@example.com,"123 Main St, Apt 4"` produces one address value: `123 Main St, Apt 4`.
+```
+
+## Lost Rejected Alternatives
+
+Bad:
+
+```md
+Decision: use metadata-bearing search results.
+```
+
+Future readers cannot tell why this was chosen.
+
+Better:
+
+```md
+Chosen: metadata-bearing list.
+Rejected: sentinel dict because it creates fake recipe objects; non-list object because it breaks existing iteration.
+```
+
+## Runtime Overreach
+
+Older GoalSpec designs tried to use lock files, lifecycle state, verifier gates, hooks, graph promotion, and reviewer machinery as default authority. Those mechanisms made the system look safer than it was. If source interpretation was wrong, the machinery preserved the wrong thing.
+
+The rebuilt skill keeps authority with the agent and reviewer. It teaches decision shaping and probe generation instead of pretending to automate semantic correctness.
