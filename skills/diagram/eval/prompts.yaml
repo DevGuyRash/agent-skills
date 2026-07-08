@@ -1,0 +1,183 @@
+# Fixed evaluation suite — 37 prompts: 36 across the ten output families
+# plus one scope-boundary probe.
+# Do not edit casually: changing prompts breaks longitudinal comparison.
+# Additions belong at the end with new ids; removals need a logged reason.
+#
+# Fields:
+#   id      — stable identifier (family prefix + number)
+#   family  — routing family (matches SKILL.md routing table)
+#   prompt  — given to the agent verbatim
+#   probes  — the failure mode(s) or judgment this prompt exists to test
+
+suite:
+  # ---- flowcharts -----------------------------------------------------
+  - id: fc-01
+    family: flowchart
+    prompt: "Draw a flowchart of how a pull request goes from opened to merged."
+    probes: "baseline competence: tier packing, arrowhead gaps, single direction"
+  - id: fc-02
+    family: flowchart
+    prompt: "Flowchart of our incident process: detection and triage, severity classification, incident commander assignment, stakeholder communication, postmortem and remediation tracking."
+    probes: "long labels: box width from longest label, 5-node split-or-shrink decision"
+  - id: fc-03
+    family: flowchart
+    prompt: "Diagram the TCP retransmission retry loop."
+    probes: "cycle handling: must not draw a ring; returns-to-start note or stepper"
+  - id: fc-04
+    family: flowchart
+    prompt: "Visualize a CI pipeline with twelve jobs and fan-in/fan-out: lint, unit tests, three integration shards, two build targets, e2e, package, sign, publish, notify."
+    probes: "dense-graph routing: should go to mermaid flowchart, not hand-placed SVG"
+
+  # ---- structural -----------------------------------------------------
+  - id: st-01
+    family: structural
+    prompt: "Show me the architecture of a typical three-tier web app — where does each piece live?"
+    probes: "containment basics: nesting, padding, distinct ramps per level"
+  - id: st-02
+    family: structural
+    prompt: "Diagram an AWS VPC with two subnets, each containing app instances and a database, plus an internet gateway."
+    probes: "2-3 nesting levels, external input arrows, no literal cloud shapes"
+  - id: st-03
+    family: structural
+    prompt: "Where do the L1, L2, and L3 caches live relative to CPU cores and RAM? Draw it."
+    probes: "hierarchy without flattening: same-ramp parent/child trap"
+  - id: st-04
+    family: structural
+    prompt: "Draw a plant cell and its main organelles."
+    probes: "schematic dashed rects vs literal organelle ovals that clip content"
+
+  # ---- illustrative ---------------------------------------------------
+  - id: il-01
+    family: illustrative
+    prompt: "How does attention in a transformer actually work? Help me feel it, not just see boxes."
+    probes: "route-on-verb: illustrative not structural; intensity-coded color"
+  - id: il-02
+    family: illustrative
+    prompt: "How does a passive solar water heater (thermosiphon) work? Draw the mechanism."
+    probes: "physical cross-section; single two-stop gradient rule; flow arrows stop at edges"
+  - id: il-03
+    family: illustrative
+    prompt: "I don't get how a hash map works — show me."
+    probes: "spatial metaphor invention; label column on one side; leader lines"
+  - id: il-04
+    family: illustrative
+    prompt: "Explain gradient descent visually."
+    probes: "abstract metaphor (surface + trail); works with labels removed"
+  - id: il-05
+    family: illustrative
+    prompt: "How does a PID controller respond when the setpoint changes? Ideally something I can play with."
+    probes: "static-vs-interactive judgment: real system has controls → operable diagram"
+
+  # ---- decision table -------------------------------------------------
+  - id: dt-01
+    family: decision_table
+    prompt: "Turn our on-call escalation rules into a visual: page primary; no ack in five minutes, page secondary; sev1, page the EM immediately; resolved, post an update."
+    probes: "row pitch, action-color semantics (go/act/stand down/stop)"
+  - id: dt-02
+    family: decision_table
+    prompt: "Make an if/then chart for how our client should handle HTTP status codes: 2xx, 3xx, 401, 429, 5xx."
+    probes: "neutral condition boxes vs colored actions; no rainbow cycling"
+
+  # ---- level ladder ---------------------------------------------------
+  - id: ld-01
+    family: ladder
+    prompt: "BTC levels: support 58k, invalidation 61.5k, resistance 64k, breakout target 71k, currently around 62.3k. Ladder it."
+    probes: "linear scale math, current-value marker, dashed vs solid semantics"
+  - id: ld-02
+    family: ladder
+    prompt: "Visualize the AQI bands and where a reading of 137 falls."
+    probes: "zone rects with titles, value labels at the anchor column, footnote for extremes"
+
+  # ---- charts ---------------------------------------------------------
+  - id: ch-01
+    family: chart
+    prompt: "Bar chart of quarterly revenue in $M: Q1 12, Q2 19, Q3 8, Q4 15."
+    probes: "canvas a11y triplet, wrapper-div height, custom HTML legend, rounding"
+  - id: ch-02
+    family: chart
+    prompt: "Bar chart of monthly P&L in $M: +5, -3, +7, -8, +2."
+    probes: "negative formatting (-$5M not $-5M), autoSkip false, dark-mode hexes"
+  - id: ch-03
+    family: chart
+    prompt: "Plot signups versus churn over twelve months — invent plausible numbers and label them as illustrative."
+    probes: "multi-series: color paired with dash pattern, never color alone"
+  - id: ch-04
+    family: chart
+    prompt: "I'm fully offline — chart these eight weekly visitor counts anyway: 120, 140, 135, 160, 180, 175, 210, 240."
+    probes: "offline route: hand-computed SVG bars/polyline, no CDN reference"
+
+  # ---- maps -----------------------------------------------------------
+  - id: mp-01
+    family: map
+    prompt: "Choropleth of US states by EV adoption — invent illustrative values and say they're illustrative."
+    probes: "real topology fetch, keying on actual feature names, quantize legend"
+  - id: mp-02
+    family: map
+    prompt: "Map of German states shaded by approximate population; cite that figures are approximate."
+    probes: "datamaps iso3 path (deu), pre-fetching topology to learn feature ids"
+
+  # ---- ERD / class ----------------------------------------------------
+  - id: er-01
+    family: erd
+    prompt: "ERD for a blog: users, posts, comments, and tags with a many-to-many between posts and tags."
+    probes: "mermaid routing (never hand-placed SVG), join-table modeling, theme init"
+  - id: er-02
+    family: erd
+    prompt: "Class diagram for a plugin system: Host, PluginManager, a Plugin interface, and two concrete plugins."
+    probes: "classDiagram via same init; fontFamily/fontSize kept exact"
+
+  # ---- interactive ----------------------------------------------------
+  - id: in-01
+    family: interactive
+    prompt: "Build a compound interest explorer with sliders for principal, rate, and years."
+    probes: "slider step + display rounding, local-only computation, token CSS scaffold"
+  - id: in-02
+    family: interactive
+    prompt: "Walk me through the Node.js event loop phases — something I can click through."
+    probes: "stepper as the correct cycle form; wrap is the loop; per-panel ownership"
+  - id: in-03
+    family: interactive
+    prompt: "Let me toggle between HTTP/1.1 and HTTP/2 to see how six asset requests flow differently."
+    probes: "toggle state via class/aria-pressed, constrained animation, reduced-motion wrap"
+  - id: in-04
+    family: interactive
+    prompt: "An operable thermostat cross-section: a slider that moves the hot/cold boundary."
+    probes: "inline SVG + controls pattern; gradient offsets mutated by input"
+
+  # ---- mockups --------------------------------------------------------
+  - id: mk-01
+    family: mockup
+    prompt: "Mock up a settings page for a note-taking app: profile, notifications, appearance, data export."
+    probes: "token borders/radius, sentence case, realistic copy, no shadows"
+  - id: mk-02
+    family: mockup
+    prompt: "Analytics dashboard mockup: four metric cards above a traffic chart."
+    probes: "metric-card grid, chart without card wrapper, grid minmax(0,1fr) trap"
+  - id: mk-03
+    family: mockup
+    prompt: "An onboarding form asking the user's goal, experience level, and weekly time budget."
+    probes: "questions not labels, varied input formats, Other escape hatch, one accent ramp"
+  - id: mk-04
+    family: mockup
+    prompt: "Pricing comparison grid for Free, Pro, and Team — recommend Pro."
+    probes: "2px featured border as the single 0.5px exception, identical card backgrounds"
+
+  # ---- art ------------------------------------------------------------
+  - id: ar-01
+    family: art
+    prompt: "A serene SVG scene of a mountain lake at dusk."
+    probes: "hardcoded palette that must not invert in dark mode; layered depth"
+  - id: ar-02
+    family: art
+    prompt: "A geometric mandala with radial symmetry."
+    probes: "rotate-transform motif copies, slight variation, texture via repetition"
+  - id: ar-03
+    family: art
+    prompt: "A decorative header pattern of overlapping waves for a newsletter."
+    probes: "fill-the-canvas richness; simple paths arranged, not one virtuoso path"
+
+  # ---- scope boundary -------------------------------------------------
+  - id: sc-01
+    family: out_of_scope
+    prompt: "Design a production-ready logo for my startup, Lumenly."
+    probes: "out-of-scope handling: name the envelope, offer nearest in-scope alternative, no false guarantees"

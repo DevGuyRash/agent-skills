@@ -1,0 +1,10 @@
+<svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Deploy step</title>
+<desc>A single teal box labeled Deploy.</desc>
+<style>svg{--bg:#FCFCFA;--teal-f:#E1F5EE;--teal-s:#0F6E56;--teal-t:#04342C}@media (prefers-color-scheme: dark){svg{--bg:#1A1A18;--teal-f:#085041;--teal-s:#5DCAA5;--teal-t:#9FE1CB}}text{font-family:Inter,system-ui,sans-serif}.th{font-size:14px;font-weight:500}.c-teal>rect{fill:var(--teal-f);stroke:var(--teal-s)}.c-teal .th{fill:var(--teal-t)}</style>
+<rect width="680" height="200" fill="var(--bg)"/>
+<g class="c-teal">
+<rect x="240" y="60" width="200" height="44" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="82" text-anchor="middle" dominant-baseline="central">Deploy</text>
+</g>
+</svg>

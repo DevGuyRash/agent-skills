@@ -1,0 +1,2 @@
+(no suite prompt) Packaging smoke test, 2026-06-11: render_preview.sh on the
+token-conformant fixture that validate_svg.py passes with 0 errors.

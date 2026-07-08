@@ -1,0 +1,2 @@
+(no suite prompt) Packaging smoke test, 2026-06-10: scripts/render_preview.sh
+invoked on a minimal token-conformant SVG fixture.
