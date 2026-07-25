@@ -76,20 +76,25 @@ You SHALL NOT add another manually maintained command catalog or alias inventory
 
 ## Plugin installation and portability
 
-Installing plugins into the local CLIs goes through `scripts/install-all` (or `just install-all`): it adds the agent-tooling marketplace to both Codex and Claude Code and installs matching plugins (`--include`/`--exclude` CSV globs, `--codex-only`/`--claude-only`, `--dry-run`). The registered marketplaces track GitHub `DevGuyRash/agent-tooling@main`, so a local change reaches the installed caches only after it is pushed; sessions opened before an install keep running the previously cached plugin version.
+Installing plugins into the local CLIs goes through `scripts/install-all` (or `just install-all`): it adds the agent-tooling marketplace to each enabled host and installs matching plugins from that host's catalog (`--include`/`--exclude` CSV globs, `--codex-only`/`--claude-only`, `--dry-run`). Host catalogs MAY differ; WHEN filters select no plugin for one enabled host but do select a plugin for another THEN you SHALL skip marketplace and install changes for the empty host. The registered marketplaces track GitHub `DevGuyRash/agent-tooling@main`, so a local change reaches the installed caches only after it is pushed; sessions opened before an install keep running the previously cached plugin version.
 
 `--source` persists as the marketplace's durable source, not a one-off: the CLIs register whatever you pass forever, until replaced. `--source <local path>` is the testing affordance for unpushed changes — it leaves both CLIs on a non-canonical `directory` marketplace that must later be reconciled to GitHub. WHEN installing for anything but testing local unpushed changes THEN you SHALL omit `--source` (it defaults to the canonical GitHub `DevGuyRash/agent-tooling`). WHEN a local-source marketplace is already registered and you need to restore GitHub THEN you SHALL run `install-all --replace-marketplace` (no `--source`) — a plain re-run is a near-no-op because the marketplace already exists.
 
-Both host variants of a plugin must demonstrably work before they ship:
+Host publication must match executable capability:
 
-WHEN preparing a final push that changes anything under `plugins/` THEN you SHALL create both host variants of each changed plugin with `scripts/plugin_port.py` and verify them working before pushing:
+WHEN a plugin can execute on both hosts THEN you SHALL publish and verify both host variants.
+
+WHEN a plugin depends on a host-native runtime, host-only instruction model, or host-only security boundary THEN you SHALL publish it only for the capable host and document that constraint in the plugin README and root inventory. You SHALL NOT ship a nonfunctional host shell solely to keep marketplace catalogs identical.
+
+WHEN preparing a final push that changes anything under `plugins/` THEN you SHALL round-trip the changed plugin through both targets with `scripts/plugin_port.py`; for an intentionally host-specific plugin, the unpublished target is a structural portability audit rather than a publication artifact:
 
 ```bash
 # Round-trip each changed plugin through the other host and back (conversion fidelity):
 python3 scripts/plugin_port.py roundtrip plugins/<name> --to codex --tmp .local/tmp/rt-codex
 python3 scripts/plugin_port.py roundtrip plugins/<name> --to claude --tmp .local/tmp/rt-claude
 
-# Validate each converted variant for its target host:
+# Validate each converted variant for its target host. Host-specific converted
+# output remains scratch evidence and is not added to the other marketplace.
 python3 scripts/plugin_port.py validate .local/tmp/rt-codex/<name>-codex --host codex
 python3 scripts/plugin_port.py validate .local/tmp/rt-claude/<name>-claude --host claude
 
@@ -581,8 +586,8 @@ The recommended pattern:
 3. **SKILL.md as fallback router.** "Run `<cli> <command>` for guidance.
    IF the CLI is unavailable, read `references/X.md` instead."
 
-This pattern is demonstrated by the skill-auditor's `audit-skill` CLI and
-the code-review skill's `mpcr` protocol CLI. Use it when a skill has:
+This pattern is demonstrated by the code-review skill's `mpcr` protocol CLI.
+Use it when a skill has:
 - Multiple phases or modes with distinct guidance per phase
 - Enumerable configuration (domains, roles, traits)
 - Deterministic check scripts that benefit from a unified runner
@@ -783,105 +788,3 @@ Rules:
 5. **No eval on user input.** Scripts SHALL NOT use `eval` on user-provided
    input (command injection risk).
 
----
-
-## Skills debugging: error accumulation log
-
-Whenever you or any subagent encounter ANY issue while following, reading,
-interpreting, or executing a skill's instructions — document it. Every error,
-misinterpretation, ambiguity, or unexpected outcome gets logged. Over time
-these logs reveal systemic problems that no single run would surface.
-
-### What to log
-
-Every skill friction point: commands that fail, instructions that are
-ambiguous, names that don't resolve, outputs that don't match what the docs
-describe, files that are missing, build steps that break, reference docs
-that contradict SKILL.md, dispatch prompts that lack context, or anything
-where the skill told you to do X and the outcome was not X.
-
-### How to write entries
-
-Focus on the **what** and **why**, not the fix. You are a field reporter,
-not a patch author. Each entry records what you tried, what the skill told
-you to do, what actually happened, and how you interpreted the instructions.
-
-**Good entry:**
-
-> Tried to run `mpcr protocol dispatch --role architecture` as specified by
-> SKILL.md line 160: _"Use `mpcr protocol dispatch --role <ROLE>` to get the
-> domain-specific prompt."_ The domain table on line 123 lists "Architecture"
-> as a domain name. Outcome: `error: unknown dispatch role: architecture`
-> with a 15-line stack backtrace. I interpreted "Architecture" in the domain
-> table as the role name to pass to `--role`. The actual CLI slug is
-> `architecture-critic`, which is not documented anywhere in SKILL.md.
-
-**Bad entry:**
-
-> The dispatch role name is wrong. It should be `architecture-critic` instead
-> of `architecture`. Fix line 123 to show the correct slug.
-
-The bad entry jumps to a fix. The good entry captures the chain of
-interpretation — what the agent read, how it reasoned, what it tried, and
-what broke. This is what makes the log useful for diagnosing skill design
-problems rather than just patching individual bugs.
-
-### Where to write
-
-Create one error file per skill at the start of a top-level task invocation.
-If the same skill produces multiple errors during that task, append new
-entries to the same file. "Top-level task" means one user request that may
-span many agent turns and subagent invocations — not each individual command.
-
-File path:
-
-```bash
-<tmp>/<skill-name>/<yyyy-mm-dd>/<HH-MM-SS>_errors.md
-```
-
-Use the Linux temp base path:
-
-```bash
-err_dir="/tmp/skill-errors/<skill-name>/$(date +%Y-%m-%d)"
-mkdir -p "$err_dir"
-err_file="$err_dir/$(date +%H-%M-%S)_errors.md"
-```
-
-### Log file format
-
-```markdown
-# Skill Error Log: <skill-name>
-
-**Date:** <yyyy-mm-dd HH:MM:SS>
-**Agent:** orchestrator | subagent (<role if applicable>)
-**Skill path:** <path/to/skill>
-
----
-
-## Entry 1: <short title>
-
-**Instruction source:** <file:line or command that was followed>
-**Instruction text:** "<exact text or close paraphrase of what was read>"
-**Action taken:** <what the agent did based on that instruction>
-**Expected outcome:** <what the instruction implied would happen>
-**Actual outcome:** <what actually happened, including error text>
-**Interpretation:** <how the agent understood the instruction and why it
-took the action it did>
-
----
-
-## Entry 2: ...
-```
-
-### Subagent responsibility
-
-Subagents SHALL write to the same skill/date directory using their own
-timestamped file. The orchestrator does not need to collect or merge
-subagent logs — the skill/date directory structure naturally groups them.
-
-### When NOT to log
-
-Don't log issues caused by the user's project (compilation errors in their
-code, missing user dependencies, etc.). Only log issues caused by the skill
-itself: its documentation, its scripts, its CLIs, its templates, or its
-reference files.
