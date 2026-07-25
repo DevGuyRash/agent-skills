@@ -28,6 +28,9 @@ the capable host.
 
 Current local plugins:
 
+- `plugins/claude-linux-computer-use/` is Claude-only; it carries the Claude
+  half of the Linux desktop work that `plugins/linux-desktop-control/` carries
+  for Codex.
 - `plugins/code-review/`
 - `plugins/docker-architect/`
 - `plugins/espanso-dynamic-forms/`
@@ -44,6 +47,21 @@ Current local plugins:
 - `plugins/skill-auditor/`
 
 ## Plugin Packages
+
+### `claude-linux-computer-use`
+
+Operational doctrine for Claude driving desktop applications on a Linux host,
+written from field sessions rather than from a capability matrix: app process
+lifecycle and single-instance races, companion CLI/IPC and eval channels, what
+synthetic input hides that real input does not, condition-based waiting, and
+hygiene on a machine shared with other agents and a human.
+
+It pairs with a desktop-control integration and supplies none of the
+mechanics itself. `plugins/linux-desktop-control/` is the Codex-side
+counterpart; the two are separate packages because a plugin publishes its
+whole skill tree to whichever host installs it.
+
+Path: `plugins/claude-linux-computer-use/skills/claude-linux-computer-use/`
 
 ### `code-review`
 
