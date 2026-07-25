@@ -65,3 +65,7 @@ targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/build-inde
 [[vendor.copies]]
 source = "plugins/friction-diagnostics/skills/friction-diagnostics/friction-event-schema.json"
 targets = ["plugins/friction-diagnostics/skills/friction-mend/friction-event-schema.json"]
+
+[[vendor.copies]]
+source = "plugins/friction-diagnostics/skills/friction-diagnostics/scripts/lifecycle.py"
+targets = ["plugins/friction-diagnostics/skills/friction-mend/scripts/lifecycle.py"]

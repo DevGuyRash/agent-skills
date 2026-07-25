@@ -31,11 +31,11 @@ pivot_information	If you could plant one sentence into your past context, what w
 pivot_information	Did anything you already had access to contain the answer? Why did it not surface?
 pivot_information	Is the gap in the world (nothing states this) or in the reading (it was stated, you missed it)?
 pivot_information	If this was caught before any harm, what fact should the next agent check first - and which source wins when they disagree?
-sources	What did you trust that betrayed you: an artifact, an instruction, a tool, an assumption, a memory?
+sources	What inputs supported your prediction: an artifact, an instruction, a tool, an assumption, a memory?
 sources	For each trusted thing: what exactly did you believe it said or would do?
 sources	State the belief as you held it before acting - with none of what you now know mixed in.
-sources	Which trusted thing carries the wrong or missing sentence - and where exactly in it does the betrayal live?
-sources	Was the betrayal in the text itself, or in what you added to the text?
+sources	Which input carries the wrong or missing sentence - and where exactly in it does the gap live?
+sources	Was the gap in the text itself, or in what you added to the text?
 recurrence_key	Name the trap so your future self recognizes it in two seconds.
 recurrence_key	If this bites again next month, what 2-5 hyphenated words would you search for?
 note	What is true about this incident that nothing above asked?

@@ -278,15 +278,32 @@ write_md_field() {
 }
 
 # --- Sanitization ---
+# One redaction rule list shared by every sanitizer: sanitize_text builds its
+# sed invocation from it, and from_json.py receives the pairs via argv
+# (translating the POSIX character classes to Python re equivalents). Rules
+# are "pattern<TAB>replacement" lines in sed -E dialect; patterns must not
+# contain tab or the / delimiter.
+
+friction_redaction_rules() {
+  printf '%s\t%s\n' \
+    '(Bearer[[:space:]]+)[A-Za-z0-9._-]+' '\1[REDACTED]' \
+    '(^|[^[:alnum:]_])(gh[pousr]_[A-Za-z0-9]+)([^[:alnum:]_]|$)' '\1[REDACTED_GITHUB_TOKEN]\3' \
+    '(^|[^[:alnum:]_])(sk-[A-Za-z0-9_-]+)([^[:alnum:]_]|$)' '\1[REDACTED_API_TOKEN]\3' \
+    '(^|[^[:alnum:]_])(AKIA[0-9A-Z]{16})([^[:alnum:]_]|$)' '\1[REDACTED_AWS_ACCESS_KEY]\3' \
+    '(^|[^[:alnum:]_])(xox[baprs]-[A-Za-z0-9-]+)([^[:alnum:]_]|$)' '\1[REDACTED_SLACK_TOKEN]\3' \
+    '(^|[^[:alnum:]_])([Pp]assword|[Tt]oken|[Ss]ecret|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy])([[:space:]]*[:=][[:space:]]*)[^[:space:]]+' '\1\2\3[REDACTED]'
+}
 
 sanitize_text() {
-  printf '%s' "$1" | sed -E \
-    -e 's/(Bearer[[:space:]]+)[A-Za-z0-9._-]+/\1[REDACTED]/g' \
-    -e 's/(^|[^[:alnum:]_])(gh[pousr]_[A-Za-z0-9]+)([^[:alnum:]_]|$)/\1[REDACTED_GITHUB_TOKEN]\3/g' \
-    -e 's/(^|[^[:alnum:]_])(sk-[A-Za-z0-9_-]+)([^[:alnum:]_]|$)/\1[REDACTED_API_TOKEN]\3/g' \
-    -e 's/(^|[^[:alnum:]_])(AKIA[0-9A-Z]{16})([^[:alnum:]_]|$)/\1[REDACTED_AWS_ACCESS_KEY]\3/g' \
-    -e 's/(^|[^[:alnum:]_])(xox[baprs]-[A-Za-z0-9-]+)([^[:alnum:]_]|$)/\1[REDACTED_SLACK_TOKEN]\3/g' \
-    -e 's/(^|[^[:alnum:]_])([Pp]assword|[Tt]oken|[Ss]ecret|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy])([[:space:]]*[:=][[:space:]]*)[^[:space:]]+/\1\2\3[REDACTED]/g'
+  sanitize_value=$1
+  set --
+  while IFS="$(printf '\t')" read -r redact_pattern redact_replacement; do
+    [ -n "$redact_pattern" ] || continue
+    set -- "$@" -e "s/$redact_pattern/$redact_replacement/g"
+  done <<EOF
+$(friction_redaction_rules)
+EOF
+  printf '%s' "$sanitize_value" | sed -E "$@"
 }
 
 sanitize_excerpt() {
@@ -311,16 +328,6 @@ validate_required_field() {
   value=$2
   if [ -z "$(trim "$value")" ]; then
     die "Missing required field: $label"
-  fi
-}
-
-validate_narrative_length() {
-  label=$1
-  value=$2
-  min_len=$3
-  length=$(printf '%s' "$value" | wc -c | tr -d ' ')
-  if [ "$length" -lt "$min_len" ]; then
-    die "$label must be at least $min_len characters (got $length). Provide a detailed, substantive account."
   fi
 }
 
@@ -362,9 +369,44 @@ schema_version() {
 }
 
 # --- Session reference (statelessness contract: optional enrichment, omitted when unset) ---
+# Precedence: native runtime identity (CODEX_*, always current per-process)
+# beats the SessionStart sidecar, which beats env-file exports - the exports
+# go stale across continued/resumed Claude conversations, which is exactly
+# what the sidecar corrects. Optional $1 is the events directory holding
+# session-ref.json; FRICTION_SIDECAR_TTL (seconds, default 86400) bounds how
+# old a sidecar may be before the env chain takes over.
 
 resolve_session_ref() {
-  for candidate in "${FRICTION_SESSION_REF-}" "${CLAUDE_SESSION_ID-}" "${CODEX_SESSION_ID-}" "${CODEX_THREAD_ID-}"; do
+  session_events_dir=${1-}
+  for candidate in "${CODEX_SESSION_ID-}" "${CODEX_THREAD_ID-}"; do
+    if [ -n "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  if [ -n "$session_events_dir" ] && [ -f "$session_events_dir/session-ref.json" ] \
+    && command -v python3 >/dev/null 2>&1; then
+    sidecar_ref=$(python3 -I - "$session_events_dir/session-ref.json" "${FRICTION_SIDECAR_TTL:-86400}" <<'PY' 2>/dev/null
+import json, sys, time
+from pathlib import Path
+
+try:
+    data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    ttl = int(sys.argv[2])
+    sid = str(data.get("session_id") or "")
+    written = int(data.get("written_at") or 0)
+    if sid and written and time.time() - written <= ttl:
+        print(sid)
+except Exception:
+    pass
+PY
+    ) || sidecar_ref=
+    if [ -n "$sidecar_ref" ]; then
+      printf '%s\n' "$sidecar_ref"
+      return 0
+    fi
+  fi
+  for candidate in "${FRICTION_SESSION_REF-}" "${CLAUDE_SESSION_ID-}"; do
     if [ -n "$candidate" ]; then
       printf '%s\n' "$candidate"
       return 0
@@ -623,6 +665,21 @@ default_events_file() {
   printf '%s\n' "$(temp_root_dir)/agent-friction/$cwd_hash/events.jsonl"
 }
 
+# Read-side twin of default_events_file: resolves the same canonical path but
+# never creates directories. Readers (query, reports, cluster hints) must not
+# mutate a clean repository.
+default_events_file_ro() {
+  repo_root=$(git_repo_root)
+  if [ -n "$repo_root" ]; then
+    local_dir=$(existing_local_dir_for_repo "$repo_root")
+    printf '%s\n' "$local_dir/reports/friction/events.jsonl"
+    return 0
+  fi
+
+  cwd_hash=$(short_hash "$(pwd)" 12)
+  printf '%s\n' "$(temp_root_dir)/agent-friction/$cwd_hash/events.jsonl"
+}
+
 discover_events_files() {
   if [ "$#" -eq 0 ]; then
     die "discover_events_files: at least one directory is required"
@@ -649,6 +706,72 @@ validate_events_jsonl_file() {
           end
       )
   ' "$events_path" >/dev/null
+}
+
+# --- Locking ---
+# One bounded directory lock for every writer. mkdir is the atomic primitive;
+# the pid file records "pid" on line 1 (legacy-reader compatible) and the
+# creation epoch on line 2. The wait is bounded by FRICTION_LOCK_TIMEOUT
+# seconds (default 15). Recovery paths: a lock whose recorded owner is
+# demonstrably dead is reclaimed immediately; a lock directory with no pid
+# file (writer died between mkdir and publication) is reclaimed after a short
+# grace window instead of being waited on forever.
+
+FRICTION_LOCK_DIR=
+FRICTION_LOCK_ACQUIRED=0
+
+release_friction_lock() {
+  if [ "${FRICTION_LOCK_ACQUIRED:-0}" -eq 1 ] && [ -n "${FRICTION_LOCK_DIR-}" ]; then
+    rm -f "$FRICTION_LOCK_DIR/pid" 2>/dev/null || true
+    rmdir "$FRICTION_LOCK_DIR" 2>/dev/null || true
+    FRICTION_LOCK_ACQUIRED=0
+  fi
+}
+
+acquire_friction_lock() {
+  lock_parent=$1
+  lock_name=${2:-.report-friction.lock}
+  FRICTION_LOCK_DIR=$lock_parent/$lock_name
+  lock_timeout=${FRICTION_LOCK_TIMEOUT:-15}
+  case "$lock_timeout" in ''|*[!0-9]*) lock_timeout=15 ;; esac
+  lock_waited=0
+  lock_ownerless=0
+  while ! mkdir "$FRICTION_LOCK_DIR" 2>/dev/null; do
+    if [ -f "$FRICTION_LOCK_DIR/pid" ]; then
+      lock_ownerless=0
+      lock_pid=$(sed -n '1p' "$FRICTION_LOCK_DIR/pid" 2>/dev/null || true)
+      case "$lock_pid" in
+        ''|*[!0-9]*) ;;
+        *)
+          # kill -0 alone reports EPERM (failure) for another user's live
+          # process; pair it with ps so only a truly dead owner is reclaimed.
+          if ! kill -0 "$lock_pid" 2>/dev/null && ! ps -p "$lock_pid" >/dev/null 2>&1; then
+            rm -f "$FRICTION_LOCK_DIR/pid" 2>/dev/null || true
+            rmdir "$FRICTION_LOCK_DIR" 2>/dev/null || true
+            continue
+          fi
+          ;;
+      esac
+    else
+      lock_ownerless=$((lock_ownerless + 1))
+      if [ "$lock_ownerless" -ge 5 ]; then
+        rmdir "$FRICTION_LOCK_DIR" 2>/dev/null || true
+        lock_ownerless=0
+        continue
+      fi
+    fi
+    if [ "$lock_waited" -ge "$lock_timeout" ]; then
+      lock_owner_info=$(sed -n '1,2p' "$FRICTION_LOCK_DIR/pid" 2>/dev/null | tr '\n' ' ' || true)
+      die "Could not acquire lock $FRICTION_LOCK_DIR within ${lock_timeout}s (owner: ${lock_owner_info:-unknown}). If no writer is active, remove the lock directory and retry."
+    fi
+    sleep 1
+    lock_waited=$((lock_waited + 1))
+  done
+  {
+    printf '%s\n' "$$"
+    date +%s 2>/dev/null || printf '0\n'
+  } >"$FRICTION_LOCK_DIR/pid"
+  FRICTION_LOCK_ACQUIRED=1
 }
 
 # --- Base64 ---

@@ -38,6 +38,8 @@ Filters:
   --date-to YYYY-MM-DD
   --after ISO-TIMESTAMP     Filter events with recorded_at > TIMESTAMP
   --before ISO-TIMESTAMP    Filter events with recorded_at < TIMESTAMP
+  --session-ref VALUE       Exact session_ref match; the literal value
+                            "current" resolves the active session identity
   --source-ref PATH
 
 Output:
@@ -66,6 +68,7 @@ date_from=
 date_to=
 after=
 before=
+session_ref_filter=
 source_ref=
 format=jsonl
 output_path=
@@ -112,6 +115,7 @@ while [ $# -gt 0 ]; do
     --date-to) date_to=${2-}; shift 2 ;;
     --after) after=${2-}; shift 2 ;;
     --before) before=${2-}; shift 2 ;;
+    --session-ref) session_ref_filter=${2-}; shift 2 ;;
     --source-ref) source_ref=${2-}; shift 2 ;;
     --format) format=${2-}; shift 2 ;;
     --output) output_path=${2-}; shift 2 ;;
@@ -146,7 +150,7 @@ EOF
   events_files=$discovered
 else
   if [ -z "$events_file" ]; then
-    events_file=$(default_events_file)
+    events_file=$(default_events_file_ro)
   fi
   [ -f "$events_file" ] || die "Events file not found: $events_file"
   events_files=$events_file
@@ -165,13 +169,42 @@ for resolved_events_file in "$@"; do
   validate_events_jsonl_file "$resolved_events_file"
 done
 
+if [ "$open_only" -eq 1 ] && ! command -v python3 >/dev/null 2>&1; then
+  die "python3 is required for --open queries (lifecycle state derivation)"
+fi
+
+if [ "$session_ref_filter" = "current" ]; then
+  if [ "$#" -eq 1 ]; then
+    session_ref_filter=$(resolve_session_ref "$(dirname "$1")")
+  else
+    session_ref_filter=$(resolve_session_ref)
+  fi
+  [ -n "$session_ref_filter" ] || die "No current session identity is discoverable (no sidecar, no session env)"
+fi
+
 filtered_tmp=$(mktemp)
+parts_dir=$(mktemp -d)
 cleanup() {
   rm -f "$filtered_tmp"
+  rm -rf "$parts_dir"
 }
 trap cleanup EXIT HUP INT TERM
 
+# Lifecycle state is derived per store and never merged across stores: event
+# ids are only unique within one file, so a shared resolved-set would let one
+# repo's resolution close another repo's unrelated event of the same id.
+part_index=0
+for resolved_events_file in "$@"; do
+part_index=$((part_index + 1))
+state_tmp=$parts_dir/state.json
+if [ "$open_only" -eq 1 ]; then
+  python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$resolved_events_file" >"$state_tmp"
+else
+  printf '{"open":{}}\n' >"$state_tmp"
+fi
+
 jq -s \
+  --slurpfile ST "$state_tmp" \
   --arg kind "$kind" \
   --arg open_only "$open_only" \
   --arg key "$key" \
@@ -188,6 +221,7 @@ jq -s \
   --arg date_to "$date_to" \
   --arg after "$after" \
   --arg before "$before" \
+  --arg session_ref "$session_ref_filter" \
   --arg source_ref "$source_ref" \
   '
   def record_kind: (.kind // "friction");
@@ -219,19 +253,24 @@ jq -s \
        | contains($needle | ascii_downcase))
     end;
 
-  # Lifecycle is derived, never stored: closed ids come from resolution records.
-  (map(select(record_kind == "resolution") | .resolves // []) | flatten | unique) as $resolved_ids
-  | def is_open($resolved):
+  # Lifecycle is derived, never stored - and order-aware: per-store open
+  # state comes from lifecycle.py (a recurrence filed after a resolution
+  # reopens its anchor; recurrence records inherit their anchor state,
+  # pre-folded into the open map).
+  def is_open:
       record_kind as $k
       | if $k == "resolution" then false
-        elif $k == "recurrence" then ((.recurs // "") as $a | ($resolved | index($a)) == null)
-        else ((.event_id // "") as $i | ($resolved | index($i)) == null)
+        else
+          # No "// true" here: jq treats false as empty, so "false // true"
+          # would reopen every closed event. Null (unknown id) means open.
+          ((($ST[0].open // {})[(.event_id // "")]) as $o
+           | if $o == null then true else $o end)
         end;
 
   map(
     select(
       ($kind == "" or record_kind == $kind) and
-      ($open_only != "1" or is_open($resolved_ids)) and
+      ($open_only != "1" or is_open) and
       ($key == "" or record_key == $key) and
       ($recurs == "" or (.recurs // "") == $recurs) and
       ($impact == "" or (.impact // "") == $impact) and
@@ -246,11 +285,14 @@ jq -s \
       (($date_to == "") or (((.recorded_at // "")[0:10]) <= $date_to)) and
       (($after == "") or ((.recorded_at // "") > $after)) and
       (($before == "") or ((.recorded_at // "") < $before)) and
+      (($session_ref == "") or ((.session_ref // "") == $session_ref)) and
       matches_source_ref($source_ref)
     )
   )
-  | sort_by(.recorded_at // "", .event_id // "")
-  ' "$@" >"$filtered_tmp"
+  ' "$resolved_events_file" >"$parts_dir/part.$part_index.json"
+done
+
+jq -s 'add | sort_by(.recorded_at // "", .event_id // "")' "$parts_dir"/part.*.json >"$filtered_tmp"
 
 case "$format" in
   jsonl)

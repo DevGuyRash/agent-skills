@@ -35,7 +35,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$events_file" ]; then
-  events_file=$(default_events_file)
+  events_file=$(default_events_file_ro)
 fi
 [ -f "$events_file" ] || die "Events file not found: $events_file"
 
@@ -43,12 +43,24 @@ if ! command -v python3 >/dev/null 2>&1; then
   die "python3 is required for cluster-hints.sh"
 fi
 
-python3 -I - "$events_file" "$include_all" <<'PY'
+# Open state comes from lifecycle.py (order-aware; a recurrence filed after a
+# resolution reopens its anchor), so resolved-then-recurred clusters stay in
+# the open hint pool.
+lifecycle_state=$(mktemp)
+cleanup() {
+  rm -f "$lifecycle_state"
+}
+trap cleanup EXIT HUP INT TERM
+python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$events_file" >"$lifecycle_state"
+
+python3 -I - "$events_file" "$include_all" "$lifecycle_state" <<'PY'
 import json, re, sys
 from pathlib import Path
 
 events_path = Path(sys.argv[1])
 include_all = sys.argv[2] == "1"
+state = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+open_map = state.get("open") or {}
 
 MAX_KEY_GROUPS = 50
 MAX_TOKEN_CANDIDATES = 25
@@ -76,11 +88,6 @@ for raw in events_path.open(encoding="utf-8", errors="replace"):
     except json.JSONDecodeError:
         continue
 
-resolved = set()
-for rec in records:
-    if (rec.get("kind") or "friction") == "resolution":
-        resolved.update(rec.get("resolves") or [])
-
 frictions = [r for r in records if (r.get("kind") or "friction") == "friction"]
 recurrences = [r for r in records if (r.get("kind") or "friction") == "recurrence"]
 
@@ -90,7 +97,7 @@ def key_of(rec):
 
 
 def is_open(rec):
-    return (rec.get("event_id") or "") not in resolved
+    return bool(open_map.get(rec.get("event_id") or "", True))
 
 
 def date_of(rec):

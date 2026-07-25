@@ -9,7 +9,9 @@ references/integration.md
 references/logging-spec.md
 scripts/_common.sh
 scripts/build-index.sh
+scripts/from_json.py
 scripts/generate-report.sh
+scripts/lifecycle.py
 scripts/query-friction.sh
 scripts/render-summary.sh
 scripts/render-table.sh

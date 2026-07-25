@@ -410,32 +410,52 @@ assert_output_contains "reopens the cluster" "$RESOLVED_STOP"
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 11: traps publisher — caps and atomicity
+# Test 11: traps publisher — grounded pointers, caps, atomicity
 # ═══════════════════════════════════════════════════════════════════════
 printf 'Test 11: traps publisher ... '
 
-printf '%s\n' '- [dispatch-label-vs-slug] Dispatch table shows display labels, not CLI slugs; run the discovery command instead. (evt-0001 x1, last 2026-07-07)' \
+# Grounded publish: the model supplies anchor + avoidance; key, sighting
+# count, and last-seen are derived from the store.
+printf '%s' '{"traps":[{"anchor":"evt-0001","avoid":"Dispatch table shows display labels, not CLI slugs; run the discovery command instead."}]}' \
   | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null
 assert_file "$DEFAULT_TRAPS"
 assert_contains "Known traps" "$DEFAULT_TRAPS"
 assert_contains "dispatch-label-vs-slug" "$DEFAULT_TRAPS"
+grep -q '(evt-0001 x[0-9]*, last 20' "$DEFAULT_TRAPS" || fail "trap line should carry store-derived anchor, count, and date"
 
-# >15 traps rejected
+# identical content is a no-op
+NOOP_OUTPUT=$(printf '%s' '{"traps":[{"anchor":"evt-0001","avoid":"Dispatch table shows display labels, not CLI slugs; run the discovery command instead."}]}' \
+  | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS")
+assert_output_contains "Unchanged" "$NOOP_OUTPUT"
+
+# fabricated anchors are rejected and the file is untouched
 set +e
-MANY_TRAPS=$(python3 -I -c 'print("\n".join("- [trap-%d] Synthetic trap line for the cap test." % i for i in range(16)))')
-printf '%s\n' "$MANY_TRAPS" | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null 2>&1
-CAP_STATUS=$?
+FABRICATED=$(printf '%s' '{"traps":[{"anchor":"evt-9999","avoid":"Fabricated pointer that must not publish."}]}' \
+  | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" 2>&1)
+FABRICATED_STATUS=$?
 set -e
-[ "$CAP_STATUS" -ne 0 ] || fail "16 traps should be rejected"
+[ "$FABRICATED_STATUS" -ne 0 ] || fail "fabricated anchor should be rejected"
+assert_output_contains "does not exist in the store" "$FABRICATED"
 assert_contains "dispatch-label-vs-slug" "$DEFAULT_TRAPS"
+assert_not_contains "evt-9999" "$DEFAULT_TRAPS"
 
-# oversize rejected
+# legacy free-markdown stdin gets a teaching error
 set +e
-BIG_TRAP=$(python3 -I -c 'print("- [big-trap] " + "x" * 9000)')
-printf '%s\n' "$BIG_TRAP" | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null 2>&1
+LEGACY=$(printf '%s\n' '- [old-format] Free markdown is no longer accepted.' \
+  | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" 2>&1)
+LEGACY_STATUS=$?
+set -e
+[ "$LEGACY_STATUS" -ne 0 ] || fail "legacy markdown stdin should be rejected"
+assert_output_contains "grounded JSON" "$LEGACY"
+
+# oversize rejected (byte cap applies to the rendered file)
+set +e
+BIG_AVOID=$(python3 -I -c 'print("{\"traps\":[{\"anchor\":\"evt-0001\",\"avoid\":\"" + "x" * 9000 + "\"}]}")')
+printf '%s' "$BIG_AVOID" | "$MEND_ROOT/scripts/update-traps.sh" --events-file "$DEFAULT_EVENTS" >/dev/null 2>&1
 SIZE_STATUS=$?
 set -e
 [ "$SIZE_STATUS" -ne 0 ] || fail "oversize traps file should be rejected"
+assert_contains "dispatch-label-vs-slug" "$DEFAULT_TRAPS"
 
 # talkback reports the traps count on the next filing
 TB_OUTPUT=$("$ROOT/scripts/report-friction.sh" \
@@ -575,7 +595,7 @@ printf '%s\n' "$CROSS_OUTPUT" | grep -q "Top Keys" || fail "missing Top Keys sec
 printf 'OK\n'
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 18: session hook — fail-open on every path, env-file exports
+# Test 18: session hook — sidecar, boundary presence, env dedupe, fail-open
 # ═══════════════════════════════════════════════════════════════════════
 HOOK_SCRIPT=$(CDPATH='' cd -- "$ROOT/../.." && pwd)/hooks/friction-session-env.sh
 if [ -x "$HOOK_SCRIPT" ]; then
@@ -584,18 +604,46 @@ if [ -x "$HOOK_SCRIPT" ]; then
   HOOK_ENV=$TEST_REPO/.hook-env
   rm -f "$HOOK_ENV"
   HOOK_OUT=$(printf '%s' '{"session_id":"abc-123","transcript_path":"/tmp/x y.jsonl"}' | CLAUDE_ENV_FILE=$HOOK_ENV sh "$HOOK_SCRIPT")
-  assert_equals "" "$HOOK_OUT"
+  # boundary presence: the store has open anchors, so derived facts appear
+  assert_output_contains "friction:" "$HOOK_OUT"
+  assert_output_contains "open anchor" "$HOOK_OUT"
+  assert_output_contains "known-traps:" "$HOOK_OUT"
   assert_file "$HOOK_ENV"
   assert_contains "export FRICTION_SESSION_REF='abc-123'" "$HOOK_ENV"
   assert_contains "export FRICTION_TRANSCRIPT_PATH='/tmp/x y.jsonl'" "$HOOK_ENV"
 
-  # no env file: silent no-op, exit 0
-  printf '%s' '{"session_id":"abc-123"}' | env -u CLAUDE_ENV_FILE sh "$HOOK_SCRIPT" || fail "hook must exit 0 without CLAUDE_ENV_FILE"
+  # sidecar written into the existing store, and a fresh sidecar outranks a
+  # stale env-file ref when a record is filed
+  SIDECAR=$TEST_REPO/.local/reports/friction/session-ref.json
+  assert_file "$SIDECAR"
+  assert_contains "abc-123" "$SIDECAR"
+  without_session_env env FRICTION_SESSION_REF=stale-env-ref sh "$ROOT/scripts/report-friction.sh" \
+    --events-file "$DEFAULT_EVENTS" --recur evt-0001 \
+    --actual-outcome "sidecar precedence probe occurrence" >/dev/null 2>&1
+  LAST_REF=$(tail -1 "$DEFAULT_EVENTS" | jq -r '.session_ref')
+  assert_equals "abc-123" "$LAST_REF"
+
+  # rerunning the hook dedupes env exports: exactly one line per var, newest wins
+  printf '%s' '{"session_id":"def-456"}' | CLAUDE_ENV_FILE=$HOOK_ENV sh "$HOOK_SCRIPT" >/dev/null
+  REF_COUNT=$(grep -c '^export FRICTION_SESSION_REF=' "$HOOK_ENV")
+  assert_equals "1" "$REF_COUNT"
+  assert_contains "export FRICTION_SESSION_REF='def-456'" "$HOOK_ENV"
+
+  # storeless repo: silent stdout, no sidecar, no directories created
+  BARE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/friction-hook-bare.XXXXXX")
+  git -C "$BARE_DIR" init -q
+  BARE_OUT=$(printf '%s' "{\"session_id\":\"abc-123\",\"cwd\":\"$BARE_DIR\"}" | env -u CLAUDE_ENV_FILE sh "$HOOK_SCRIPT")
+  assert_equals "" "$BARE_OUT"
+  [ ! -e "$BARE_DIR/.local" ] || fail "hook must not create .local in a storeless repo"
+  rm -rf "$BARE_DIR"
+
+  # no env file: exit 0
+  printf '%s' '{"session_id":"abc-123"}' | env -u CLAUDE_ENV_FILE sh "$HOOK_SCRIPT" >/dev/null || fail "hook must exit 0 without CLAUDE_ENV_FILE"
 
   # garbage stdin: exit 0, nothing harmful written
   HOOK_ENV2=$TEST_REPO/.hook-env2
   rm -f "$HOOK_ENV2"
-  printf 'not json at all' | CLAUDE_ENV_FILE=$HOOK_ENV2 sh "$HOOK_SCRIPT" || fail "hook must exit 0 on garbage stdin"
+  printf 'not json at all' | CLAUDE_ENV_FILE=$HOOK_ENV2 sh "$HOOK_SCRIPT" >/dev/null || fail "hook must exit 0 on garbage stdin"
   if [ -f "$HOOK_ENV2" ] && grep -q 'FRICTION_SESSION_REF' "$HOOK_ENV2"; then
     fail "garbage stdin must not export a session ref"
   fi
@@ -603,7 +651,7 @@ if [ -x "$HOOK_SCRIPT" ]; then
   # injection attempt: sanitizer rejects a shell-hostile session id
   HOOK_ENV3=$TEST_REPO/.hook-env3
   rm -f "$HOOK_ENV3"
-  printf '%s' '{"session_id":"abc; rm -rf /"}' | CLAUDE_ENV_FILE=$HOOK_ENV3 sh "$HOOK_SCRIPT" || fail "hook must exit 0 on hostile session id"
+  printf '%s' '{"session_id":"abc; rm -rf /"}' | CLAUDE_ENV_FILE=$HOOK_ENV3 sh "$HOOK_SCRIPT" >/dev/null || fail "hook must exit 0 on hostile session id"
   if [ -f "$HOOK_ENV3" ] && grep -q 'FRICTION_SESSION_REF' "$HOOK_ENV3"; then
     fail "hostile session id must not be exported"
   fi
@@ -612,5 +660,208 @@ if [ -x "$HOOK_SCRIPT" ]; then
 else
   printf 'Test 18: session hook ... SKIPPED (hook not present in standalone skill install)\n'
 fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 19: lifecycle reopen — state agrees across every consumer
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 19: lifecycle reopen across consumers ... '
+
+REOPEN_DIR=$TEST_REPO/reopen-store
+mkdir -p "$REOPEN_DIR"
+REOPEN_EVENTS=$REOPEN_DIR/events.jsonl
+
+"$ROOT/scripts/report-friction.sh" --events-file "$REOPEN_EVENTS" \
+  --actual-outcome "reopen probe outcome text" \
+  --expected-outcome "the trap would stay fixed after the first mend" \
+  --reading "hit the same divergence again after the source had been mended once, proving the mend did not hold" \
+  --decision "filed and continued" \
+  --pivot-information "none - probe" \
+  --source-kind assumption --source-ref reopen-probe --source-claim "mend holds" \
+  --impact noisy --recurrence-key reopen-probe-trap >/dev/null 2>&1
+
+"$MEND_ROOT/scripts/record-resolution.sh" --events-file "$REOPEN_EVENTS" \
+  --resolves evt-0001 --action "first mend of the reopen probe" >/dev/null 2>&1
+OPEN_CLOSED=$("$ROOT/scripts/query-friction.sh" --events-file "$REOPEN_EVENTS" --open --kind friction --format json | jq 'length')
+assert_equals "0" "$OPEN_CLOSED"
+
+RECUR_OUT=$("$ROOT/scripts/report-friction.sh" --events-file "$REOPEN_EVENTS" \
+  --recur evt-0001 --actual-outcome "reopen probe bit again after the mend" 2>/dev/null)
+assert_output_contains "reopens it" "$RECUR_OUT"
+assert_output_contains "open anchors: 1" "$RECUR_OUT"
+
+# every consumer agrees the anchor is open again
+OPEN_REOPENED=$("$ROOT/scripts/query-friction.sh" --events-file "$REOPEN_EVENTS" --open --kind friction --format json | jq 'length')
+assert_equals "1" "$OPEN_REOPENED"
+assert_contains "**Open:** 1" "$REOPEN_DIR/INDEX.md"
+STATS_OPEN=$("$ROOT/scripts/generate-report.sh" --events-file "$REOPEN_EVENTS" --report-type stats --format json | jq '.totals.open')
+assert_equals "1" "$STATS_OPEN"
+HINTS_OPEN=$("$MEND_ROOT/scripts/cluster-hints.sh" --events-file "$REOPEN_EVENTS" | jq -r '.key_groups[0].open')
+assert_equals "true" "$HINTS_OPEN"
+
+# a second resolution closes it again, without an already-resolved warning
+RERESOLVE_ERR=$("$MEND_ROOT/scripts/record-resolution.sh" --events-file "$REOPEN_EVENTS" \
+  --resolves evt-0001 --action "second mend after the regression" 2>&1 >/dev/null)
+printf '%s' "$RERESOLVE_ERR" | grep -q "already resolved" && fail "re-resolving a reopened anchor must not warn"
+OPEN_FINAL=$("$ROOT/scripts/query-friction.sh" --events-file "$REOPEN_EVENTS" --open --kind friction --format json | jq 'length')
+assert_equals "0" "$OPEN_FINAL"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 20: cross-store identity — one repo's resolution cannot close another's
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 20: cross-store identity ... '
+
+ISO_A=$(mktemp -d "${TMPDIR:-/tmp}/friction-iso-a.XXXXXX")
+ISO_B=$(mktemp -d "${TMPDIR:-/tmp}/friction-iso-b.XXXXXX")
+mkdir -p "$ISO_A/.local/reports/friction" "$ISO_B/.local/reports/friction"
+printf '%s\n%s\n' \
+  '{"event_id":"evt-0001","recorded_at":"2026-07-01T00:00:00Z","kind":"friction","actual_outcome":"store A outcome","recurrence_key":"trap-a","impact":"noisy"}' \
+  '{"event_id":"evt-0002","recorded_at":"2026-07-02T00:00:00Z","kind":"resolution","resolves":["evt-0001"],"action":"fixed in A"}' \
+  >"$ISO_A/.local/reports/friction/events.jsonl"
+printf '%s\n' \
+  '{"event_id":"evt-0001","recorded_at":"2026-07-01T00:00:00Z","kind":"friction","actual_outcome":"store B unrelated outcome","recurrence_key":"trap-b","impact":"blocked"}' \
+  >"$ISO_B/.local/reports/friction/events.jsonl"
+
+CROSS_OPEN=$("$ROOT/scripts/query-friction.sh" --scan-dirs "$ISO_A" "$ISO_B" --open --kind friction --format json)
+CROSS_COUNT=$(printf '%s\n' "$CROSS_OPEN" | jq 'length')
+assert_equals "1" "$CROSS_COUNT"
+assert_output_contains "store B unrelated outcome" "$CROSS_OPEN"
+rm -rf "$ISO_A" "$ISO_B"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 21: read-only commands create nothing in a clean repository
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 21: read-only commands are non-mutating ... '
+
+CLEAN_DIR=$(mktemp -d "${TMPDIR:-/tmp}/friction-clean.XXXXXX")
+git -C "$CLEAN_DIR" init -q
+(
+  cd "$CLEAN_DIR"
+  set +e
+  "$ROOT/scripts/query-friction.sh" --open --format json >/dev/null 2>&1
+  "$ROOT/scripts/generate-report.sh" --report-type stats --format json >/dev/null 2>&1
+  "$MEND_ROOT/scripts/cluster-hints.sh" >/dev/null 2>&1
+  set -e
+)
+LEFTOVER=$(find "$CLEAN_DIR" -mindepth 1 -maxdepth 1 -not -name '.git' | wc -l | tr -d ' ')
+assert_equals "0" "$LEFTOVER"
+rm -rf "$CLEAN_DIR"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 22: short exact evidence files on both ingress paths
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 22: short exact evidence ... '
+
+SHORT_DIR=$TEST_REPO/short-store
+mkdir -p "$SHORT_DIR"
+SHORT_EVENTS=$SHORT_DIR/events.jsonl
+
+"$ROOT/scripts/report-friction.sh" --events-file "$SHORT_EVENTS" \
+  --actual-outcome "EPIPE" \
+  --expected-outcome "the pipe would stay open through the read" \
+  --reading "streamed output into a consumer that had already exited, so the write failed at the pipe" \
+  --decision "buffered to a file and reran" \
+  --pivot-information "consumer lifetime, visible via ps" \
+  --source-kind assumption --source-ref pipe-lifetime --source-claim "consumer outlives producer" \
+  --impact noisy --recurrence-key pipe-consumer-died-flags >/dev/null 2>&1 || fail "5-char evidence must file via flags"
+
+printf '%s' '{"actual_outcome":"ENOSPC","expected_outcome":"the write would succeed on a disk with visible free space","reading":"wrote to a tmpfs whose quota was exhausted even though df showed free space on the parent mount","decision":"moved the output to the repo tree","pivot_information":"tmpfs quota, visible via df on the exact mountpoint","sources":[{"kind":"assumption","ref":"disk-space","claim":"df free space applies to this path"}],"impact":"noisy","recurrence_key":"tmpfs-quota-vs-df"}' \
+  | "$ROOT/scripts/report-friction.sh" --events-file "$SHORT_EVENTS" --from-json - >/dev/null 2>&1 || fail "6-char evidence must file via --from-json"
+
+SHORT_COUNT=$(jq -s 'length' "$SHORT_EVENTS")
+assert_equals "2" "$SHORT_COUNT"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 23: committed receipt survives index failure; redaction parity; modes
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 23: receipt, redaction parity, private modes ... '
+
+HARDEN_DIR=$(mktemp -d "${TMPDIR:-/tmp}/friction-harden.XXXXXX")
+git -C "$HARDEN_DIR" init -q
+HARDEN_EVENTS=$HARDEN_DIR/.local/reports/friction/events.jsonl
+
+# modes under a permissive umask
+(
+  umask 022
+  "$ROOT/scripts/report-friction.sh" --events-file "$HARDEN_EVENTS" \
+    --actual-outcome "modes probe outcome with Bearer sk-modesprobe123 token" \
+    --expected-outcome "artifacts land user-only regardless of umask" \
+    --reading "filed under umask 022 to prove the writer enforces private modes itself" \
+    --decision "checked the mode bits after filing" \
+    --pivot-information "none - probe" \
+    --source-kind assumption --source-ref umask-probe --source-claim "sk-parityprobe999 lives here" \
+    --impact continued --recurrence-key modes-probe >/dev/null 2>&1
+)
+EVENTS_MODE=$(ls -l "$HARDEN_EVENTS" | cut -c1-10)
+assert_equals "-rw-------" "$EVENTS_MODE"
+DIR_MODE=$(ls -ld "$HARDEN_DIR/.local/reports/friction" | cut -c1-10)
+assert_equals "drwx------" "$DIR_MODE"
+
+# redaction parity: the same fixture is redacted on the flags path (above)
+# and the JSON path (below), in narratives and sources alike
+printf '%s' '{"actual_outcome":"json probe outcome with Bearer sk-modesprobe123 token","expected_outcome":"both ingress paths redact identically","reading":"filed the same secret fixture through the JSON path to compare against the flags filing","decision":"compared the stored records","pivot_information":"none - probe","sources":[{"kind":"assumption","ref":"umask-probe","claim":"sk-parityprobe999 lives here"}],"impact":"continued","recurrence_key":"json-parity-probe"}' \
+  | "$ROOT/scripts/report-friction.sh" --events-file "$HARDEN_EVENTS" --from-json - >/dev/null 2>&1
+grep -q "sk-modesprobe123\|sk-parityprobe999" "$HARDEN_EVENTS" && fail "secret fixtures must not reach the store on either path"
+PARITY=$(jq -rs 'map(.sources[0].claim) | unique | length' "$HARDEN_EVENTS")
+assert_equals "1" "$PARITY"
+
+# forced index failure: receipt still printed, exit 0, record committed
+mkdir "$HARDEN_DIR/.local/reports/friction/INDEX.md.blocker" 2>/dev/null || true
+rm -rf "$HARDEN_DIR/.local/reports/friction/INDEX.md"
+mkdir "$HARDEN_DIR/.local/reports/friction/INDEX.md"
+chmod 555 "$HARDEN_DIR/.local/reports/friction/INDEX.md"
+set +e
+RECEIPT_OUT=$("$ROOT/scripts/report-friction.sh" --events-file "$HARDEN_EVENTS" \
+  --recur evt-0001 --actual-outcome "receipt probe occurrence after forced index failure" 2>&1)
+RECEIPT_STATUS=$?
+set -e
+assert_equals "0" "$RECEIPT_STATUS"
+assert_output_contains "FRICTION_EVENT_ID=evt-0003" "$RECEIPT_OUT"
+assert_output_contains "warning: index rebuild failed" "$RECEIPT_OUT"
+chmod 755 "$HARDEN_DIR/.local/reports/friction/INDEX.md"
+rm -rf "$HARDEN_DIR"
+
+printf 'OK\n'
+
+# ═══════════════════════════════════════════════════════════════════════
+# Test 24: lock bounds — ownerless reclaim and live-lock timeout
+# ═══════════════════════════════════════════════════════════════════════
+printf 'Test 24: lock bounds ... '
+
+LOCK_DIR_ROOT=$TEST_REPO/lock-store
+mkdir -p "$LOCK_DIR_ROOT"
+LOCK_EVENTS=$LOCK_DIR_ROOT/events.jsonl
+
+# ownerless lock (writer died before publishing its pid): reclaimed, filing succeeds
+mkdir -p "$LOCK_DIR_ROOT/.report-friction.lock"
+"$ROOT/scripts/report-friction.sh" --events-file "$LOCK_EVENTS" \
+  --actual-outcome "ownerless lock reclaim probe outcome" \
+  --expected-outcome "the bounded lock reclaims an ownerless directory instead of waiting forever" \
+  --reading "seeded a bare lock directory with no pid file to simulate a writer killed before publication" \
+  --decision "let the grace-window reclaim run" \
+  --pivot-information "none - probe" \
+  --source-kind assumption --source-ref lock-probe --source-claim "ownerless locks reclaim" \
+  --impact continued --recurrence-key ownerless-lock-reclaim >/dev/null 2>&1 || fail "ownerless lock must be reclaimed"
+
+# live foreign lock: bounded timeout names the owner instead of hanging
+mkdir -p "$LOCK_DIR_ROOT/.report-friction.lock"
+printf '%s\n' "$$" >"$LOCK_DIR_ROOT/.report-friction.lock/pid"
+set +e
+TIMEOUT_OUT=$(FRICTION_LOCK_TIMEOUT=2 "$ROOT/scripts/report-friction.sh" --events-file "$LOCK_EVENTS" \
+  --recur evt-0001 --actual-outcome "live lock timeout probe occurrence" 2>&1)
+TIMEOUT_STATUS=$?
+set -e
+[ "$TIMEOUT_STATUS" -ne 0 ] || fail "live lock must time out, not file"
+assert_output_contains "Could not acquire lock" "$TIMEOUT_OUT"
+rm -rf "$LOCK_DIR_ROOT/.report-friction.lock"
+
+printf 'OK\n'
 
 printf '\nAll smoke tests passed.\n'

@@ -11,7 +11,7 @@ Recurrence-key equality is a hint, not truth: v4 fingerprints collide unrelated 
 - **Same error class across different refs** may be one environmental trap (e.g. a shell behavior) wearing different costumes.
 - Token-overlap candidates from `cluster-hints.sh` surface surface-text similarity; verify against the two rules above before merging.
 
-Invent the taxonomy from the data in front of you. Do not inherit the reporters' tags as ground truth — capture-time labels were written without seeing the corpus.
+Invent the taxonomy from the data in front of you. The reporters' tags are not ground truth — capture-time labels were written without seeing the corpus.
 
 ## Root-cause questions per cluster
 
@@ -29,11 +29,20 @@ Invent the taxonomy from the data in front of you. Do not inherit the reporters'
 
 ## Trap format
 
+You supply only judgment — which anchors matter and the avoidance guidance; the publisher derives every clerical fact (key, sighting count, last-seen date) from the store and refuses anchors that do not exist there:
+
+```sh
+printf '%s' '{"traps":[{"anchor":"evt-0142","avoid":"One-line statement of the trap and how to avoid it."}]}' \
+  | sh <skills-file-root>/scripts/update-traps.sh
+```
+
+Published line shape (rendered by the script, never hand-written):
+
 ```
 - [trap-key] One-line statement of the trap and how to avoid it. (evt-0142 x14, last 2026-07-01)
 ```
 
-- ≤15 traps, ≤8KB (the script enforces both). Budget rule when over: keep highest recurrence x impact.
+- ≤15 traps, ≤8KB (the script enforces both). Budget rule when over: keep highest recurrence x impact. The script does not gate on open state or sighting counts — which traps deserve a slot is your judgment.
 - The traps file lists **active dangers, not open records**: a mended trap is deleted because the danger is gone, but a cluster closed as `wontfix` for an environmental cause (shell behavior, harness quirks, untrusted content) may keep its trap — the record is honestly closed while the danger remains real for future sessions.
 - Each trap is a pointer, not a replacement: the key and anchor id lead back to full events, and via `session_ref` to transcripts. Precision is paged out, never lost.
 - Prefer traps that bite across task types; a trap only one workflow can hit earns its slot by recurrence count.

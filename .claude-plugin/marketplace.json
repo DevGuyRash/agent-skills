@@ -33,7 +33,7 @@
       "name": "friction-diagnostics",
       "source": "./plugins/friction-diagnostics",
       "description": "Log genuine surprises as structured friction records; mend and distill the accumulated corpus on request",
-      "version": "5.1.3"
+      "version": "5.2.0"
     },
     {
       "name": "gitops-workflow",

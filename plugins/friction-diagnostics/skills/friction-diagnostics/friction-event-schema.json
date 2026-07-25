@@ -131,11 +131,11 @@
         },
         "required": ["kind", "ref"]
       },
-      "description": "What the agent trusted that betrayed it. Each entry names one trusted thing and the claim believed about it.",
+      "description": "The inputs that supported the prediction. Each entry names one input and the claim believed about it; the input need not be wrong - it may have been stale, incomplete, misplaced, or over-read.",
       "x-required": true,
       "x-kinds": ["friction"],
       "x-searchable": false,
-      "x-eliciting-question": "What did you trust that betrayed you? For each: what kind of thing is it, what is it, and what did you believe it said or would do — the belief exactly as you held it before acting. What it actually turned out to say or do belongs in actual_outcome, never in the claim."
+      "x-eliciting-question": "What inputs supported your prediction? For each: what kind of thing is it, what is it, and what did you believe it said or would do — the belief exactly as you held it before acting. What it actually turned out to say or do belongs in actual_outcome, never in the claim."
     },
     "impact": {
       "type": "string",

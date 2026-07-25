@@ -1,8 +1,12 @@
 # Integration patterns
 
-## Paste-ready `AGENTS.md` snippet
+## Self-encapsulated by default
 
-The ambient repo-level contract — this is how policy survives into subagents without per-agent prompting. Canonical copy: `assets/agents-md-snippet.md`.
+The plugin needs no repository edits to work. The SessionStart hook carries the ambient integration: it surfaces the open-anchor count, top recurring keys, and the known-traps path as context lines at every session start (including resume and post-compaction) whenever the repo store has open events, and it maintains the session-attribution sidecar. Repos do not need the snippet below for any of that.
+
+## Optional `AGENTS.md` snippet
+
+For repos that additionally want the full filing policy in ambient instructions (e.g. for subagents on hosts without hook support), a paste-ready contract exists at `assets/agents-md-snippet.md`. It is an optional pattern, not the mechanism.
 
 ```markdown
 ## Friction diagnostics
@@ -16,7 +20,7 @@ WHEN you filed nothing AND the user did not raise friction diagnostics THEN you 
 
 ## Filing
 
-JSON via stdin is the primary path. The skeleton's placeholders are the eliciting questions — compose in the order shown, no `--title`:
+JSON via stdin is the primary path. The skeleton's placeholders are the eliciting questions; `--title` is derived from `actual_outcome` rather than passed:
 
 ```sh
 printf '%s' '{
@@ -69,7 +73,9 @@ Tag queries use substring matching (`--tag auth` matches `ssh-auth-sock`); `--ta
 
 ## Session linkage (optional)
 
-The plugin ships a SessionStart hook (`hooks/friction-session-env.sh` at the plugin root) that exports `FRICTION_SESSION_REF` and `FRICTION_TRANSCRIPT_PATH` into the session's Bash environment via the documented `$CLAUDE_ENV_FILE` mechanism. Records then carry `session_ref`, linking each record to the transcript where the actual reasoning lives. The hook is fail-open enrichment: it exits 0 on every path, and everything works with hooks absent.
+The plugin ships a SessionStart hook (`hooks/friction-session-env.sh` at the plugin root) that does three fail-open jobs: writes a session-attribution sidecar (`<store>/session-ref.json`, atomic, 0600, only when the store directory already exists), exports `FRICTION_SESSION_REF` and `FRICTION_TRANSCRIPT_PATH` via the documented `$CLAUDE_ENV_FILE` mechanism (deduping its own prior lines so continued conversations do not accumulate stale exports), and prints the boundary-presence lines described above. Records then carry `session_ref`, linking each record to the transcript where the actual reasoning lives.
+
+Resolution precedence at filing time: native runtime identity (`CODEX_SESSION_ID`, `CODEX_THREAD_ID`) first, then a fresh sidecar (`FRICTION_SIDECAR_TTL`, default 86400s), then the env chain (`FRICTION_SESSION_REF`, `CLAUDE_SESSION_ID`). The sidecar exists because env-file exports go stale across continued/resumed Claude conversations — the sidecar is rewritten at every session start, so post-resume filings attribute to the current session. Caveat: two live sessions in one repo last-writer-win the sidecar; `session_ref` is contractually optional enrichment, never load-bearing. The hook exits 0 on every path, and everything works with hooks absent.
 
 Observed host behavior (2026-07, Claude Code 2.1.x / Codex CLI 0.142):
 

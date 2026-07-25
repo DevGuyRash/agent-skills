@@ -1,47 +1,84 @@
 ---
 name: Friction Diagnostics
 description: >-
-  Log genuine surprise — reality diverged from what you predicted: a tool,
-  command, instruction, document, or assumption behaved differently than
-  expected, in any domain (code, writing, research, ops). Worth-logging
-  test: would this record change what a future session does? Predicted or
-  engineered outcomes (intended test failures, expected error paths,
-  probes) are not friction. A known trap repeating → file --recur against
-  the earlier event. Also for user requests to log, review, mend, or
-  distill friction.
+  Log genuine surprise — reality diverged from what you predicted — as
+  structured friction records with recurrence tracking. Use when: (1) A
+  tool, command, instruction, document, or assumption behaved differently
+  than expected, in any domain (code, non-code, writing, research, ops),
+  (2) An action silently no-opped, half-applied, or succeeded without its
+  intended effect, (3) Behavior differs across environments or runs in a
+  way you did not predict, (4) An expected failure occurred for a
+  different reason than predicted, (5) A known trap bit again — file
+  --recur against the earlier event, or (6) The user asks to log a
+  friction incident. Worth-logging test: would the record change what a
+  future session does? Do not use for outcomes you predicted for the
+  reason you predicted (intended test failures, expected error paths,
+  probes), for task status, or for reviewing or mending accumulated
+  friction (that is friction-mend).
 compatibility: Designed for filesystem-capable coding agents on Linux. Deterministic helpers require POSIX sh. No network required.
 metadata:
   author: generated-template
-  version: "5.1.3"
+  version: "5.2.0"
   category: diagnostics
   tags: friction,logging,surprise,diagnostics
 ---
 
 # Friction Diagnostics
 
-A cognitive debugging instrument. It captures genuine surprises — moments when reality diverged from your prediction — as structured JSONL records that trace what you trusted and what information was missing, so that instructions and environments can be mended and future sessions avoid known traps.
+## Mission
 
-## Policy
-
-WHEN reality diverges from your prediction AND recording it would change a future session's behavior THEN you SHALL file an event at that moment, not batched at task end.
-WHEN the divergence matches a known trap or an open event THEN you SHALL file `--recur <event-id>` instead of a new event.
-WHEN friction looks transient AND it would matter if it recurred THEN you MAY file a minimal anchor event (short fields suffice) so a later `--recur` has a target.
-You SHALL NOT file outcomes you predicted or engineered, nor task status.
-WHEN you filed nothing AND the user did not raise friction diagnostics THEN you SHALL NOT mention friction diagnostics, or the decision not to file, anywhere in your response.
-
-Routing: surprised? — no: nothing, and say nothing about it. yes: seen before? — yes: `--recur`. no: worth test — full event, or a minimal anchor for a transient that would matter if it recurs.
+You capture genuine surprise — the moment reality diverged from what you predicted — as a structured record that traces what you trusted and what you were missing, so a later session can mend the instruction, artifact, or assumption that misled you. You are done when the surprise is in the store with a receipt and the user knows what you filed.
 
 Everything beyond logging — what to fix, how to work, what to try next — stays entirely with you. Logging is supplemental; it never limits how you operate.
 
-WHEN `known-traps.md` exists next to the events file THEN you SHOULD read it before acting (it is at most 15 one-line traps). Accumulated friction is mended by the `friction-mend` skill, on user request only.
+WHEN reality diverges from what you predicted AND recording it would change a future session's behavior THEN you SHALL file an event at that moment, not batched at task end.
 
-## How to file
+WHEN the divergence matches a known trap or an open event THEN you SHALL file `--recur <event-id>` instead of a new event.
 
-JSON via stdin is the primary path (safe for backticks, quotes, multiline text). Compose fields in the order shown — verbatim evidence first, interpretation after, classification last. The placeholders are the questions to answer:
+WHEN friction looks transient AND it would matter if it recurred THEN you MAY file a minimal anchor event, short fields and all, so a later `--recur` has a target.
+
+## Environment
+
+Inside a git repo the store is `<repo>/.local/reports/friction/events.jsonl`; an existing `.local*` area is reused, and `--events-file` overrides. Outside git it is `<system-temp>/agent-friction/<cwd-hash>/events.jsonl`.
+
+One append-only stream holds three record kinds: `friction` (full capture), `recurrence` (cheap repeat pointer), and `resolution` (mend provenance, written by friction-mend). The tool only appends; the sole in-place write is `--add-tags`/`--add-aliases`, which patches one record's tag arrays under the write lock.
+
+`INDEX.md` and `known-traps.md` sit next to the stream and are regenerated by tooling. `known-traps.md` is at most 15 one-line traps, and reading it before you act is the cheapest way to avoid paying for a trap twice. The session-start hook prints the open-anchor count, the top recurring keys, and the traps path whenever the repo store has open events — those recurring keys are ready `--recur` targets.
+
+`build-index.sh` and `lifecycle.py` are internal. Every piece of lifecycle state you need comes back from `query-friction.sh` or from the talkback; do not derive open or closed yourself.
+
+The tool briefs you after every filing: similar prior events with counts, tag history, open clusters, and the traps count. You never need to remember or search the stream before filing — the store briefs you at the point of action.
+
+The append is the commit point. `FRICTION_EVENT_ID=` on stdout means the record is in the store; the index rebuild runs after that line, and a rebuild that fails prints a warning while the record stays committed.
+
+The write lock is bounded by `FRICTION_LOCK_TIMEOUT`, default 15 seconds. On timeout the error names the lock owner's pid and creation time.
+
+| Code | Meaning |
+| ---- | ------- |
+| 0 | record written; the receipt names the event id |
+| 1 | invalid arguments, unrecoverable validation failure, or the write lock was not acquired within the bounded wait |
+| 2 | input error on `--from-json` — nothing was filed. Malformed JSON is saved to a quarantine file; empty stdin is not, because there was nothing to save |
+| 3 | duplicate soft-stop: an identical recurrence key already exists. Nothing was written |
+
+## Boundaries
+
+You SHALL NOT file outcomes you predicted or engineered, nor task status.
+
+WHEN you filed nothing AND the user did not raise friction diagnostics THEN you SHALL NOT narrate friction diagnostics — no mention of the skill, and none of the decision not to file. Considering whether to file is always in scope; only the narration is not.
+
+You SHALL NOT propose or prescribe a fix anywhere in a record. Mending is a separate activity with its own skill; your own completed response is history and belongs in `decision`, while what the misleading sources should say instead belongs to mending.
+
+You SHALL NOT write a quotation you did not read. When what you acted on was a recollection rather than something you consulted, the `memory` source kind is its honest home.
+
+You SHALL NOT hand-edit `events.jsonl`, `INDEX.md`, or `known-traps.md` [`INDEX.md` is regenerated on every write and `known-traps.md` only by the mend publisher; the events file is the one genuinely exposed to an editor].
+
+## Filing
+
+JSON via stdin is the primary path: it is safe for backticks, quotes, and multiline text. The placeholders are the questions to answer.
 
 ```sh
 printf '%s' '{
-  "actual_outcome":    "<what actually happened - paste verbatim, never paraphrase>",
+  "actual_outcome":    "<what actually happened - exact text when text exists; else a labeled observation, measurement, state change, or explicit non-occurrence>",
   "expected_outcome":  "<what you predicted, and what specifically grounded that prediction>",
   "reading":           "<from inside the decision: what you consulted, what you believed it said, what you did, the moment reality diverged>",
   "decision":          "<what you did about it: options seen, options set aside, the action taken - and, for any deviation from something documented as required, what made it feel permitted at the time>",
@@ -58,11 +95,9 @@ printf '%s' '{
 
 The placeholders and questions are prompts, not perimeters — if something mattered that no question asked about, include it; whatever fits no field goes in `note`. The question shape never excuses omission.
 
-Direct flags exist for short single-source payloads with no shell-sensitive text (`--actual-outcome`, `--expected-outcome`, `--reading`, `--decision`, `--pivot-information`, `--source-kind`, `--source-ref`, `--source-claim`, `--impact`, `--recurrence-key`, `--tags`, `--note`). Do not pass `--title`; it is derived from the actual outcome.
+Write the evidence down before you explain it. The tool imposes the stored key order regardless of what you send, so the order in the skeleton is a discipline for you and not for the record: an explanation composed first reshapes the evidence it was supposed to describe.
 
-The tool talks back after every filing: similar prior events with counts, tag history, open clusters, known traps. You never need to remember or search the stream before filing — the store briefs you at the point of action.
-
-WHEN you are unsure what a field wants THEN you MAY run `--interview` for rotated eliciting questions. It is an aid, never a required step.
+Direct flags exist for short single-source payloads with no shell-sensitive text: `--actual-outcome`, `--expected-outcome`, `--reading`, `--decision`, `--pivot-information`, `--source-kind`, `--source-ref`, `--source-claim`, `--impact`, `--recurrence-key`, `--tags`, `--note`. `--title` is derived from `actual_outcome`, and leaving it off keeps the title and the evidence in step. `--interview` prints rotated eliciting questions when you are unsure what a field wants.
 
 ### Repeats
 
@@ -70,62 +105,72 @@ WHEN you are unsure what a field wants THEN you MAY run `--interview` for rotate
 sh <skills-file-root>/scripts/report-friction.sh --recur evt-0142 --actual-outcome "<short verbatim of this occurrence>" [--note "<what differed this time>"]
 ```
 
-A recurrence record is one line: it bumps the trap's count and timeline without recomposing the narrative. Impact defaults to the anchor's.
+A recurrence record is one line: it carries this occurrence's outcome and an optional note, and inherits the anchor's impact. The `--recur` path stores only those two fields, so the narrative cannot be recomposed through it.
 
-### Exit codes
-
-| Code | Meaning |
-|---|---|
-| 0 | record written |
-| 1 | invalid arguments or unrecoverable validation failure |
-| 2 | input error on `--from-json` (empty stdin, malformed JSON, bad payload) — nothing was filed |
-| 3 | duplicate soft-stop: an identical recurrence key exists. Re-run with `--recur <event-id>` (it is a repeat) or `--distinct` (it is new). Nothing was written. |
+When neither the talkback nor the session-start hook has already named an anchor, find one with `sh <skills-file-root>/scripts/query-friction.sh --key <recurrence-key>`.
 
 ## Fields
 
-- **`actual_outcome`** — verbatim evidence: the error text, output, or sentence as written. Never paraphrase. A stranger should be able to judge from it alone.
-- **`expected_outcome`** — the prediction and its grounding: what made you expect that?
-- **`reading`** — the account from inside the decision. What you consulted, what exactly you believed it said (quote the wording you acted on), what you did, and the moment reality diverged from your model. Write it your way; `references/examples.md` lists the properties it must satisfy, not sentences to imitate.
-- **`decision`** — the response as history: options you saw, options you set aside, the action you took (even "continued unchanged"), and — for any deviation from something documented as required — what made it feel permitted at the moment you chose. Past tense, never a proposal. "Filed before acting; no response yet" is a truthful value when that is the state.
-- **`pivot_information`** — an information gap, not a self-verdict: name the fact that, visible before acting, would have changed the outcome — or, when you caught this before harm, the fact a future agent should check first. State where that fact lives (a file, a doc, an output, nowhere). Escape hatch when honest: `none — the outcome was unknowable in advance, because ...`
-- **`sources`** — what you trusted that betrayed you. Kinds: `artifact` (file/url/doc with a mendable body), `instruction` (user/system/skill directive), `tool` (tool or command behavior), `assumption` (belief with no external backing), `memory` (recalled, not consulted), `observation` (read from output/screen). For each: `ref` names it, `claim` states what you believed about it.
-- **`impact`** — `blocked` (work stopped) | `degraded` (workaround used) | `noisy` (extra retries/effort) | `continued` (no disruption).
-- **`recurrence_key`** — the trap's stable name across days and sessions (e.g. `zsh-status-readonly`). Omit if unsure; a content-derived fallback is computed.
+You SHALL file a record in which:
 
-Do not propose fixes inside records — mending is a separate activity with its own skill. Your own completed response is history and belongs in `decision`; what the misleading sources should say instead does not belong anywhere in a record.
+1. `actual_outcome` carries the best primary evidence you have: the exact output or wording where text exists, otherwise a labeled firsthand observation, measurement, state change, or explicit non-occurrence.
+2. `expected_outcome` states the prediction you held before acting and what grounded it.
+3. `reading` traces the account from inside the decision to the point where reality stopped matching your model.
+4. `decision` reports in past tense the response you actually made — and, for any deviation from something documented as required, the license you held at the moment you chose.
+5. `pivot_information` names a fact and where that fact lives, or states that the outcome was unknowable in advance and why.
+6. `sources` lists at least one input that supported the prediction, each with the prior belief you held about it.
+7. `impact` is `blocked`, `degraded`, `noisy`, or `continued`.
+8. `recurrence_key` names the trap rather than this occurrence, or is omitted.
 
-## Storage
+Short is fine when the evidence is short (`EPIPE`). Write-time redaction takes precedence over verbatimness, and a redacted quote is still the quote.
 
-- Inside a git repo: `<repo>/.local/reports/friction/events.jsonl` (an existing `.local*` area is reused; `--events-file` overrides)
-- Outside git: `<system-temp>/agent-friction/<cwd-hash>/events.jsonl`
-- `INDEX.md` (synthesis dashboard) and `known-traps.md` (distilled traps) live next to it. Both are maintained by tooling; do not hand-edit.
+`<skills-file-root>/references/examples.md` defines what each field is, the kinds a source can be, and the structural ways each field goes wrong.
 
-One append-only stream holds three record kinds: `friction` (full capture), `recurrence` (cheap repeat pointer), `resolution` (mend provenance, written by friction-mend). Records are never edited or deleted.
+## Loop
 
-## How to query
+WHEN the receipt line `FRICTION_EVENT_ID=` has printed THEN the record is in the store and you SHALL NOT file it again, whatever warnings follow it [the append is the commit point, and the index rebuild that runs after it reports its own failure as a warning].
 
-```sh
-sh <skills-file-root>/scripts/query-friction.sh --impact blocked --format md
-sh <skills-file-root>/scripts/query-friction.sh --open --tag auth
-sh <skills-file-root>/scripts/query-friction.sh --key zsh-status-readonly
-sh <skills-file-root>/scripts/generate-report.sh --scan-dirs ~/repos --report-type cross-repo
-```
+IF the tool exits 3 AND this is the same trap as the event it names THEN you SHALL re-file it as `--recur <that event id>` ELSE you SHALL re-file it with `--distinct`.
 
-## Session summary
+IF the tool exits 2 AND it saved your payload to a quarantine file THEN you SHALL correct that file and re-file from it ELSE you SHALL recompose the payload and re-file. Nothing is written on exit 2, so re-filing cannot duplicate; the quarantine exists so a long narrative is not retyped.
 
-WHEN your task is complete AND you filed at least one new record since your last assistant turn THEN you SHALL include a friction summary at the end of your final response, produced by:
+WHEN the write lock cannot be acquired within the bounded wait THEN you SHALL read the owner named in the error before you remove anything. The order carries the hazard: a lock removed under a live writer interleaves two appends into one line.
+
+WHEN filing fails for a reason you cannot resolve THEN you SHALL continue the task and report the unfiled surprise in your final response, with what you would have filed. This is the one case where friction reaches the user without a record behind it, and it is not a licence to narrate filing decisions generally.
+
+## Verification
+
+Read the record back as a stranger would. It is complete when, from the record alone:
+
+1. someone with no access to your transcript can say what happened, what you expected, and where the two parted
+2. `sources` names what shaped your prediction rather than what displayed the failure
+3. a future session reading it would do something differently
+4. the event id you cite in your summary is the one the receipt printed
+
+## Precedence
+
+WHEN filing at the moment of surprise conflicts with staying silent about friction diagnostics THEN filing prevails and silence yields: you file, and you say nothing about it. Silence governs your response, not your actions.
+
+WHEN a direct instruction from the user conflicts with this skill THEN the user's instruction prevails and this skill yields, including an instruction to stop filing.
+
+WHEN this file conflicts with a file under `<skills-file-root>/references/` THEN this file prevails on what a record must contain and the reference prevails on how the tool behaves.
+
+WHEN clauses collide with no tiebreak written THEN the prohibition beats the mandate; failing that you SHALL take the more reversible course and escalate. Here the more reversible course is nearly always a minimal anchor and silence: an anchor costs one line, and a later `--recur` can build on it.
+
+## Output contract
+
+WHEN your task is complete AND you filed new records this session THEN you SHALL close your final response with a friction summary proportional to the count.
+
+IF you filed one or two records AND the task itself was not friction work THEN you SHALL give one sentence each — event id, recurrence key, and what surprised you — ELSE you SHALL render the summary and include it:
 
 ```sh
 sh <skills-file-root>/scripts/render-summary.sh --events-file <events-file> --after "<lower-bound-timestamp>"
 ```
 
-Paste its output verbatim. WHEN no lower bound is known THEN you MAY use `--date-from` with today's date. This summary is a courtesy to the user; nothing correctness-bearing depends on it.
+`--output-format list` or `markdown` overrides the automatic table choice when the host renders tables badly, and `--date-from` with today's date works when no lower bound is known. The summary is how the user sees what went wrong without having to ask.
 
-## Scripts
+## References
 
-| Script | Purpose |
-|---|---|
-| `report-friction.sh` | File friction and recurrence records; duplicate soft-stop; talkback; `--interview`; `--add-tags` |
-| `query-friction.sh` | Filter and render the stream by kind, lifecycle, key, impact, tags, text, dates, sources |
-| `generate-report.sh` | `index` (dashboard), `stats`, `cross-repo`, `per-repo`, `timeseries` reports |
-| `build-index.sh` | Internal index maintenance |
+- `<skills-file-root>/references/examples.md` — what each field is, and the structural ways each one goes wrong
+- `<skills-file-root>/references/logging-spec.md` — storage contract, record kinds, lifecycle, caps, sanitization, exit codes
+- `<skills-file-root>/references/integration.md` — host integration, session linkage, query and report flags, the optional ambient snippet

@@ -146,7 +146,7 @@ EOF
   events_files=$discovered
 else
   if [ -z "$events_file" ]; then
-    events_file=$(default_events_file)
+    events_file=$(default_events_file_ro)
   fi
   [ -f "$events_file" ] || die "Events file not found: $events_file"
   events_files=$events_file
@@ -199,12 +199,25 @@ set -- "$@" --format json
 
 filtered_tmp=$(mktemp)
 report_tmp=$(mktemp)
+state_tmp=$(mktemp)
 cleanup() {
-  rm -f "$filtered_tmp" "$report_tmp"
+  rm -f "$filtered_tmp" "$report_tmp" "$state_tmp"
 }
 trap cleanup EXIT HUP INT TERM
 
 sh "$@" >"$filtered_tmp"
+
+# Open state for index/stats is reduced from the FULL store, not the filtered
+# subset - a date filter must not drop old resolutions and mislabel their
+# anchors open. lifecycle.py is the single order-aware reducer.
+if [ "$report_type" = "index" ] || [ "$report_type" = "stats" ]; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    die "python3 is required for --report-type $report_type (lifecycle state derivation)"
+  fi
+  python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$events_file" >"$state_tmp"
+else
+  printf '{"open":{}}\n' >"$state_tmp"
+fi
 
 generated=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
@@ -212,7 +225,7 @@ case "$report_type" in
   index)
     # Synthesis dashboard: bounded sections regardless of corpus size. The
     # full manifest lives in events.jsonl and is reachable via query-friction.
-    jq --arg generated "$generated" '
+    jq --arg generated "$generated" --slurpfile ST "$state_tmp" '
       def count_rows(stream):
         [stream | select(. != null and . != "")]
         | group_by(.)
@@ -221,14 +234,18 @@ case "$report_type" in
       def record_kind: (.kind // "friction");
       def record_key: (.recurrence_key // .fingerprint // "");
       def short_title: ((.title // .actual_outcome // .action // "") | gsub("\\s+"; " ") | .[0:60]);
+      # Order-aware open state from lifecycle.py. No "// true": jq treats
+      # false as empty, which would reopen every closed anchor.
+      def anchor_open:
+        ((($ST[0].open // {})[(.event_id // "")]) as $o
+         | if $o == null then true else $o end);
 
       . as $events
       | ($events | sort_by(.recorded_at // "", .event_id // "")) as $sorted
       | ($sorted | map(select(record_kind == "resolution"))) as $resolutions
-      | ($resolutions | map(.resolves // []) | flatten | unique) as $resolved_ids
       | ($sorted | map(select(record_kind == "friction"))) as $frictions
       | ($sorted | map(select(record_kind == "recurrence"))) as $recurrences
-      | ($frictions | map(select((.event_id // "") as $i | ($resolved_ids | index($i)) == null))) as $open_frictions
+      | ($frictions | map(select(anchor_open))) as $open_frictions
       | {
           report_type: "index",
           index_rebuilt: $generated,
@@ -260,7 +277,7 @@ case "$report_type" in
                     anchor: ($group | last | .event_id // ""),
                     title: ($group | last | short_title),
                     last_seen: (($sightings | map(.recorded_at // "") | max // "")[0:10]),
-                    open: ([$group[] | select((.event_id // "") as $i | ($resolved_ids | index($i)) == null)] | length > 0),
+                    open: ([$group[] | select(anchor_open)] | length > 0),
                     impact_mix: ($sightings | count_rows(.[] | .impact // empty) | map("\(.value) x\(.count)") | join(", "))
                   }
               )
@@ -300,7 +317,7 @@ case "$report_type" in
     # Health metrics: noise volume, recurrence adoption, dedup integrity, and
     # opening-trigram concentration (the convergence measure; hindsight_v4 is
     # the legacy baseline the v5 fields are compared against).
-    jq --arg generated "$generated" '
+    jq --arg generated "$generated" --slurpfile ST "$state_tmp" '
       def count_rows(stream):
         [stream | select(. != null and . != "")]
         | group_by(.)
@@ -308,6 +325,11 @@ case "$report_type" in
         | sort_by([-.count, .value]);
       def record_kind: (.kind // "friction");
       def record_key: (.recurrence_key // .fingerprint // "");
+      # Order-aware open state from lifecycle.py. No "// true": jq treats
+      # false as empty, which would reopen every closed anchor.
+      def anchor_open:
+        ((($ST[0].open // {})[(.event_id // "")]) as $o
+         | if $o == null then true else $o end);
       def pct($count; $total):
         if $total <= 0 then "0%"
         else ((($count * 10000 / $total) | floor) / 100 | tostring) + "%"
@@ -329,10 +351,9 @@ case "$report_type" in
       . as $records
       | ($records | sort_by(.recorded_at // "", .event_id // "")) as $sorted
       | ($sorted | map(select(record_kind == "resolution"))) as $resolutions
-      | ($resolutions | map(.resolves // []) | flatten | unique) as $resolved_ids
       | ($sorted | map(select(record_kind == "friction"))) as $frictions
       | ($sorted | map(select(record_kind == "recurrence"))) as $recurrences
-      | ($frictions | map(select((.event_id // "") as $i | ($resolved_ids | index($i)) == null))) as $open_frictions
+      | ($frictions | map(select(anchor_open))) as $open_frictions
       | (($sorted[-1].recorded_at // "")[0:10]) as $window_end
       | (if $window_end == "" then ""
          else ($window_end | strptime("%Y-%m-%d") | mktime - 13 * 86400 | strftime("%Y-%m-%d"))
@@ -379,7 +400,7 @@ case "$report_type" in
                 | {
                     key: ($g[0] | record_key),
                     sightings: (($g | length) + ($recurrences | map(select((.recurs // "") as $a | ($ids | index($a)) != null)) | length)),
-                    open: ([$g[] | select((.event_id // "") as $i | ($resolved_ids | index($i)) == null)] | length > 0)
+                    open: ([$g[] | select(anchor_open)] | length > 0)
                   }
               )
             | sort_by(-.sightings)

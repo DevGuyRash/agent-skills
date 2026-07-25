@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# Store artifacts are private by construction: every file or directory this
+# process creates is user-only regardless of the caller's umask. Existing
+# artifacts are never re-chmodded.
+umask 077
+
 SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/_common.sh"
@@ -25,7 +30,9 @@ Structured input (primary path):
                          Prefer stdin for shell-sensitive or multiline text.
 
 Composed fields, in composition order:
-  --actual-outcome TEXT      What actually happened, verbatim. Never paraphrase.
+  --actual-outcome TEXT      What actually happened - exact text when text
+                             exists; else a labeled observation, measurement,
+                             or explicit non-occurrence.
   --expected-outcome TEXT    What you predicted, and what grounded the prediction.
   --reading TEXT             The account from inside the decision.
   --decision TEXT            What you did about it: options seen, set aside, the
@@ -113,40 +120,8 @@ source_end_line=
 source_claim=
 sources_json=
 cli_notes=
-lock_dir=
-report_lock_acquired=0
 
-cleanup_report_lock() {
-  if [ "${report_lock_acquired:-0}" -eq 1 ] && [ -n "${lock_dir-}" ]; then
-    rm -f "$lock_dir/pid" 2>/dev/null || true
-    rmdir "$lock_dir" 2>/dev/null || true
-  fi
-}
-
-acquire_report_lock() {
-  target_dir=$1
-  lock_dir=$target_dir/.report-friction.lock
-  while ! mkdir "$lock_dir" 2>/dev/null; do
-    if [ -f "$lock_dir/pid" ]; then
-      lock_pid=$(sed -n '1p' "$lock_dir/pid" 2>/dev/null || true)
-      case "$lock_pid" in
-        ''|*[!0-9]*) ;;
-        *)
-          if ! kill -0 "$lock_pid" 2>/dev/null; then
-            rm -f "$lock_dir/pid" 2>/dev/null || true
-            rmdir "$lock_dir" 2>/dev/null || true
-            continue
-          fi
-          ;;
-      esac
-    fi
-    sleep 1
-  done
-  report_lock_acquired=1
-  printf '%s\n' "$$" >"$lock_dir/pid"
-}
-
-trap cleanup_report_lock EXIT HUP INT TERM
+trap release_friction_lock EXIT HUP INT TERM
 
 add_cli_note() {
   if [ -n "$cli_notes" ]; then
@@ -205,7 +180,9 @@ store_scan() {
   scan_outcome=$2
   scan_tags=$3
   scan_self=$4
-  python3 -I - "$events_file" "$events_dir/known-traps.md" "$scan_key" "$scan_outcome" "$scan_tags" "$scan_self" <<'PY' 2>/dev/null || true
+  scan_state=$(mktemp)
+  python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$events_file" >"$scan_state" 2>/dev/null || printf '{}\n' >"$scan_state"
+  python3 -I - "$events_file" "$events_dir/known-traps.md" "$scan_key" "$scan_outcome" "$scan_tags" "$scan_self" "$scan_state" <<'PY' 2>/dev/null || true
 import json, re, sys
 from pathlib import Path
 
@@ -215,6 +192,15 @@ key = sys.argv[3]
 outcome = sys.argv[4]
 tags_csv = sys.argv[5]
 self_id = sys.argv[6]
+
+# Lifecycle state comes from lifecycle.py - the one order-aware reducer.
+try:
+    state = json.loads(Path(sys.argv[7]).read_text(encoding="utf-8"))
+except Exception:
+    state = {}
+open_map = state.get("open") or {}
+anchors_state = state.get("anchors") or {}
+state_counts = state.get("counts") or {}
 
 
 def toks(text):
@@ -245,38 +231,29 @@ if events_path.is_file():
             continue
 
 frictions = {}
-recur_counts = {}
-last_seen = {}
-resolved_by = {}
 for rec in records:
-    rid = rec.get("event_id") or ""
-    kind = rec.get("kind") or "friction"
-    when = (rec.get("recorded_at") or "")[:10]
-    if kind == "resolution":
-        for target in rec.get("resolves") or []:
-            resolved_by[target] = rid
-    elif kind == "recurrence":
-        anchor = rec.get("recurs") or ""
-        if anchor:
-            recur_counts[anchor] = recur_counts.get(anchor, 0) + 1
-            if when > last_seen.get(anchor, ""):
-                last_seen[anchor] = when
-    else:
-        frictions[rid] = rec
-        if when > last_seen.get(rid, ""):
-            last_seen[rid] = when
+    if (rec.get("kind") or "friction") == "friction":
+        frictions[rec.get("event_id") or ""] = rec
 
 
 def key_of(rec):
     return rec.get("recurrence_key") or rec.get("fingerprint") or ""
 
 
+def anchor_info(rid):
+    return anchors_state.get(rid) or {}
+
+
 def count_of(rid):
-    return 1 + recur_counts.get(rid, 0)
+    return anchor_info(rid).get("sightings") or 1
+
+
+def last_seen_of(rid):
+    return anchor_info(rid).get("last_seen") or ""
 
 
 def is_open(rid):
-    return rid not in resolved_by
+    return bool(open_map.get(rid, True))
 
 
 match = None
@@ -288,11 +265,11 @@ if key:
     ]
     if candidates:
         _, mid = max(candidates)
-        state = "open" if is_open(mid) else "resolved"
-        resolver = resolved_by.get(mid, "")
+        match_state = "open" if is_open(mid) else "resolved"
+        resolver = anchor_info(mid).get("closed_by") or ""
         print("MATCH\t%s\t%s\t%s\t%d\t%s\t%s" % (
-            mid, state, resolver, count_of(mid),
-            last_seen.get(mid, ""), clean_title(frictions[mid])))
+            mid, match_state, resolver, count_of(mid),
+            last_seen_of(mid), clean_title(frictions[mid])))
         match = mid
 
 target = toks(outcome)
@@ -311,7 +288,7 @@ if target:
     scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
     for is_open_flag, score, rid in scored[:3]:
         print("SIM\t%s\t%.2f\t%d\t%s\t%s" % (
-            rid, score, count_of(rid), last_seen.get(rid, ""),
+            rid, score, count_of(rid), last_seen_of(rid),
             clean_title(frictions[rid])))
 
 for tag in [t.strip().lower() for t in tags_csv.split(",") if t.strip()]:
@@ -324,24 +301,19 @@ for tag in [t.strip().lower() for t in tags_csv.split(",") if t.strip()]:
             hits += 1
     print("TAG\t%s\t%d" % (tag, hits))
 
-sightings = {}
-open_keys = set()
-for rid, rec in frictions.items():
-    k = key_of(rec)
-    if not k:
-        continue
-    sightings[k] = sightings.get(k, 0) + count_of(rid)
-    if is_open(rid):
-        open_keys.add(k)
-open_clusters = sum(1 for k, n in sightings.items() if n >= 2 and k in open_keys)
+open_anchors = state_counts.get("open_anchors")
+if open_anchors is None:
+    open_anchors = sum(1 for rid in frictions if is_open(rid))
+open_clusters = state_counts.get("open_recurring_clusters") or 0
 
 traps = 0
 if traps_path.is_file():
     for line in traps_path.open(encoding="utf-8", errors="replace"):
         if line.lstrip().startswith("- ["):
             traps += 1
-print("META\t%d\t%d" % (open_clusters, traps))
+print("META\t%d\t%d\t%d" % (open_anchors, open_clusters, traps))
 PY
+  rm -f "$scan_state"
 }
 
 scan_field() {
@@ -367,11 +339,12 @@ print_talkback() {
   if [ -n "$tb_tags" ]; then
     printf '%s\n' "$tb_tags"
   fi
-  tb_clusters=$(scan_field "$tb_scan" META 2)
-  tb_traps=$(scan_field "$tb_scan" META 3)
-  if [ -n "$tb_clusters" ]; then
-    printf 'open clusters: %s | known traps: %s (%s)\n' \
-      "$tb_clusters" "${tb_traps:-0}" "$events_dir/known-traps.md"
+  tb_open=$(scan_field "$tb_scan" META 2)
+  tb_clusters=$(scan_field "$tb_scan" META 3)
+  tb_traps=$(scan_field "$tb_scan" META 4)
+  if [ -n "$tb_open" ]; then
+    printf 'open anchors: %s | open recurring clusters (2+ sightings): %s | known traps: %s (%s)\n' \
+      "$tb_open" "${tb_clusters:-0}" "${tb_traps:-0}" "$events_dir/known-traps.md"
   fi
 }
 
@@ -381,259 +354,45 @@ load_json_overrides() {
     die "python3 is required for --from-json"
   fi
   scratch_dir=$2
-  json_helper=$(mktemp "$(temp_root_dir)/friction-json-helper.XXXXXX.py")
-  cat >"$json_helper" <<'PY'
-import json
-import shlex
-import sys
-import tempfile
 
-path = sys.argv[1]
-scratch_dir = sys.argv[2]
-temp_root = sys.argv[3]
-if path == "-":
-    raw = sys.stdin.read()
-else:
-    with open(path, "r", encoding="utf-8") as fh:
-        raw = fh.read()
+  # from_json.py owns parsing, coercion, validation, and redaction. The
+  # shared redaction rules travel as trailing argv pairs so the shell and
+  # python sanitizers stay one list.
+  set --
+  while IFS="$(printf '\t')" read -r redact_pattern redact_replacement; do
+    [ -n "$redact_pattern" ] || continue
+    set -- "$@" "$redact_pattern" "$redact_replacement"
+  done <<EOF
+$(friction_redaction_rules)
+EOF
 
-if raw.strip() == "":
-    print("error: stdin was empty - NO event was filed.", file=sys.stderr)
-    print("Common causes: a heredoc terminator mismatch, or a previous command", file=sys.stderr)
-    print("consumed stdin. Re-run with:", file=sys.stderr)
-    print("  printf '%s' '<json>' | sh .../report-friction.sh --from-json -", file=sys.stderr)
-    print("or pass a file path: --from-json <path>", file=sys.stderr)
-    sys.exit(2)
+  json_output=$(python3 -I "$SCRIPT_DIR/from_json.py" "$path" "$scratch_dir" "$(temp_root_dir)" "$@") || return $?
 
-
-def hint_for(err_msg: str) -> str:
-    msg = err_msg.lower()
-    if "expecting property name enclosed in double quotes" in msg:
-        return "Hint: check for trailing commas or single-quoted keys."
-    if "unterminated string" in msg:
-        return "Hint: a quoted string is not closed."
-    if "expecting value" in msg:
-        return "Hint: a value is missing or a trailing comma is present."
-    return "Hint: provide one JSON object with double-quoted keys and values."
-
-
-try:
-    data = json.loads(raw)
-except json.JSONDecodeError as exc:
-    lines = raw.splitlines() or [raw]
-    offending = lines[exc.lineno - 1] if 0 < exc.lineno <= len(lines) else ""
-    pointer = " " * max(exc.colno - 1, 0) + "^"
-    print("Invalid JSON input for --from-json - NO event was filed.", file=sys.stderr)
-    print(f"Line {exc.lineno}, column {exc.colno}", file=sys.stderr)
-    if offending:
-        print(offending, file=sys.stderr)
-        print(pointer, file=sys.stderr)
-    if path == "-":
-        try:
-            target_dir = scratch_dir if scratch_dir else temp_root
-            import os
-            os.makedirs(target_dir, exist_ok=True)
-            fd, bad_path = tempfile.mkstemp(prefix="invalid-stdin.", suffix=".json", dir=target_dir)
-            with open(fd, "w", encoding="utf-8", closefd=True) as bad_fh:
-                bad_fh.write(raw)
-            print(f"Saved payload to: {bad_path}", file=sys.stderr)
-            print(f"Edit and re-file: sh .../report-friction.sh --from-json {bad_path}", file=sys.stderr)
-        except Exception as save_exc:
-            print(f"Unable to save invalid stdin payload: {save_exc}", file=sys.stderr)
-    print(hint_for(exc.msg), file=sys.stderr)
-    sys.exit(2)
-
-if not isinstance(data, dict):
-    print("Invalid JSON input for --from-json - NO event was filed.", file=sys.stderr)
-    print("Hint: the payload must be one JSON object.", file=sys.stderr)
-    sys.exit(2)
-
-VALID_SOURCE_KINDS = {
-    "artifact", "instruction", "tool",
-    "assumption", "memory", "observation", "other",
-}
-TYPE_TO_KIND = {
-    "file": "artifact", "url": "artifact", "documentation": "artifact",
-    "conversation": "instruction", "audio": "observation", "visual": "observation",
-    "tool": "tool", "assumption": "assumption", "memory": "memory",
-    "observation": "observation", "other": "other",
-}
-
-errors = []
-notes = []
-
-# --- Coerce deprecated top-level fields (accept + note, never reject) ---
-if data.get("pivot_information") is None and isinstance(data.get("hindsight"), str):
-    data["pivot_information"] = data["hindsight"]
-    notes.append("coerced deprecated 'hindsight' to pivot_information")
-if data.get("recurrence_key") is None and isinstance(data.get("fingerprint_key"), str):
-    data["recurrence_key"] = data["fingerprint_key"]
-    notes.append("coerced deprecated 'fingerprint_key' to recurrence_key")
-
-# --- Tags: accept array or scalar; fold aliases in ---
-tags = data.get("tags")
-if isinstance(tags, str):
-    tags = [t.strip() for t in tags.split(",") if t.strip()]
-    notes.append("coerced tags string to array")
-elif tags is None:
-    tags = []
-elif isinstance(tags, list):
-    coerced = []
-    for item in tags:
-        if isinstance(item, str):
-            coerced.append(item)
-        else:
-            coerced.append(str(item))
-            notes.append("coerced non-string tag to string")
-    tags = coerced
-else:
-    errors.append("tags must be an array or comma-separated string")
-    tags = []
-
-aliases = data.get("aliases")
-if aliases is not None:
-    if isinstance(aliases, str):
-        alias_items = [a.strip() for a in aliases.split(",") if a.strip()]
-    elif isinstance(aliases, list):
-        alias_items = [str(a) for a in aliases if a]
-    else:
-        alias_items = []
-    if alias_items:
-        tags = tags + [a for a in alias_items if a not in tags]
-        notes.append("folded deprecated 'aliases' into tags")
-
-# --- Build sources array ---
-sources = data.get("sources")
-if isinstance(sources, dict):
-    sources = [sources]
-    notes.append("wrapped single sources object in an array")
-if sources is not None:
-    if not isinstance(sources, list):
-        errors.append("field must be an array when present: sources")
-        sources = []
-    for i, src in enumerate(sources):
-        if not isinstance(src, dict):
-            errors.append(f"sources[{i}] must be an object")
-            continue
-        if not src.get("kind") and src.get("type"):
-            mapped = TYPE_TO_KIND.get(str(src["type"]).lower(), "other")
-            src["kind"] = mapped
-            src.pop("type", None)
-            notes.append(f"coerced sources[{i}].type to kind '{mapped}'")
-        if not src.get("kind"):
-            errors.append(f"sources[{i}].kind is required (one of: {', '.join(sorted(VALID_SOURCE_KINDS))})")
-        elif src["kind"] not in VALID_SOURCE_KINDS:
-            errors.append(
-                f"sources[{i}].kind must be one of: {', '.join(sorted(VALID_SOURCE_KINDS))} (got '{src['kind']}')"
-            )
-        if not src.get("ref"):
-            errors.append(f"sources[{i}].ref is required")
-        if src.get("claim") is None and isinstance(src.get("excerpt"), str):
-            src["claim"] = src.pop("excerpt")
-            notes.append(f"coerced sources[{i}].excerpt to claim")
-        claim = src.get("claim")
-        if isinstance(claim, str) and len(claim) > 2000:
-            src["claim"] = claim[:2000] + f"...[truncated {len(claim) - 2000} chars at filing]"
-            notes.append(f"sources[{i}].claim truncated to 2000 chars")
-        for int_key in ("line", "end_line"):
-            val = src.get(int_key)
-            if val is not None and not isinstance(val, int):
-                try:
-                    src[int_key] = int(val)
-                    notes.append(f"coerced sources[{i}].{int_key} to integer")
-                except (TypeError, ValueError):
-                    errors.append(f"sources[{i}].{int_key} must be an integer")
-else:
-    errors.append("missing required field: sources")
-
-# --- Validate required narrative fields ---
-required_narrative = [
-    "actual_outcome",
-    "expected_outcome",
-    "reading",
-    "decision",
-    "pivot_information",
-]
-for req_key in required_narrative:
-    value = data.get(req_key)
-    if value is None:
-        if req_key == "pivot_information":
-            errors.append(
-                "missing required field: pivot_information - name the single piece of "
-                "information that, visible before acting, would have changed the outcome "
-                "(or, when caught before harm, the fact a future agent should check first; "
-                "or: 'none - the outcome was unknowable in advance, because ...')"
-            )
-        elif req_key == "decision":
-            errors.append(
-                "missing required field: decision - what did you do about it: the options "
-                "you saw, the ones you set aside, and the action you took (even 'continued "
-                "unchanged'), plus what made any deviation feel permitted at the time. "
-                "Past tense - history, not proposal."
-            )
-        else:
-            errors.append(f"missing required field: {req_key}")
-    elif not isinstance(value, str):
-        errors.append(f"field must be a string: {req_key}")
-    elif value.strip() == "":
-        errors.append(f"field must not be blank: {req_key}")
-
-impact_val = data.get("impact")
-if impact_val is not None:
-    if impact_val not in ("blocked", "degraded", "noisy", "continued"):
-        errors.append(f"impact must be one of: blocked, degraded, noisy, continued (got '{impact_val}')")
-
-if errors:
-    print("Invalid friction payload for --from-json - NO event was filed.", file=sys.stderr)
-    for item in errors:
-        print(f"- {item}", file=sys.stderr)
-    sys.exit(2)
-
-
-def normalize(value):
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, str):
-        return value
-    return json.dumps(value, ensure_ascii=False)
-
-
-keys = [
-    ("title", "json_title"),
-    ("actual_outcome", "json_actual_outcome"),
-    ("expected_outcome", "json_expected_outcome"),
-    ("reading", "json_reading"),
-    ("decision", "json_decision"),
-    ("pivot_information", "json_pivot_information"),
-    ("note", "json_note"),
-    ("repo_root", "json_repo_root"),
-    ("impact", "json_impact"),
-    ("recurrence_key", "json_recurrence_key"),
-]
-
-for data_key, var_name in keys:
-    value = normalize(data.get(data_key))
-    if value is not None:
-        print(f"{var_name}={shlex.quote(value)}")
-
-if tags:
-    print(f"json_tags_csv={shlex.quote(','.join(tags))}")
-
-print(f"json_sources_json={shlex.quote(json.dumps(sources, ensure_ascii=False, separators=(',', ':')))}")
-if notes:
-    print(f"json_notes={shlex.quote(chr(10).join('note: ' + n for n in notes))}")
-PY
-  json_output=$(python3 -I "$json_helper" "$path" "$scratch_dir" "$(temp_root_dir)") || {
-    status=$?
-    rm -f "$json_helper"
-    return "$status"
-  }
-  rm -f "$json_helper"
-  eval "$json_output"
+  # Decode "name<TAB>base64" lines. No eval: payload-derived text is never
+  # shell-parsed. The heredoc keeps the loop in this shell so assignments
+  # survive into the caller.
+  json_tab=$(printf '\t')
+  while IFS="$json_tab" read -r json_field json_encoded; do
+    [ -n "$json_field" ] || continue
+    json_value=$(base64_decode "$json_encoded")
+    case "$json_field" in
+      title) json_title=$json_value ;;
+      actual_outcome) json_actual_outcome=$json_value ;;
+      expected_outcome) json_expected_outcome=$json_value ;;
+      reading) json_reading=$json_value ;;
+      decision) json_decision=$json_value ;;
+      pivot_information) json_pivot_information=$json_value ;;
+      note) json_note=$json_value ;;
+      repo_root) json_repo_root=$json_value ;;
+      impact) json_impact=$json_value ;;
+      recurrence_key) json_recurrence_key=$json_value ;;
+      tags_csv) json_tags_csv=$json_value ;;
+      sources_json) json_sources_json=$json_value ;;
+      notes) json_notes=$json_value ;;
+    esac
+  done <<EOF
+$json_output
+EOF
 }
 
 load_json_field() {
@@ -771,7 +530,7 @@ if [ -n "$add_tags_event_id" ]; then
   if ! command -v python3 >/dev/null 2>&1; then
     die "python3 is required for --add-tags"
   fi
-  acquire_report_lock "$events_dir"
+  acquire_friction_lock "$events_dir"
   tmp_tags_file=$(mktemp "$events_dir/.events-tags.XXXXXX.tmp")
   if python3 -I - "$events_file" "$tmp_tags_file" "$add_tags_event_id" "$add_tags_csv" <<'PY'
 import json, os, sys
@@ -814,8 +573,9 @@ PY
     rm -f "$tmp_tags_file"
     exit "$status"
   fi
-  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null
   printf 'FRICTION_TAGS_UPDATED=%s\n' "$add_tags_event_id"
+  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null ||
+    printf 'warning: index rebuild failed; the tag update was committed and INDEX.md is stale\n' >&2
   exit 0
 fi
 
@@ -830,7 +590,7 @@ if [ -n "$add_aliases_event_id" ]; then
   if ! command -v python3 >/dev/null 2>&1; then
     die "python3 is required for --add-aliases"
   fi
-  acquire_report_lock "$events_dir"
+  acquire_friction_lock "$events_dir"
   tmp_aliases_file=$(mktemp "$events_dir/.events-aliases.XXXXXX.tmp")
   if python3 -I - "$events_file" "$tmp_aliases_file" "$add_aliases_event_id" "$add_aliases_csv" <<'PY'
 import json, os, sys
@@ -873,15 +633,16 @@ PY
     rm -f "$tmp_aliases_file"
     exit "$status"
   fi
-  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null
   printf 'FRICTION_ALIASES_UPDATED=%s\n' "$add_aliases_event_id"
+  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null ||
+    printf 'warning: index rebuild failed; the alias update was committed and INDEX.md is stale\n' >&2
   exit 0
 fi
 
 if [ -z "$repo_root" ]; then
   repo_root=$(git_repo_root)
 fi
-session_ref=$(resolve_session_ref)
+session_ref=$(resolve_session_ref "$events_dir")
 record_version=$(schema_version)
 
 # --- --recur mode: file a cheap recurrence record against a prior event ---
@@ -894,54 +655,44 @@ if [ -n "$recur_id" ]; then
   actual_outcome=$(cap_narrative "actual_outcome" "$actual_outcome")
   note=$(sanitize_text "$note")
 
-  anchor_info=$(python3 -I - "$events_file" "$recur_id" <<'PY'
-import json, re, sys
+  recur_state=$(mktemp)
+  if ! python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$events_file" >"$recur_state"; then
+    rm -f "$recur_state"
+    die "Unable to inspect events file for --recur"
+  fi
+  anchor_info=$(python3 -I - "$recur_state" "$recur_id" <<'PY'
+import json, sys
 from pathlib import Path
 
-events_path, target = Path(sys.argv[1]), sys.argv[2]
-records = {}
-recur_counts = {}
-for raw in events_path.open(encoding="utf-8", errors="replace"):
-    raw = raw.strip()
-    if not raw:
-        continue
-    try:
-        rec = json.loads(raw)
-    except json.JSONDecodeError:
-        continue
-    rid = rec.get("event_id") or ""
-    records[rid] = rec
-    if (rec.get("kind") or "friction") == "recurrence" and rec.get("recurs"):
-        anchor = rec["recurs"]
-        recur_counts[anchor] = recur_counts.get(anchor, 0) + 1
+state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+target = sys.argv[2]
+kinds = state.get("kinds") or {}
+anchors = state.get("anchors") or {}
+anchor_of = state.get("anchor_of") or {}
 
-rec = records.get(target)
-if rec is None:
+kind = kinds.get(target)
+if kind is None:
     print("NOTFOUND")
     sys.exit(0)
-hops = 0
-while (rec.get("kind") or "friction") == "recurrence" and hops < 5:
-    follow = rec.get("recurs") or ""
-    rec = records.get(follow)
-    if rec is None:
-        print("NOTFOUND")
-        sys.exit(0)
-    hops += 1
-kind = rec.get("kind") or "friction"
-if kind != "friction":
-    print("NOTANCHOR\t%s\t%s" % (rec.get("event_id") or "", kind))
+if kind == "resolution":
+    print("NOTANCHOR\t%s\t%s" % (target, kind))
     sys.exit(0)
-anchor_id = rec.get("event_id") or ""
-title = re.sub(r"\s+", " ", rec.get("title") or rec.get("actual_outcome") or "").strip()[:60]
-print("ANCHOR\t%s\t%s\t%s\t%d\t%s" % (
+anchor_id = target if kind == "friction" else anchor_of.get(target, "")
+info = anchors.get(anchor_id)
+if not anchor_id or info is None:
+    print("NOTFOUND")
+    sys.exit(0)
+print("ANCHOR\t%s\t%s\t%s\t%d\t%s\t%s" % (
     anchor_id,
-    rec.get("impact") or "",
-    rec.get("recurrence_key") or rec.get("fingerprint") or "",
-    1 + recur_counts.get(anchor_id, 0),
-    title,
+    info.get("impact") or "",
+    info.get("key") or "",
+    info.get("sightings") or 1,
+    "open" if info.get("open") else "resolved",
+    info.get("title") or "",
 ))
 PY
-) || die "Unable to inspect events file for --recur"
+) || { rm -f "$recur_state"; die "Unable to inspect events file for --recur"; }
+  rm -f "$recur_state"
 
   anchor_status=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $1; exit }')
   case "$anchor_status" in
@@ -954,7 +705,8 @@ PY
   anchor_id=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $2; exit }')
   anchor_impact=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $3; exit }')
   anchor_count=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $5; exit }')
-  anchor_title=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $6; exit }')
+  anchor_state=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $6; exit }')
+  anchor_title=$(printf '%s\n' "$anchor_info" | awk -F'\t' '{ print $7; exit }')
   if [ "$anchor_id" != "$recur_id" ]; then
     printf 'note: %s is a recurrence of %s; filing against %s\n' "$recur_id" "$anchor_id" "$anchor_id" >&2
   fi
@@ -963,7 +715,7 @@ PY
   fi
   impact=$(normalize_impact "$impact")
 
-  acquire_report_lock "$events_dir"
+  acquire_friction_lock "$events_dir"
   entry_number=$(wc -l <"$events_file" | tr -d ' ')
   entry_number=$((entry_number + 1))
   event_id=$(printf 'evt-%04d' "$entry_number")
@@ -988,18 +740,24 @@ PY
   cat "$tmp_event" >>"$events_file"
   rm -f "$tmp_event"
 
-  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null
-
+  # Append is the commit point: receipt before derived work.
   printf 'FRICTION_EVENTS_FILE=%s\n' "$events_file"
   printf 'FRICTION_EVENT_ID=%s\n' "$event_id"
   printf 'FRICTION_RECURS=%s\n' "$anchor_id"
+
+  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null ||
+    printf 'warning: index rebuild failed; the record was committed and INDEX.md is stale\n' >&2
   printf '\nAnchor %s "%s" now x%s\n' "$anchor_id" "$anchor_title" "$((anchor_count + 1))"
+  if [ "$anchor_state" = "resolved" ]; then
+    printf 'Anchor %s was resolved; this recurrence reopens it.\n' "$anchor_id"
+  fi
   scan_output=$(store_scan "" "" "" "$event_id")
-  tb_traps=$(scan_field "$scan_output" META 3)
-  tb_clusters=$(scan_field "$scan_output" META 2)
-  if [ -n "$tb_clusters" ]; then
-    printf 'open clusters: %s | known traps: %s (%s)\n' \
-      "$tb_clusters" "${tb_traps:-0}" "$events_dir/known-traps.md"
+  tb_open=$(scan_field "$scan_output" META 2)
+  tb_clusters=$(scan_field "$scan_output" META 3)
+  tb_traps=$(scan_field "$scan_output" META 4)
+  if [ -n "$tb_open" ]; then
+    printf 'open anchors: %s | open recurring clusters (2+ sightings): %s | known traps: %s (%s)\n' \
+      "$tb_open" "${tb_clusters:-0}" "${tb_traps:-0}" "$events_dir/known-traps.md"
   fi
   exit 0
 fi
@@ -1015,7 +773,7 @@ if [ -z "$sources_json" ]; then
     fi
     validate_source_kind "$source_kind"
     source_claim=$(cap_narrative "source claim" "$source_claim" 2000)
-    src_fields="$(json_string "kind" "$source_kind"),$(json_string "ref" "$source_ref")"
+    src_fields="$(json_string "kind" "$source_kind"),$(json_string "ref" "$(sanitize_text "$source_ref")")"
     if [ -n "$source_claim" ]; then src_fields="$src_fields,$(json_string "claim" "$(sanitize_text "$source_claim")")"; fi
     src_line_val=$(safe_int "$source_line")
     src_end_line_val=$(safe_int "$source_end_line")
@@ -1023,7 +781,7 @@ if [ -z "$sources_json" ]; then
     if [ "$src_end_line_val" -gt 0 ]; then src_fields="$src_fields,$(json_number "end_line" "$src_end_line_val")"; fi
     sources_json="[{${src_fields}}]"
   else
-    die "Missing required source: provide --source-ref (and --source-kind) or use --from-json with a sources array. Ask: what did you trust that betrayed you?"
+    die "Missing required source: provide --source-ref (and --source-kind) or use --from-json with a sources array. Ask: what inputs supported your prediction?"
   fi
 fi
 
@@ -1065,11 +823,9 @@ decision=$(sanitize_text "$decision")
 pivot_information=$(sanitize_text "$pivot_information")
 note=$(sanitize_text "$note")
 
-# Validate narrative floors (blank-guards only), then apply caps
-validate_narrative_length "actual_outcome" "$actual_outcome" 15
-validate_narrative_length "expected_outcome" "$expected_outcome" 15
-validate_narrative_length "reading" "$reading" 30
-validate_narrative_length "decision" "$decision" 15
+# Apply caps. Required-field presence was validated above; there are no
+# length floors - exact evidence can legitimately be short ("EPIPE"), and
+# narrative quality is the skill contract's business, not this script's.
 actual_outcome=$(cap_narrative "actual_outcome" "$actual_outcome")
 expected_outcome=$(cap_narrative "expected_outcome" "$expected_outcome")
 reading=$(cap_narrative "reading" "$reading")
@@ -1077,23 +833,6 @@ decision=$(cap_narrative "decision" "$decision")
 pivot_information=$(cap_narrative "pivot_information" "$pivot_information")
 if [ -n "$note" ]; then
   note=$(cap_narrative "note" "$note")
-fi
-
-reading_length=$(printf '%s' "$reading" | wc -c | tr -d ' ')
-if [ "$reading_length" -lt 200 ]; then
-  {
-    printf 'INFO: reading is %s chars. A future reader should be able to form their own\n' "$reading_length"
-    printf 'opinion from your account alone. If there is more to tell, consider:\n'
-    rotated_questions reading 2
-  } >&2
-fi
-decision_length=$(printf '%s' "$decision" | wc -c | tr -d ' ')
-if [ "$decision_length" -lt 150 ]; then
-  {
-    printf 'INFO: decision is %s chars. The weighing is the data: options seen, set aside,\n' "$decision_length"
-    printf 'and the license for any deviation. If there is more to tell, consider:\n'
-    rotated_questions decision 2
-  } >&2
 fi
 
 # Fold deprecated aliases input into tags
@@ -1120,7 +859,7 @@ fi
 
 recurrence_key=$(build_recurrence_key "$recurrence_key" "$actual_outcome" "$primary_source_ref")
 
-acquire_report_lock "$events_dir"
+acquire_friction_lock "$events_dir"
 
 # Pre-write similar-check: shape disambiguation, never logging policy. An exact
 # key match asks one question - repeat-pointer or new event? - with both
@@ -1193,8 +932,9 @@ fi
 cat "$tmp_event" >>"$events_file"
 rm -f "$tmp_event"
 
-sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null
-
+# The append above is the commit point: print the receipt before any derived
+# work so an index failure can never masquerade as a failed filing (a blind
+# retry after such a failure would duplicate the record).
 printf 'FRICTION_EVENTS_FILE=%s\n' "$events_file"
 printf 'FRICTION_INDEX_FILE=%s\n' "$index_file"
 printf 'FRICTION_EVENT_ID=%s\n' "$event_id"
@@ -1202,6 +942,9 @@ printf 'FRICTION_RECURRENCE_KEY=%s\n' "$recurrence_key"
 if [ -n "$repo_root" ]; then
   printf 'FRICTION_REPO_ROOT=%s\n' "$repo_root"
 fi
+
+sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null ||
+  printf 'warning: index rebuild failed; the record was committed and INDEX.md is stale\n' >&2
 
 # Talkback: the store briefs the agent at the point of action
 printf '\n'

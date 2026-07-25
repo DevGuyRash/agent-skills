@@ -182,11 +182,13 @@ if [ -n "$last_event_time" ]; then
   # Uses python3 if available (reliable); falls back to using the raw value
   # with a "Z+1s" comment hint if python3 is absent.
   if command -v python3 >/dev/null 2>&1; then
+    # Store-derived value travels as argv, never interpolated into source.
     requery_before=$(python3 -I -c "
-from datetime import datetime, timedelta, timezone
-t = datetime.fromisoformat('$last_event_time'.replace('Z', '+00:00'))
+import sys
+from datetime import datetime, timedelta
+t = datetime.fromisoformat(sys.argv[1].replace('Z', '+00:00'))
 print((t + timedelta(seconds=1)).strftime('%Y-%m-%dT%H:%M:%SZ'))
-" 2>/dev/null) || requery_before=
+" "$last_event_time" 2>/dev/null) || requery_before=
   fi
   # Fallback: use the raw timestamp (will exclude last event, but better than nothing)
   if [ -z "$requery_before" ]; then
@@ -245,8 +247,16 @@ render_list() {
   ' "$flatten_tmp"
 }
 
-# Header
-printf 'Friction Summary \342\200\224 %d event(s) this session\n' "$event_count"
+# Header: name the actual bound - this is a time-window summary, not a
+# session filter (use query-friction.sh --session-ref for exact sessions).
+if [ -n "$after" ]; then
+  window_desc="since $after"
+elif [ -n "$effective_date_from" ]; then
+  window_desc="since $effective_date_from"
+else
+  window_desc="in window"
+fi
+printf 'Friction Summary \342\200\224 %d event(s) %s\n' "$event_count" "$window_desc"
 
 # Body
 case "$resolved_output_format" in

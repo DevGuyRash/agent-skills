@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# Store artifacts are private by construction: every file or directory this
+# process creates is user-only regardless of the caller's umask. Existing
+# artifacts are never re-chmodded.
+umask 077
+
 SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/_common.sh"
@@ -43,40 +48,8 @@ wontfix=
 ref=
 note=
 repo_root=
-lock_dir=
-resolution_lock_acquired=0
 
-cleanup_resolution_lock() {
-  if [ "${resolution_lock_acquired:-0}" -eq 1 ] && [ -n "${lock_dir-}" ]; then
-    rm -f "$lock_dir/pid" 2>/dev/null || true
-    rmdir "$lock_dir" 2>/dev/null || true
-  fi
-}
-
-acquire_resolution_lock() {
-  target_dir=$1
-  lock_dir=$target_dir/.report-friction.lock
-  while ! mkdir "$lock_dir" 2>/dev/null; do
-    if [ -f "$lock_dir/pid" ]; then
-      lock_pid=$(sed -n '1p' "$lock_dir/pid" 2>/dev/null || true)
-      case "$lock_pid" in
-        ''|*[!0-9]*) ;;
-        *)
-          if ! kill -0 "$lock_pid" 2>/dev/null; then
-            rm -f "$lock_dir/pid" 2>/dev/null || true
-            rmdir "$lock_dir" 2>/dev/null || true
-            continue
-          fi
-          ;;
-      esac
-    fi
-    sleep 1
-  done
-  resolution_lock_acquired=1
-  printf '%s\n' "$$" >"$lock_dir/pid"
-}
-
-trap cleanup_resolution_lock EXIT HUP INT TERM
+trap release_friction_lock EXIT HUP INT TERM
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -102,7 +75,7 @@ fi
 validate_required_field "action" "$action"
 
 if [ -z "$events_file" ]; then
-  events_file=$(default_events_file)
+  events_file=$(default_events_file_ro)
 fi
 [ -f "$events_file" ] || die "Events file not found: $events_file (nothing to resolve)"
 events_dir=$(dirname "$events_file")
@@ -110,69 +83,57 @@ events_dir=$(dirname "$events_file")
 if [ -z "$repo_root" ]; then
   repo_root=$(git_repo_root)
 fi
-session_ref=$(resolve_session_ref)
+session_ref=$(resolve_session_ref "$events_dir")
 record_version=$(schema_version)
 
 if ! command -v python3 >/dev/null 2>&1; then
   die "python3 is required for record-resolution.sh"
 fi
 
-# Normalize the target list: verify existence, follow recurrence pointers to
-# their anchors, and report already-resolved ids (warn, never fail).
-target_info=$(python3 -I - "$events_file" "$resolves_csv" <<'PY'
+# Normalize the target list against lifecycle.py state: verify existence,
+# follow recurrence pointers to their anchors, and warn (never fail) when a
+# target is already closed. A reopened anchor re-resolves without a warning -
+# that is the intended close-again path.
+lifecycle_state=$(mktemp)
+if ! python3 -I "$SCRIPT_DIR/lifecycle.py" --events-file "$events_file" >"$lifecycle_state"; then
+  rm -f "$lifecycle_state"
+  die "Unable to inspect events file"
+fi
+target_info=$(python3 -I - "$lifecycle_state" "$resolves_csv" <<'PY'
 import json, sys
 from pathlib import Path
 
-events_path, csv = Path(sys.argv[1]), sys.argv[2]
-targets = [t.strip() for t in csv.split(",") if t.strip()]
-
-records = {}
-resolved_by = {}
-for raw in events_path.open(encoding="utf-8", errors="replace"):
-    raw = raw.strip()
-    if not raw:
-        continue
-    try:
-        rec = json.loads(raw)
-    except json.JSONDecodeError:
-        continue
-    rid = rec.get("event_id") or ""
-    records[rid] = rec
-    if (rec.get("kind") or "friction") == "resolution":
-        for target in rec.get("resolves") or []:
-            resolved_by[target] = rid
+state = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+targets = [t.strip() for t in sys.argv[2].split(",") if t.strip()]
+kinds = state.get("kinds") or {}
+anchors_state = state.get("anchors") or {}
+anchor_of = state.get("anchor_of") or {}
 
 anchors = []
 for target in targets:
-    rec = records.get(target)
-    if rec is None:
+    kind = kinds.get(target)
+    if kind is None:
         print("MISSING\t%s" % target)
         continue
-    hops = 0
-    while (rec.get("kind") or "friction") == "recurrence" and hops < 5:
-        follow = rec.get("recurs") or ""
-        rec = records.get(follow)
-        if rec is None:
-            print("MISSING\t%s" % target)
-            break
-        hops += 1
-    if rec is None:
-        continue
-    kind = rec.get("kind") or "friction"
-    if kind != "friction":
+    if kind == "resolution":
         print("NOTFRICTION\t%s\t%s" % (target, kind))
         continue
-    anchor = rec.get("event_id") or ""
+    anchor = target if kind == "friction" else anchor_of.get(target, "")
+    info = anchors_state.get(anchor)
+    if not anchor or info is None:
+        print("MISSING\t%s" % target)
+        continue
     if anchor != target:
         print("FOLLOWED\t%s\t%s" % (target, anchor))
-    if anchor in resolved_by:
-        print("ALREADY\t%s\t%s" % (anchor, resolved_by[anchor]))
+    if not info.get("open"):
+        print("ALREADY\t%s\t%s" % (anchor, info.get("closed_by") or ""))
     if anchor not in anchors:
         anchors.append(anchor)
 
 print("ANCHORS\t%s" % ",".join(anchors))
 PY
-) || die "Unable to inspect events file"
+) || { rm -f "$lifecycle_state"; die "Unable to inspect events file"; }
+rm -f "$lifecycle_state"
 
 missing=$(printf '%s\n' "$target_info" | awk -F'\t' '$1=="MISSING" { ids = ids sep $2; sep = ", " } END { print ids }')
 if [ -n "$missing" ]; then
@@ -191,7 +152,7 @@ resolves_json=$(csv_to_json_array "$anchors_csv")
 action=$(sanitize_text "$action")
 note=$(sanitize_text "$note")
 
-acquire_resolution_lock "$events_dir"
+acquire_friction_lock "$events_dir"
 entry_number=$(wc -l <"$events_file" | tr -d ' ')
 entry_number=$((entry_number + 1))
 event_id=$(printf 'evt-%04d' "$entry_number")
@@ -216,13 +177,16 @@ tmp_event=$(mktemp "$events_dir/.event.XXXXXX.tmp")
 cat "$tmp_event" >>"$events_file"
 rm -f "$tmp_event"
 
-if [ -f "$SCRIPT_DIR/build-index.sh" ]; then
-  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null
-fi
-
-open_count=$(sh "$SCRIPT_DIR/query-friction.sh" --events-file "$events_file" --open --kind friction --format json | jq 'length')
-
+# Append is the commit point: receipt before derived work, so an index or
+# query failure can never make a committed resolution look unfiled.
 printf 'FRICTION_EVENTS_FILE=%s\n' "$events_file"
 printf 'FRICTION_EVENT_ID=%s\n' "$event_id"
 printf 'FRICTION_RESOLVED=%s\n' "$anchors_csv"
+
+if [ -f "$SCRIPT_DIR/build-index.sh" ]; then
+  sh "$SCRIPT_DIR/build-index.sh" --events-file "$events_file" >/dev/null ||
+    printf 'warning: index rebuild failed; the resolution was committed and INDEX.md is stale\n' >&2
+fi
+
+open_count=$(sh "$SCRIPT_DIR/query-friction.sh" --events-file "$events_file" --open --kind friction --format json | jq 'length') || open_count=unknown
 printf '\nOpen friction events remaining: %s\n' "$open_count"
