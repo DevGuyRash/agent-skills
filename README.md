@@ -1,6 +1,6 @@
 # Agent Tooling
 
-This repository contains portable agent tooling: dual-host plugin packages,
+This repository contains portable agent tooling: host-aware plugin packages,
 host-agnostic skill payloads, Rust-backed launchers, and repo harness scripts.
 
 ## Repository layout
@@ -22,6 +22,10 @@ Marketplace manifests:
 - Codex: `.agents/plugins/marketplace.json`
 - Claude: `.claude-plugin/marketplace.json`
 
+The catalogs are independent. Most plugins support both hosts; a plugin that
+depends on a host-native runtime or instruction surface is published only for
+the capable host.
+
 Current local plugins:
 
 - `plugins/code-review/`
@@ -32,6 +36,8 @@ Current local plugins:
 - `plugins/gitops-workflow/`
 - `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and
   bundles the agnostic `$authoring-goals` skill payload.
+- `plugins/linux-desktop-control/` is Codex-only because it orchestrates
+  host-provided Linux desktop-control capabilities.
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
 - `plugins/rust-development/`
@@ -62,6 +68,18 @@ Deterministic Docker architecture skill spanning both Compose/Swarm deployment d
 - Cached deterministic render/check workflow for reproducible outputs
 
 Path: `plugins/docker-architect/skills/docker-architect/`
+
+### `linux-desktop-control`
+
+Capability-driven Codex instructions specifically for the Linux computer-use
+integration provided by
+[`codex-desktop-linux`](https://github.com/ilysenko/codex-desktop-linux). The
+plugin teaches channel discovery, safe native-UI targeting, partial-failure
+recovery, and independent outcome verification; the linked project supplies
+the native desktop-control mechanics. This plugin is specific to that
+integration and is not a compatibility claim for other computer-use backends.
+
+Path: `plugins/linux-desktop-control/skills/linux-desktop-control/`
 
 ## Plugin portability converter
 
@@ -153,18 +171,25 @@ Common commands:
 - `just bootstrap` — install packaging prerequisites used by the repo scripts
 - `just verify` — run the fast local verification surface (`fmt-check`, `lint`, `test`)
 - `just ci` — run the full repo verification surface, including staged packaging checks
-- `scripts/install-all` / `just install-all` — add the sparse `agent-tooling` marketplace to Codex and Claude Code, then install every plugin in both CLIs
+- `scripts/install-all` / `just install-all` — add the sparse `agent-tooling` marketplace to enabled hosts, then install each host's selected catalog entries
 - `just dist-host` — build and stage host-platform packaged binaries into plugin-local skill `dist/` trees
 - `just verify-packaging` — verify host refresh plus the committed dist completeness contract
 - `just verify-skill-launchers` — smoke-test plugin-local skill launchers against the staged binaries
+- `just audit-plugins [name ...]` — run the skill-auditor's deterministic checks over every plugin, or the named ones (`--report` adds instruction-design observations)
 - `just hooks-install` — point this clone at the committed repo-owned `githooks/` directory for local pre-push checks
 - `just harness-doctor` — inspect the current repo shape and local tool availability from the installed harness
 
 `just hooks-install` is local convenience, not the authoritative policy surface. CI and PR gating remain the real enforcement path.
 
+`just audit-plugins` gates only on breakage — a missing file, a dead link, CRLF, a
+missing shebang, a description past the host limit, two manifests disagreeing.
+Instruction-design observations are house doctrine that older skills predate, so
+they are reported under `--report` and never fail. CI audits only the plugins a
+change touches, so a plugin's backlog blocks nobody else's work.
+
 ### Install all plugins
 
-Run this from a clone when you want this repo's full plugin marketplace available in both supported CLIs:
+Run this from a clone when you want this repo's plugin catalogs available in the supported CLIs:
 
 ```bash
 scripts/install-all
@@ -175,7 +200,10 @@ By default it uses the GitHub marketplace source `DevGuyRash/agent-tooling` with
 - Codex: `.agents/plugins` plus `plugins`
 - Claude Code: `.claude-plugin` plus `plugins`
 
-The script reads plugin names from the committed marketplace manifests, adds the marketplace, then installs each selected plugin as `<plugin>@agent-tooling`. By default, the selection is every plugin in both host manifests.
+The script reads each committed host marketplace independently, adds a
+marketplace only when that host has selected plugins, then installs each entry
+as `<plugin>@agent-tooling`. By default, every plugin is installed on each host
+where it is published.
 
 Filter the dynamic plugin list with repeatable CSV/glob flags:
 
@@ -183,6 +211,10 @@ Filter the dynamic plugin list with repeatable CSV/glob flags:
 scripts/install-all --exclude 'rust*,gitops-workflow'
 scripts/install-all --include 'goalspec,project-harness' --exclude 'project-*'
 ```
+
+Filters are applied independently to enabled host catalogs. A host-specific
+selection skips the other host without error. A host-only run fails clearly
+when an include pattern has no match in that host's catalog.
 
 Limit the target host when needed:
 

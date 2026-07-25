@@ -48,6 +48,12 @@
       "version": "1.8.1"
     },
     {
+      "name": "linux-desktop-control",
+      "source": "./plugins/linux-desktop-control",
+      "description": "Control and verify Linux desktop UI outcomes safely, with operational doctrine for app lifecycle, companion channels, real input, waiting, and shared hosts",
+      "version": "1.0.0"
+    },
+    {
       "name": "playwright-testing",
       "source": "./plugins/playwright-testing",
       "description": "Outcome-first, non-brittle e2e tests",
@@ -68,8 +74,8 @@
     {
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
-      "description": "Audit and improve a skill's packaging, triggers, workflow, and verification loop",
-      "version": "1.0.0"
+      "description": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
+      "version": "2.0.0"
     }
   ]
 }

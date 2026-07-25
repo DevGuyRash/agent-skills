@@ -1,0 +1,269 @@
+{
+  "skill_name": "linux-desktop-control",
+  "fixture_type": "tool-mocked transcripts",
+  "claim_scope": "These simulated fixtures validate capability-driven decisions and do not claim physical exercise of every represented environment.",
+  "fixtures": [
+    {
+      "id": "fixture-wayland",
+      "family": "wayland",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "operational",
+        "observation": "failed",
+        "keyboard": "operational",
+        "pointer": "available",
+        "geometry": "unknown",
+        "verification": "operational through semantic state"
+      },
+      "transcript": [
+        {
+          "step": "diagnostic",
+          "observation": "The session advertises desktop readiness and independent input, capture, and accessibility channels."
+        },
+        {
+          "step": "live probes",
+          "observation": "Exact targeting and a semantic read succeed, while the current capture transaction fails."
+        },
+        {
+          "step": "postcondition",
+          "observation": "A semantic reread can distinguish the requested value from its pre-state."
+        }
+      ],
+      "expected_decision": "Degrade only visual observation, prefer semantic action or targeted keyboard input, and avoid pointer use while geometry is unknown.",
+      "expected_result": "Report verified only from the independent semantic postcondition; otherwise report unverified."
+    },
+    {
+      "id": "fixture-x11",
+      "family": "x11",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "unavailable",
+        "observation": "operational",
+        "keyboard": "operational",
+        "pointer": "operational",
+        "geometry": "operational",
+        "verification": "operational through observation"
+      },
+      "transcript": [
+        {
+          "step": "pre-state",
+          "observation": "The intended target is uniquely identified, focused, and captured with current target bounds."
+        },
+        {
+          "step": "action",
+          "observation": "A pointer action derived from the fresh bounds is accepted after focus is rechecked."
+        },
+        {
+          "step": "postcondition",
+          "observation": "A new target-scoped observation shows the expected visible state."
+        }
+      ],
+      "expected_decision": "Use current target geometry rather than assuming that globally available coordinates are correct, then verify through a fresh observation.",
+      "expected_result": "Report verified from the target-scoped postcondition and keep semantic access marked unavailable."
+    },
+    {
+      "id": "fixture-gnome-family",
+      "family": "gnome-family",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "operational",
+        "observation": "operational",
+        "keyboard": "operational",
+        "pointer": "available",
+        "geometry": "unsupported after live probe",
+        "verification": "operational"
+      },
+      "transcript": [
+        {
+          "step": "diagnostic",
+          "observation": "Window geometry is advertised as available."
+        },
+        {
+          "step": "live probe",
+          "observation": "The active backend rejects a reversible geometry request as unsupported."
+        },
+        {
+          "step": "discovery",
+          "observation": "No independently verifiable native geometry fallback is found."
+        }
+      ],
+      "expected_decision": "Mark only geometry degraded, retain the other proven channels, and do not turn a desktop-family label into a fallback assumption.",
+      "expected_result": "Report the geometry operation not attempted after the failed probe, while retaining verified status only for separately observed non-geometry outcomes."
+    },
+    {
+      "id": "fixture-kde-family",
+      "family": "kde-family",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "available",
+        "observation": "operational",
+        "keyboard": "operational",
+        "pointer": "available",
+        "geometry": "operational",
+        "verification": "operational through observation"
+      },
+      "transcript": [
+        {
+          "step": "pre-state",
+          "observation": "The intended target is uniquely resolved and activated."
+        },
+        {
+          "step": "focus change",
+          "observation": "A different window becomes focused before the planned keystroke."
+        },
+        {
+          "step": "recovery",
+          "observation": "The original stable target is refound, reactivated, and focused before input."
+        }
+      ],
+      "expected_decision": "Serialize the action, reacquire focus from the stable target identity, and require a target-owned postcondition.",
+      "expected_result": "Report verified only when the refreshed target observation shows the intended keyboard effect; otherwise report unverified."
+    },
+    {
+      "id": "fixture-wlroots-family",
+      "family": "wlroots-family",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "failed",
+        "semantic": "unavailable",
+        "observation": "operational at output scope only",
+        "keyboard": "available",
+        "pointer": "available",
+        "geometry": "unavailable",
+        "verification": "unavailable at target scope"
+      },
+      "transcript": [
+        {
+          "step": "discovery",
+          "observation": "Observation can capture an output, but the intended window cannot be uniquely identified or refound."
+        },
+        {
+          "step": "input readiness",
+          "observation": "Input transport is exposed without a safe target binding."
+        }
+      ],
+      "expected_decision": "Do not send keyboard or pointer input, and request the minimum target-capable channel or user-assisted step.",
+      "expected_result": "Report blocked because target ambiguity prevents safe interaction and target-scoped verification."
+    },
+    {
+      "id": "fixture-tiling-window-manager",
+      "family": "tiling-window-manager",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "available",
+        "observation": "operational",
+        "keyboard": "operational",
+        "pointer": "available",
+        "geometry": "operational but compositor-controlled",
+        "verification": "operational"
+      },
+      "transcript": [
+        {
+          "step": "pre-state",
+          "observation": "Original bounds are recorded before a reversible geometry test."
+        },
+        {
+          "step": "action",
+          "observation": "The geometry request is accepted, but observed bounds follow the active layout rather than the requested rectangle."
+        },
+        {
+          "step": "cleanup",
+          "observation": "The original layout state is restored and independently observed."
+        }
+      ],
+      "expected_decision": "Treat requested geometry as advisory until observed, distinguish layout policy from transport success, and restore test state.",
+      "expected_result": "Report the exact geometry outcome unverified while reporting cleanup verified from the restored layout observation."
+    },
+    {
+      "id": "fixture-multi-monitor",
+      "family": "multi-monitor",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "operational",
+        "observation": "operational with resized image",
+        "keyboard": "operational",
+        "pointer": "not operational without mapping",
+        "geometry": "operational",
+        "verification": "operational through semantic state"
+      },
+      "transcript": [
+        {
+          "step": "display state",
+          "observation": "The target display has a nonzero origin and a scale different from another display."
+        },
+        {
+          "step": "image state",
+          "observation": "The presented image was resized and lacks enough crop metadata to map pixels to desktop coordinates."
+        },
+        {
+          "step": "alternate channel",
+          "observation": "A semantic value operation and reread remain target-scoped."
+        }
+      ],
+      "expected_decision": "Keep pointer input not attempted, discard the unmappable image for coordinates, and use the proven semantic channel.",
+      "expected_result": "Report the product outcome verified from semantic state and the pointer path not attempted."
+    },
+    {
+      "id": "fixture-headless",
+      "family": "headless",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "unavailable",
+        "semantic": "unavailable",
+        "observation": "unavailable",
+        "keyboard": "unavailable",
+        "pointer": "unavailable",
+        "geometry": "unavailable",
+        "verification": "unavailable"
+      },
+      "transcript": [
+        {
+          "step": "session discovery",
+          "observation": "No graphical session or callable desktop-control channel is present."
+        },
+        {
+          "step": "routing",
+          "observation": "The requested behavior has an independently testable backend surface."
+        }
+      ],
+      "expected_decision": "Decline desktop input and route to the backend test surface without inventing a display or control tool.",
+      "expected_result": "Report desktop interaction not attempted and use the lower-level test for any separately provable backend result."
+    },
+    {
+      "id": "fixture-partially-configured",
+      "family": "partially-configured",
+      "simulated": true,
+      "capabilities": {
+        "targeting": "operational",
+        "semantic": "failed",
+        "observation": "failed",
+        "keyboard": "operational",
+        "pointer": "available",
+        "geometry": "available",
+        "verification": "unavailable"
+      },
+      "transcript": [
+        {
+          "step": "diagnostic",
+          "observation": "Aggregate readiness claims the desktop backend is ready."
+        },
+        {
+          "step": "live probes",
+          "observation": "Exact focus and a harmless keyboard transaction work, while semantic and observation probes fail."
+        },
+        {
+          "step": "verification plan",
+          "observation": "No independent product-state channel can observe the requested postcondition."
+        }
+      ],
+      "expected_decision": "Retain targeting and keyboard as operational, mark semantic and observation degraded, and avoid a state change that cannot be verified.",
+      "expected_result": "Report the requested state change not attempted; if it had already been sent, report it unverified rather than successful."
+    }
+  ]
+}
