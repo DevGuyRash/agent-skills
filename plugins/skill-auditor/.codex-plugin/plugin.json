@@ -1,27 +1,29 @@
 {
   "name": "skill-auditor",
-  "version": "1.0.0",
-  "description": "Audit a skill's packaging, trigger behavior, task leverage, context design, verification loop, and AGENTS.md adherence, then produce a concise Skill Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill for quality or correctness, (2) Health-checking a skill's trigger reliability or context efficiency, (3) Evaluating whether a skill belongs as a skill, AGENTS.md entry, explicit prompt, or tool, (4) Reviewing or revising a skill's packaging, descriptions, or references, or (5) Any task requiring structured skill evaluation with concrete improvement checks.",
+  "version": "2.0.0",
+  "description": "Audit a plugin or skill for packaging fit, trigger reliability, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill or plugin for quality or correctness, (2) Health-checking trigger reliability, install drift, or context efficiency, (3) Evaluating whether a capability belongs as a skill, hook, subagent, command, tool, MCP server, or ambient guidance, (4) Reviewing packaging, manifests, marketplace entries, or routing between skills inside a plugin, (5) Judging whether instructions bind outcomes or pave pathways, or (6) Any task requiring structured skill or plugin evaluation with concrete improvement checks. Do not use for authoring a new skill from scratch (that is skill-creator) or for reviewing source code changes (that is code-review).",
   "author": {
     "name": "Agent Tooling Contributors"
   },
   "license": "MIT",
   "keywords": [
     "audit",
+    "instruction-design",
     "packaging",
+    "plugins",
     "quality",
     "skills"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Skill Auditor",
-    "shortDescription": "Audit and improve a skill's packaging, triggers, workflow, and verification loop",
-    "longDescription": "Audit a skill's packaging, trigger behavior, task leverage, context design, verification loop, and AGENTS.md adherence, then produce a concise Skill Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill for quality or correctness, (2) Health-checking a skill's trigger reliability or context efficiency, (3) Evaluating whether a skill belongs as a skill, AGENTS.md entry, explicit prompt, or tool, (4) Reviewing or revising a skill's packaging, descriptions, or references, or (5) Any task requiring structured skill evaluation with concrete improvement checks.",
+    "shortDescription": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
+    "longDescription": "Audit a plugin or skill for packaging fit, trigger reliability, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill or plugin for quality or correctness, (2) Health-checking trigger reliability, install drift, or context efficiency, (3) Evaluating whether a capability belongs as a skill, hook, subagent, command, tool, MCP server, or ambient guidance, (4) Reviewing packaging, manifests, marketplace entries, or routing between skills inside a plugin, (5) Judging whether instructions bind outcomes or pave pathways, or (6) Any task requiring structured skill or plugin evaluation with concrete improvement checks. Do not use for authoring a new skill from scratch (that is skill-creator) or for reviewing source code changes (that is code-review).",
     "developerName": "Agent Tooling Contributors",
     "category": "Development",
     "capabilities": [
       "Read"
     ],
-    "defaultPrompt": "Use $skill-auditor to audit a skill's packaging, trigger behavior, task leverage, context design, and verification loop, then produce a concise Skill Improvement Brief with concrete changes and checks."
+    "defaultPrompt": "Use $skill-auditor to audit a plugin or skill's packaging, trigger behavior, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief with concrete changes and checks."
   }
 }
