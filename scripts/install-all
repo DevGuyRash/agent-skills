@@ -211,15 +211,8 @@ done
 [ "$codex_enabled" = "1" ] || [ "$claude_enabled" = "1" ] || die "nothing to install: both Codex and Claude Code are disabled"
 command -v python3 >/dev/null 2>&1 || die "missing required command: python3"
 
-if [ "$codex_enabled" = "1" ] && [ "$dry_run" != "1" ]; then
-  command -v codex >/dev/null 2>&1 || die "missing required command: codex"
-fi
-if [ "$claude_enabled" = "1" ] && [ "$dry_run" != "1" ]; then
-  command -v claude >/dev/null 2>&1 || die "missing required command: claude"
-fi
-
 manifest_output="$(
-  python3 - "$repo_root" "$include_filters" "$exclude_filters" <<'PY'
+  python3 - "$repo_root" "$include_filters" "$exclude_filters" "$codex_enabled" "$claude_enabled" <<'PY'
 import fnmatch
 import json
 import sys
@@ -228,6 +221,8 @@ from pathlib import Path
 root = Path(sys.argv[1])
 include_raw = sys.argv[2]
 exclude_raw = sys.argv[3]
+codex_enabled = sys.argv[4] == "1"
+claude_enabled = sys.argv[5] == "1"
 codex_manifest = root / ".agents" / "plugins" / "marketplace.json"
 claude_manifest = root / ".claude-plugin" / "marketplace.json"
 
@@ -246,10 +241,18 @@ def matches_any(name: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
 
 
-def require_patterns_match(patterns: list[str], names: list[str], label: str) -> None:
+def require_patterns_match(patterns: list[str], names: list[str], label: str, hosts: str) -> None:
     misses = [pattern for pattern in patterns if not any(fnmatch.fnmatchcase(name, pattern) for name in names)]
     if misses:
-        raise SystemExit(f"{label} pattern(s) matched no plugins: {', '.join(misses)}")
+        raise SystemExit(f"{label} pattern(s) matched no {hosts} plugins: {', '.join(misses)}")
+
+
+def select_plugins(names: list[str], includes: list[str], excludes: list[str]) -> list[str]:
+    return [
+        name
+        for name in names
+        if (not includes or matches_any(name, includes)) and not matches_any(name, excludes)
+    ]
 
 codex = json.loads(codex_manifest.read_text(encoding="utf-8"))
 claude = json.loads(claude_manifest.read_text(encoding="utf-8"))
@@ -263,33 +266,47 @@ if codex_name != claude_name:
 
 codex_plugins = [item["name"] for item in codex.get("plugins", [])]
 claude_plugins = [item["name"] for item in claude.get("plugins", [])]
-if codex_plugins != claude_plugins:
-    raise SystemExit("Codex and Claude marketplace plugin lists differ")
 
 include_patterns = parse_patterns(include_raw)
 exclude_patterns = parse_patterns(exclude_raw)
-require_patterns_match(include_patterns, codex_plugins, "--include")
-require_patterns_match(exclude_patterns, codex_plugins, "--exclude")
 
-selected_plugins = [
-    plugin
-    for plugin in codex_plugins
-    if (not include_patterns or matches_any(plugin, include_patterns))
-    and not matches_any(plugin, exclude_patterns)
-]
-if not selected_plugins:
-    raise SystemExit("plugin filters selected no plugins")
+enabled_names: list[str] = []
+enabled_labels: list[str] = []
+if codex_enabled:
+    enabled_names.extend(codex_plugins)
+    enabled_labels.append("Codex")
+if claude_enabled:
+    enabled_names.extend(claude_plugins)
+    enabled_labels.append("Claude Code")
+hosts_label = " or ".join(enabled_labels)
 
-print(codex_name)
-for plugin in selected_plugins:
-    print(plugin)
+require_patterns_match(include_patterns, enabled_names, "--include", hosts_label)
+require_patterns_match(exclude_patterns, enabled_names, "--exclude", hosts_label)
+
+selected_codex = select_plugins(codex_plugins, include_patterns, exclude_patterns) if codex_enabled else []
+selected_claude = select_plugins(claude_plugins, include_patterns, exclude_patterns) if claude_enabled else []
+if not selected_codex and not selected_claude:
+    raise SystemExit("plugin filters selected no plugins for enabled hosts")
+
+print(f"MARKETPLACE\t{codex_name}")
+for plugin in selected_codex:
+    print(f"CODEX\t{plugin}")
+for plugin in selected_claude:
+    print(f"CLAUDE\t{plugin}")
 PY
 )"
 
-marketplace_name="$(printf '%s\n' "$manifest_output" | sed -n '1p')"
-plugin_names="$(printf '%s\n' "$manifest_output" | sed '1d')"
+marketplace_name="$(printf '%s\n' "$manifest_output" | awk 'BEGIN { FS = "\t" } $1 == "MARKETPLACE" { print $2; exit }')"
+codex_plugin_names="$(printf '%s\n' "$manifest_output" | awk 'BEGIN { FS = "\t" } $1 == "CODEX" { print $2 }')"
+claude_plugin_names="$(printf '%s\n' "$manifest_output" | awk 'BEGIN { FS = "\t" } $1 == "CLAUDE" { print $2 }')"
 [ -n "$marketplace_name" ] || die "failed to read marketplace name"
-[ -n "$plugin_names" ] || die "no plugins found in marketplace manifests"
+
+if [ "$codex_enabled" = "1" ] && [ -n "$codex_plugin_names" ] && [ "$dry_run" != "1" ]; then
+  command -v codex >/dev/null 2>&1 || die "missing required command: codex"
+fi
+if [ "$claude_enabled" = "1" ] && [ -n "$claude_plugin_names" ] && [ "$dry_run" != "1" ]; then
+  command -v claude >/dev/null 2>&1 || die "missing required command: claude"
+fi
 
 source_is_local=0
 if is_local_source; then
@@ -301,7 +318,7 @@ if [ "$use_sparse" = "1" ] && [ "$source_is_local" = "1" ]; then
   use_sparse=0
 fi
 
-if [ "$codex_enabled" = "1" ]; then
+if [ "$codex_enabled" = "1" ] && [ -n "$codex_plugin_names" ]; then
   remove_marketplace_if_requested codex
 
   log "adding Codex marketplace $marketplace_name from $source_value"
@@ -312,14 +329,16 @@ if [ "$codex_enabled" = "1" ]; then
   fi
   refresh_marketplace_if_remote codex
 
-  printf '%s\n' "$plugin_names" | while IFS= read -r plugin_name; do
+  printf '%s\n' "$codex_plugin_names" | while IFS= read -r plugin_name; do
     [ -n "$plugin_name" ] || continue
     log "installing Codex plugin $plugin_name@$marketplace_name"
     run codex plugin add "$plugin_name@$marketplace_name"
   done
+elif [ "$codex_enabled" = "1" ]; then
+  log "no selected Codex plugins; skipping Codex marketplace changes"
 fi
 
-if [ "$claude_enabled" = "1" ]; then
+if [ "$claude_enabled" = "1" ] && [ -n "$claude_plugin_names" ]; then
   remove_marketplace_if_requested claude
 
   log "adding Claude Code marketplace $marketplace_name from $source_value"
@@ -330,7 +349,7 @@ if [ "$claude_enabled" = "1" ]; then
   fi
   refresh_marketplace_if_remote claude
 
-  printf '%s\n' "$plugin_names" | while IFS= read -r plugin_name; do
+  printf '%s\n' "$claude_plugin_names" | while IFS= read -r plugin_name; do
     [ -n "$plugin_name" ] || continue
     log "installing Claude Code plugin $plugin_name@$marketplace_name"
     run claude plugin install --scope "$claude_scope" "$plugin_name@$marketplace_name"
@@ -341,6 +360,8 @@ if [ "$claude_enabled" = "1" ]; then
     log "updating Claude Code plugin record $plugin_name@$marketplace_name"
     run claude plugin update --scope "$claude_scope" "$plugin_name@$marketplace_name"
   done
+elif [ "$claude_enabled" = "1" ]; then
+  log "no selected Claude Code plugins; skipping Claude Code marketplace changes"
 fi
 
 log "done"

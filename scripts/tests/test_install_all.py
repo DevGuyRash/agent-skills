@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INSTALL_ALL = REPO_ROOT / "scripts" / "install-all"
+CODEX_MARKETPLACE = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
+CLAUDE_MARKETPLACE = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 
 
 def write_fake_cli(path: Path, command_name: str) -> None:
@@ -36,33 +39,80 @@ def load_calls(log_path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
 
 
+def marketplace_plugin_selectors(path: Path) -> list[str]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return [f'{entry["name"]}@{data["name"]}' for entry in data["plugins"]]
+
+
 class InstallAllTests(unittest.TestCase):
+    def _run_install_all_process(
+        self,
+        repo_root: Path,
+        temp_root: Path,
+        *args: str,
+    ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
+        install_all = repo_root / "scripts" / "install-all"
+        bin_dir = temp_root / "bin"
+        bin_dir.mkdir()
+        log_path = temp_root / "cli.jsonl"
+        log_path.touch()
+        write_fake_cli(bin_dir / "codex", "codex")
+        write_fake_cli(bin_dir / "claude", "claude")
+        path_value = os.environ.get("PATH", os.defpath)
+        env = {
+            **os.environ,
+            "PATH": f"{bin_dir}{os.pathsep}{path_value}",
+            "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
+        }
+        proc = subprocess.run(
+            [str(install_all), *args],
+            cwd=repo_root,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=120,
+        )
+        return proc, load_calls(log_path)
+
     def run_install_all_process(self, *args: str) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         with tempfile.TemporaryDirectory(prefix="install-all-test-") as tmp:
             tmp_path = Path(tmp)
-            bin_dir = tmp_path / "bin"
-            bin_dir.mkdir()
-            log_path = tmp_path / "cli.jsonl"
-            log_path.touch()
-            write_fake_cli(bin_dir / "codex", "codex")
-            write_fake_cli(bin_dir / "claude", "claude")
-            path_value = os.environ.get("PATH", os.defpath)
-            env = {
-                **os.environ,
-                "PATH": f"{bin_dir}{os.pathsep}{path_value}",
-                "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
-            }
-            proc = subprocess.run(
-                [str(INSTALL_ALL), *args],
-                cwd=REPO_ROOT,
-                env=env,
-                capture_output=True,
-                text=True,
+            return self._run_install_all_process(REPO_ROOT, tmp_path, *args)
+
+    def run_install_all_with_catalogs(
+        self,
+        codex_plugins: list[str],
+        claude_plugins: list[str],
+        *args: str,
+    ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
+        with tempfile.TemporaryDirectory(prefix="install-all-catalog-test-") as tmp:
+            tmp_path = Path(tmp)
+            repo_root = tmp_path / "repo"
+            (repo_root / "scripts").mkdir(parents=True)
+            (repo_root / ".agents" / "plugins").mkdir(parents=True)
+            (repo_root / ".claude-plugin").mkdir(parents=True)
+            shutil.copy2(INSTALL_ALL, repo_root / "scripts" / "install-all")
+            (repo_root / ".agents" / "plugins" / "marketplace.json").write_text(
+                json.dumps(
+                    {
+                        "name": "agent-tooling",
+                        "plugins": [{"name": name} for name in codex_plugins],
+                    }
+                ),
                 encoding="utf-8",
-                check=False,
-                timeout=120,
             )
-            return proc, load_calls(log_path)
+            (repo_root / ".claude-plugin" / "marketplace.json").write_text(
+                json.dumps(
+                    {
+                        "name": "agent-tooling",
+                        "plugins": [{"name": name} for name in claude_plugins],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return self._run_install_all_process(repo_root, tmp_path, *args)
 
     def run_install_all(self, *args: str) -> list[dict[str, object]]:
         proc, calls = self.run_install_all_process(*args)
@@ -91,16 +141,10 @@ class InstallAllTests(unittest.TestCase):
         # 'install' no-ops on an already-installed plugin, so each install is
         # followed by 'update' to advance the installed_plugins.json record.
         claude_updates = [args for args in claude_calls[2:] if args[:2] == ["plugin", "update"]]
-        self.assertEqual(11, len(codex_installs))
-        self.assertEqual(11, len(claude_installs))
-        self.assertEqual(11, len(claude_updates))
-        self.assertEqual(["plugin", "add", "goalspec@agent-tooling"], codex_installs[6])
-        self.assertEqual(["plugin", "install", "--scope", "local", "goalspec@agent-tooling"], claude_installs[6])
-        self.assertEqual(["plugin", "update", "--scope", "local", "goalspec@agent-tooling"], claude_updates[6])
-
         codex_plugins = [args[-1] for args in codex_installs]
         claude_plugins = [args[-1] for args in claude_installs]
-        self.assertEqual(codex_plugins, claude_plugins)
+        self.assertEqual(marketplace_plugin_selectors(CODEX_MARKETPLACE), codex_plugins)
+        self.assertEqual(marketplace_plugin_selectors(CLAUDE_MARKETPLACE), claude_plugins)
         self.assertEqual(claude_plugins, [args[-1] for args in claude_updates])
 
     def test_local_source_omits_sparse_and_ref_flags(self) -> None:
@@ -111,7 +155,7 @@ class InstallAllTests(unittest.TestCase):
             calls[0],
         )
         self.assertFalse(any(call["command"] == "claude" for call in calls))
-        self.assertEqual(12, len(calls))
+        self.assertEqual(1 + len(marketplace_plugin_selectors(CODEX_MARKETPLACE)), len(calls))
 
     def test_replace_marketplace_removes_existing_source_before_local_add(self) -> None:
         calls = self.run_install_all("--source", str(REPO_ROOT), "--include", "goalspec", "--replace-marketplace")
@@ -161,8 +205,18 @@ class InstallAllTests(unittest.TestCase):
         codex_installs = [call["args"][-1] for call in calls if call["command"] == "codex" and call["args"][:2] == ["plugin", "add"]]
         claude_installs = [call["args"][-1] for call in calls if call["command"] == "claude" and call["args"][:2] == ["plugin", "install"]]
 
-        self.assertEqual(9, len(codex_installs))
-        self.assertEqual(codex_installs, claude_installs)
+        expected_codex = [
+            selector
+            for selector in marketplace_plugin_selectors(CODEX_MARKETPLACE)
+            if not selector.startswith(("rust", "gitops-workflow@"))
+        ]
+        expected_claude = [
+            selector
+            for selector in marketplace_plugin_selectors(CLAUDE_MARKETPLACE)
+            if not selector.startswith(("rust", "gitops-workflow@"))
+        ]
+        self.assertEqual(expected_codex, codex_installs)
+        self.assertEqual(expected_claude, claude_installs)
         self.assertNotIn("rust-development@agent-tooling", codex_installs)
         self.assertNotIn("gitops-workflow@agent-tooling", codex_installs)
 
@@ -183,7 +237,95 @@ class InstallAllTests(unittest.TestCase):
         proc, calls = self.run_install_all_process("--include", "missing-plugin")
 
         self.assertNotEqual(0, proc.returncode)
-        self.assertIn("--include pattern(s) matched no plugins: missing-plugin", proc.stderr)
+        self.assertIn("--include pattern(s) matched no Codex or Claude Code plugins: missing-plugin", proc.stderr)
+        self.assertEqual([], calls)
+
+    def test_codex_only_plugin_skips_claude_marketplace_and_install(self) -> None:
+        calls = self.run_install_all("--include", "linux-desktop-control")
+
+        self.assertEqual(
+            [
+                {
+                    "command": "codex",
+                    "args": [
+                        "plugin",
+                        "marketplace",
+                        "add",
+                        "--ref",
+                        "main",
+                        "--sparse",
+                        ".agents/plugins",
+                        "--sparse",
+                        "plugins",
+                        "DevGuyRash/agent-tooling",
+                    ],
+                },
+                {
+                    "command": "codex",
+                    "args": ["plugin", "marketplace", "upgrade", "agent-tooling"],
+                },
+                {
+                    "command": "codex",
+                    "args": ["plugin", "add", "linux-desktop-control@agent-tooling"],
+                },
+            ],
+            calls,
+        )
+
+    def test_claude_only_rejects_codex_only_selector(self) -> None:
+        proc, calls = self.run_install_all_process(
+            "--claude-only",
+            "--include",
+            "linux-desktop-control",
+        )
+
+        self.assertNotEqual(0, proc.returncode)
+        self.assertIn(
+            "--include pattern(s) matched no Claude Code plugins: linux-desktop-control",
+            proc.stderr,
+        )
+        self.assertEqual([], calls)
+
+    def test_synthetic_claude_only_plugin_skips_codex(self) -> None:
+        proc, calls = self.run_install_all_with_catalogs(
+            ["shared"],
+            ["shared", "claude-only"],
+            "--include",
+            "claude-only",
+        )
+
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+        self.assertFalse(any(call["command"] == "codex" for call in calls))
+        self.assertEqual(
+            [
+                [
+                    "plugin",
+                    "marketplace",
+                    "add",
+                    "--scope",
+                    "user",
+                    "DevGuyRash/agent-tooling",
+                    "--sparse",
+                    ".claude-plugin",
+                    "plugins",
+                ],
+                ["plugin", "marketplace", "update", "agent-tooling"],
+                ["plugin", "install", "--scope", "user", "claude-only@agent-tooling"],
+                ["plugin", "update", "--scope", "user", "claude-only@agent-tooling"],
+            ],
+            [call["args"] for call in calls],
+        )
+
+    def test_filters_may_empty_one_host_but_not_every_enabled_host(self) -> None:
+        proc, calls = self.run_install_all_process(
+            "--include",
+            "linux-desktop-control",
+            "--exclude",
+            "linux-desktop-control",
+        )
+
+        self.assertNotEqual(0, proc.returncode)
+        self.assertIn("plugin filters selected no plugins for enabled hosts", proc.stderr)
         self.assertEqual([], calls)
 
 
