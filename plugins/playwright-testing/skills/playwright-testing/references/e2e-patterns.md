@@ -147,15 +147,3 @@ await expect(page.getByRole("status")).toContainText("Saved");
 Bad: asserting a marketing tagline, third-party incidental text, generated class, or visual layout detail that is not the product contract.
 
 Good: asserting an app-owned confirmation, status, total, ID, or durable semantic state.
-
-## Review Checklist
-
-- Does the test prove a user/product outcome?
-- Is e2e the right tier?
-- Are app-owned selectors role-based or stable?
-- Are third-party selectors centralized?
-- Are selector canaries separated from journeys?
-- Does every wait have a named outcome?
-- Are auth and data setup deterministic?
-- Are page states classified where needed?
-- Do failure artifacts identify the broken outcome or semantic selector?

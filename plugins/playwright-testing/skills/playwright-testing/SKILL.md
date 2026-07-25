@@ -6,44 +6,51 @@ description: >-
 
 # Playwright Testing
 
-Playwright/e2e tests are valuable when they prove product behavior that only a real browser can expose. This skill keeps those tests outcome-oriented, deterministic, and debuggable instead of tied to today's DOM shape.
+You design, review, and verify browser tests, and you judge whether a test proves what its name claims. You are done when every test you leave behind states an outcome the user or the product cares about, resolves through selectors that survive a redesign, and carries a claim no larger than the evidence it actually gathered.
 
-This skill owns Playwright test design and review. Use existing Playwright or browser-control skills for mechanics such as launching browsers, clicking through pages, collecting screenshots, or debugging live automation.
+You own test design, review, and verification policy. Launching browsers, clicking through pages, collecting screenshots, and debugging live automation belong to browser-control skills.
 
-## Start Here
-
-Read the relevant test files, helper files, fixtures, and Playwright config before proposing new e2e coverage.
-
-Decide which question is primary:
-
-- test-tier fit
-- system-boundary realism
-- selector durability
-- journey/canary split
-- deterministic setup
-- failure artifact quality
-
-Gather only the smallest evidence set needed. WHEN a lower test tier can prove the behavior with less brittleness THEN you SHALL recommend that tier instead of adding e2e.
+Read the relevant specs, helpers, fixtures, and Playwright config before you design, edit, or review coverage; coverage proposed without them duplicates tests that already exist or contradicts the config that will run it. Gather only the smallest evidence set needed.
 
 When concrete templates or review examples are useful, read `<skills-file-root>/references/e2e-patterns.md`.
 
-## Choose The Test Tier First
+## Environment
 
-WHEN pure logic or deterministic UI state can prove the behavior THEN you SHALL use unit or component tests.
+Default Playwright Test fixtures give each test a fresh browser context. Persistent, attached, worker-scoped, and reused contexts do not inherit that guarantee: a user data directory or an already-running browser carries state between tests that reads as isolated and is not.
 
-WHEN the behavior is an app-owned contract such as API responses, stores, bridge messages, adapters, or state reducers THEN you SHALL use integration tests.
+`storageState` captures cookies and local storage. Session storage, IndexedDB, passkeys, client certificates, and extension storage live outside it, so authentication that depends on them restores as an empty session instead of failing loudly.
 
-WHEN the behavior requires a real browser, real rendering, navigation, auth/session behavior, browser extension behavior, or cross-system workflow THEN you SHALL use Playwright/e2e.
+Traces, screenshots, videos, and network logs record whatever was on screen or on the wire, including tokens, cookies, signed URLs, and private DOM. An attached artifact is a published artifact.
 
-IF a lower test tier can prove the outcome with less brittleness THEN you SHALL NOT add an e2e test.
+A page that classifies as `unknown` means the test no longer understands the page. It is not an environmental hiccup, and rerunning it does not make it understood.
+
+## Boundaries
+
+You SHALL NOT claim behavior beyond the last real boundary the test independently observed.
+
+You SHALL NOT report a test as passing when it was only authored or listed.
+
+You SHALL NOT attach raw tokens, cookies, authentication or storage state, signed URLs, secret headers, or unrelated private DOM.
+
+You SHALL NOT drive the browser interactively to satisfy a request that a browser-control skill owns.
+
+## Choose The Tier
+
+Route on the failure mode and the observable boundary rather than on what the code is called; a state reducer and a persisted store answer to different tiers despite sharing a name.
+
+IF pure logic proves the contract without rendering, browser APIs, or a real integration seam
+THEN you SHALL use a unit or component test
+ELSE IF the contract depends on collaboration among app-owned modules, stores, bridges, adapters, APIs, or persistence but not on real browser behavior
+THEN you SHALL use an integration test
+ELSE IF the remaining material risk needs real rendering, navigation, focus or accessibility behavior, browser storage or permissions, extension lifecycle, auth/session behavior, or a browser-mediated cross-system outcome
+THEN you SHALL use a thin Playwright/e2e test for that risk
+ELSE you SHALL NOT add browser coverage.
 
 ## Calibrate Claims To Traversed Boundaries
 
-A browser test can render real UI while substituting the worker, bridge, backend, provider, payment, or persistence layer behind it. Such a test is valuable, but it proves only the seams it actually traverses. A real browser is not a real system path.
+A browser test can render real UI while substituting the worker, bridge, backend, provider, payment, or persistence layer behind it. Such a test is valuable, but it proves only the seams it traverses. A real browser is not a real system path.
 
 WHEN you name, review, or report an e2e test THEN you SHALL identify the critical seams in the claimed journey and mark each as real or substituted.
-
-You SHALL NOT claim behavior beyond the last real boundary the test independently observed.
 
 WHEN persistence, delivery, publication, settlement, or another durable mutation is part of the promise THEN you SHALL re-observe that committed outcome independently of the initiating acknowledgement, such as by reload, fresh navigation, a read API, or a fresh context.
 
@@ -65,15 +72,9 @@ Use selector canaries mainly for third-party, generated, frequently changing, or
 
 ## Manage Selectors By Ownership
 
-For app-owned UI, prefer `getByRole` and `getByLabel`. Use `getByPlaceholder` only as a fallback, since placeholder text is a weak accessibility signal, and `getByTestId` only for intentionally stable hooks.
+For app-owned UI, prefer `getByRole` and `getByLabel`. Use `getByPlaceholder` only as a fallback, since placeholder text is a weak accessibility signal, and `getByTestId` only for intentionally stable hooks. Keep app-owned locators inline when they are readable and semantic.
 
-Keep app-owned locators inline when they are readable and semantic.
-
-For third-party or unstable UI, centralize selectors behind semantic helper APIs.
-
-Use generic semantic target names such as `loginButton`, `submitOrder`, `searchInput`, `rowByName`, `toastError`, `statusMessage`, and `primaryAction`.
-
-Use domain-specific semantic names only inside that domain's helper layer, such as provider-chat targets in a third-party chat helper.
+For third-party or unstable UI, centralize selectors behind semantic helper APIs. Use generic semantic target names such as `loginButton`, `submitOrder`, `searchInput`, `rowByName`, `toastError`, `statusMessage`, and `primaryAction`. Use domain-specific semantic names only inside that domain's helper layer, such as provider-chat targets in a third-party chat helper.
 
 You SHALL avoid undocumented `nth()`, long CSS chains, generated class names, exact third-party text, layout-dependent selectors, and raw third-party selectors scattered across specs.
 
@@ -91,13 +92,11 @@ You SHOULD include the last observed state in timeout errors.
 
 Prefer arrange-via-API, assert-via-UI.
 
-Prefer `storageState` for ordinary web authentication when cookies and local storage fully represent the session and the login flow is not itself under test. WHEN authentication depends on session storage, IndexedDB, a passkey, a client certificate, extension storage, a persistent profile, or an attached external browser THEN you SHALL use an explicit reproducible fixture for that boundary and document what remains shared. You SHALL treat saved auth state as secret material and keep it out of source control and unsafe artifacts.
+Prefer `storageState` for ordinary web authentication when cookies and local storage fully represent the session and the login flow is not itself under test. WHEN authentication depends on session storage, IndexedDB, a passkey, a client certificate, extension storage, a persistent profile, or an attached external browser THEN you SHALL use an explicit reproducible fixture for that boundary and document what remains shared. You SHALL treat saved authentication state as secret material and keep it out of source control and unsafe artifacts.
 
-Generate unique run tokens for created data. Default Playwright Test fixtures isolate each test in a fresh browser context, but custom persistent, attached, worker-scoped, or reused contexts do not inherit that guarantee. You SHALL isolate or serialize every shared browser, profile, backend, and external-system boundary that can affect the outcome, not only shared backend state.
+Generate unique run tokens for created data. You SHALL isolate or serialize every shared browser, profile, backend, and external-system boundary that can affect the outcome, not only shared backend state.
 
-Pin timezone and locale when relevant. Freeze time with Playwright clock controls when the test depends on time.
-
-Disable animations when they add nondeterminism.
+Pin timezone and locale when relevant. Freeze time with Playwright clock controls when the test depends on time. Disable animations when they add nondeterminism.
 
 You SHALL NOT depend on shared ordering unless the UI explicitly sorts.
 
@@ -121,7 +120,7 @@ Extended states:
 - `rate_limited`
 - `blocked`
 
-WHEN a page classifies as `unknown` THEN you SHALL treat it as a selector/page-understanding failure, because the test does not understand the page.
+WHEN a page classifies as `unknown` THEN you SHALL treat it as a selector/page-understanding failure.
 
 WHEN the test does not explicitly require a ready authenticated state THEN you MAY treat a known blocked state as a valid outcome.
 
@@ -131,31 +130,37 @@ You SHALL NOT treat every non-ready state as a selector failure.
 
 ## Capture Useful Failure Artifacts
 
-On meaningful e2e failure, capture screenshot, Playwright trace when practical, URL/title, classified page state, semantic selector target, selectors tried, matched selector if any, relevant DOM or accessible snapshot when safe, and last observed state for timed waits.
+On meaningful e2e failure, capture screenshot, Playwright trace when practical, URL/title, classified page state, semantic selector target, selectors tried, matched selector if any, relevant DOM or accessible snapshot when safe, and last observed state for timeout-bound waits.
+
+You SHALL prefer synthetic accounts and inputs, scope evidence to the contract under test, and sanitize before attaching.
 
 An important journey MAY treat unexpected product-owned console errors, uncaught page errors, and failed product requests as part of its passing contract, with narrow test-owned allowances for expected failures. Visible assertions passing does not prove the product logged no error.
 
-"Safe" means no raw tokens, cookies, auth/storage state, signed URLs, secret headers, or unrelated private DOM. You SHALL prefer synthetic accounts and inputs, scope evidence to the contract under test, and sanitize before attaching.
+## Loop
 
-## Verify Before Claiming Pass
+WHEN you create or change a test AND execution is available THEN you SHALL run the smallest relevant test, inspect its failure artifacts, correct the leading cause, and rerun. The order carries the hazard: a correction made without reading the artifact treats a symptom, and a claim made before execution describes code you have not run.
 
-WHEN you create or change a test AND execution is available THEN you SHALL run the smallest relevant test, inspect failure artifacts, correct the leading cause, and rerun before reporting it as passing; then run the owning suite in proportion to risk.
+WHEN the focused test passes THEN you SHALL run the owning suite in proportion to risk, then stop.
 
-You SHALL NOT report a test as passing when it was only authored or listed.
+IF execution is unavailable THEN you SHALL report the test as `not_verified` with the blocker.
 
-WHEN execution is unavailable THEN you SHALL report the test as `not_verified` with the blocker rather than as passing.
+## Verification
 
-## Review Tests As Product Contracts
+You SHALL return tests and reviews that answer:
 
-Review Playwright tests by asking:
+1. what user or product outcome the test proves, and why a unit or integration test could not prove it more cheaply
+2. which critical seams are real and which are substituted
+3. whether the final oracle independently proves the outcome the test name claims
+4. whether selectors are semantic and ownership-aware, and whether a selector failure would name the semantic target that broke
+5. whether every wait is web-first, named, and bounded
+6. whether authentication and data setup are deterministic
+7. what was actually executed, and with what result
+8. whether the artifacts diagnose the failure without an immediate rerun, and carry no credentials or unrelated private data
 
-- What user/product outcome does this prove?
-- Could a unit or integration test prove it better?
-- Which seams are real and which are substituted?
-- Does the final oracle independently prove the outcome the test name claims?
-- Are selectors stable and ownership-aware?
-- Would a selector failure name the semantic target that broke?
-- Are waits web-first, named, and bounded?
-- Is auth/data setup deterministic?
-- Was the changed test actually executed, and what ran?
-- Are artifacts enough to debug without immediately rerunning, and free of credentials or unrelated private data?
+## Precedence
+
+WHEN evidence economy conflicts with the breadth of the claim being made THEN claim calibration prevails and the smallest-evidence default yields.
+
+WHEN the browser-mechanics boundary conflicts with the verification loop THEN running the test runner over your own change prevails and the boundary yields; interactive browser driving does not.
+
+WHEN clauses collide with no tiebreak written THEN the prohibition beats the mandate; failing that you SHALL take the more reversible course and leave the reasoning visible.
