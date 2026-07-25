@@ -10,6 +10,29 @@ disclosed.
 - Level 2 — one question-specific reference at a time
 - Level 3 — scripts or assets only on demand
 
+## Context At Decision Time
+
+File sizes are a proxy. What decides the outcome is what occupies the window when the agent chooses
+its next action, and several sources of waste never show up in a line count.
+
+You SHALL inspect:
+
+- **What the skill puts in the window that it did not need to.** Script output enters context; script
+  source does not. A helper that dumps a full report where a summary would decide the question spends
+  the budget the layering was built to protect.
+- **Whether invariants survive compaction.** A constraint stated once at the top of a long workflow is
+  a constraint the agent may no longer hold when it reaches the step the constraint governs. Restated
+  where it binds, it survives; stated only in a preamble, it does not.
+- **Whether the skill dispatches work that should have been isolated.** Work whose intermediate output
+  is large and whose result is small belongs behind a context boundary. Run inline, its byproducts
+  crowd out the task.
+- **Whether tool results are bounded.** A skill invoking commands with unbounded output has no context
+  budget, whatever its files measure.
+
+WHEN a target passes every size check and still exhausts context in practice THEN you SHALL look here
+before proposing further trimming; cutting a file that was never the problem is motion without
+improvement.
+
 ## Redesign Rules
 
 You SHALL keep `SKILL.md` operational rather than encyclopedic.

@@ -5,12 +5,20 @@ failure.
 
 ## Wrong Primitive
 
-WHEN the content is ambient policy THEN you SHALL move it to `AGENTS.md` or
-custom instructions.
-WHEN the value is a user-chosen workflow THEN you SHALL consider an explicit
-prompt surface.
+WHEN the content is ambient policy the model should always know THEN you SHALL
+move it to `AGENTS.md` or custom instructions.
+WHEN the behavior must always happen rather than always be known THEN you SHALL
+move it to a hook, because a skill cannot guarantee it runs.
+WHEN the value is a context boundary or a narrowed tool surface THEN you SHALL
+move it to a subagent.
+WHEN the value is a user-chosen workflow THEN you SHALL consider a command or an
+explicit prompt surface.
 WHEN the value is mostly execution THEN you SHALL favor a tool or script.
+WHEN the value is reaching an external system THEN you SHALL favor MCP-backed
+tooling.
 Verification: confirm the new packaging reduces false triggers or ambiguity.
+
+The full verdict set and the distinctions that are easiest to collapse belong to packaging fit.
 
 ## Trigger Too Broad
 

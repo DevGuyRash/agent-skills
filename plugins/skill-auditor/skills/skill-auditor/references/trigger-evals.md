@@ -3,6 +3,18 @@
 Trigger evaluation treats `name` and `description` as a retrieval surface, not
 as a static lint target.
 
+## Evaluate the text that loads
+
+Skills install into a per-host cache. Routing happens against the cached description, so a repository
+edit that has not been reinstalled changes the file and not the behavior.
+
+You SHALL establish which description is live before generating prompts. WHEN the installed and
+repository descriptions differ THEN you SHALL run the eval set against the installed text, report the
+divergence as its own finding, and say which text your findings describe. Evaluating the repository
+copy and reporting on routing describes a skill that is not the one running.
+
+Plugin fit covers the drift check itself.
+
 ## Required Eval Set
 
 You SHALL generate:
@@ -41,6 +53,23 @@ examples until only discriminating terms remain.
 2. Remove generic words that create false positives.
 3. Add missing terms that recover false negatives.
 4. Rename the skill only when the name itself is misleading.
+
+## Sibling Skills
+
+A negative control drawn from an unrelated domain proves little. The prompts that actually misroute
+are the ones a co-bundled or adjacent skill also claims.
+
+WHEN the target ships alongside other skills THEN you SHALL draw at least one negative control from
+the nearest sibling's territory, because siblings are where overlapping trigger language is most
+likely and least visible.
+
+You SHALL check whether sibling descriptions claim the same work. Overlapping language between two
+skills produces routing that depends on which description the agent weighed first, and neither
+skill's own metadata reveals the conflict.
+
+WHEN a description names another skill in a negative trigger THEN you SHALL verify that the named
+skill claims the work in its own description. A one-way edge routes traffic away from one skill
+without routing it into anywhere.
 
 ## Deliverables
 
