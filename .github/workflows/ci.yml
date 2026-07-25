@@ -301,6 +301,12 @@ jobs:
           packaging_changed="$(python3 scripts/package_skills.py matches-changed-files --changed-files-file "$changed_files_file")"
           friction_smoke_changed="$(python3 scripts/package_skills.py matches-changed-files --skill friction_render_table --include-tests --changed-files-file "$changed_files_file")"
 
+          # The packaged-skill watch set only covers the render-table launcher,
+          # dist payloads, and tests; core capture/mend scripts live outside it.
+          if grep -q '^plugins/friction-diagnostics/' "$changed_files_file"; then
+            friction_smoke_changed="true"
+          fi
+
           {
             echo "packaging_changed=$packaging_changed"
             echo "friction_smoke_changed=$friction_smoke_changed"
@@ -331,9 +337,68 @@ jobs:
         shell: bash
         run: python scripts/package_skills.py stage-host --skill friction_render_table
 
+      - name: Verify vendored skill copies
+        shell: bash
+        run: python scripts/package_skills.py vendor
+
       - name: Run friction diagnostics smoke test (POSIX)
         shell: bash
         run: bash plugins/friction-diagnostics/skills/friction-diagnostics/tests/smoke-posix.sh
+
+  plugin-audit:
+    name: Plugin audit (changed plugins)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Audit the plugins this change touches
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Two scopings, both deliberate.
+          #
+          # Only changed plugins: a whole-repo gate would fail on findings that
+          # predate the auditor and block every unrelated change.
+          #
+          # Only errors gate: the scripts separate facts with no legitimate
+          # reading (a dead link, a launcher that cannot be invoked, manifests
+          # of one plugin disagreeing) from facts whose significance depends on
+          # the target (lengths, naming, house idiom). The second kind is
+          # printed for a reader and never fails, because whether it is a defect
+          # depends on the target's age and profile, which no script can see.
+          event_name="${{ github.event_name }}"
+          base_sha=""
+          head_sha="${{ github.sha }}"
+
+          if [ "$event_name" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          elif [ "$event_name" = "push" ]; then
+            base_sha="${{ github.event.before }}"
+          fi
+
+          if [ -z "$base_sha" ] || [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+            echo "No usable base SHA for $event_name; auditing skill-auditor only."
+            exec sh scripts/audit-plugins.sh skill-auditor
+          fi
+
+          changed=$(git diff --name-only "$base_sha" "$head_sha" \
+            | sed -n 's|^plugins/\([^/]*\)/.*|\1|p' \
+            | sort -u)
+
+          if [ -z "$changed" ]; then
+            echo "No plugin directories changed; nothing to audit."
+            exit 0
+          fi
+
+          echo "Auditing: $(echo "$changed" | tr '\n' ' ')"
+          # shellcheck disable=SC2086
+          sh scripts/audit-plugins.sh $changed
 
   rust:
     name: Rust (fmt, clippy, test)

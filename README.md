@@ -193,17 +193,20 @@ Common commands:
 - `just dist-host` — build and stage host-platform packaged binaries into plugin-local skill `dist/` trees
 - `just verify-packaging` — verify host refresh plus the committed dist completeness contract
 - `just verify-skill-launchers` — smoke-test plugin-local skill launchers against the staged binaries
-- `just audit-plugins [name ...]` — run the skill-auditor's deterministic checks over every plugin, or the named ones (`--report` adds instruction-design observations)
+- `just audit-plugins [name ...]` — report what the skill-auditor's scripts observe about every plugin, or the named ones (`--errors-only` omits the observations)
 - `just hooks-install` — point this clone at the committed repo-owned `githooks/` directory for local pre-push checks
 - `just harness-doctor` — inspect the current repo shape and local tool availability from the installed harness
 
 `just hooks-install` is local convenience, not the authoritative policy surface. CI and PR gating remain the real enforcement path.
 
-`just audit-plugins` gates only on breakage — a missing file, a dead link, CRLF, a
-missing shebang, a description past the host limit, two manifests disagreeing.
-Instruction-design observations are house doctrine that older skills predate, so
-they are reported under `--report` and never fail. CI audits only the plugins a
-change touches, so a plugin's backlog blocks nobody else's work.
+`just audit-plugins` prints what the auditor's scripts can observe and fails only
+on what is broken for every target. Facts whose significance depends on the
+target — lengths, naming, house idiom — are printed with the reference that owns
+the rule, and never fail; a script cannot see a target's age or profile, so
+judging those is the reader's. Run `scripts/audit-plugins.sh --help` for the
+current contract — that text is canonical, so this paragraph does not restate
+it. CI audits only the plugins a change touches, so one plugin's backlog blocks
+nobody else's work.
 
 ### Install all plugins
 
