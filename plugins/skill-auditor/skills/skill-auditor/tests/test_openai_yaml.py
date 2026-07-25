@@ -23,11 +23,11 @@ class OpenAiYamlTests(unittest.TestCase):
         self.assertEqual(read_interface_value("display_name"), "Skill Auditor")
         self.assertEqual(
             read_interface_value("short_description"),
-            "Audit and improve a skill's packaging, triggers, workflow, and verification loop",
+            "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
         )
         self.assertEqual(
             read_interface_value("default_prompt"),
-            "Use $skill-auditor to audit a skill's packaging, trigger behavior, task leverage, context design, and verification loop, then produce a concise Skill Improvement Brief with concrete changes and checks.",
+            "Use $skill-auditor to audit a plugin or skill's packaging, trigger behavior, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief with concrete changes and checks.",
         )
 
     def test_openai_yaml_uses_interface_root_only(self) -> None:

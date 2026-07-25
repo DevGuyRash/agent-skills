@@ -5,11 +5,15 @@
     "health-check",
     "evaluating",
     "review",
-    "revising",
-    "AGENTS.md adherence"
+    "plugin",
+    "instruction design",
+    "install drift",
+    "hook",
+    "subagent"
   ],
   "negative_terms": [
     "router CLI",
-    "large lint taxonomy"
+    "large lint taxonomy",
+    "AGENTS.md adherence"
   ]
 }

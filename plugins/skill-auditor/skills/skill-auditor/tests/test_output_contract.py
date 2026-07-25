@@ -36,8 +36,12 @@ class OutputContractTests(unittest.TestCase):
             "KEEP_AS_SKILL",
             "REWORK_AS_SKILL",
             "MIGRATE_TO_AGENTS",
+            "MIGRATE_TO_HOOK",
+            "MIGRATE_TO_SUBAGENT",
+            "MIGRATE_TO_COMMAND",
             "MIGRATE_TO_EXPLICIT_PROMPT",
             "MIGRATE_TO_TOOL",
+            "MIGRATE_TO_MCP",
             "HYBRID_RECOMMENDED",
         ):
             with self.subTest(verdict=verdict):
@@ -53,8 +57,20 @@ class OutputContractTests(unittest.TestCase):
     def test_contract_requires_concrete_evidence_anchors(self) -> None:
         content = OUTPUT_CONTRACT.read_text(encoding="utf-8")
 
-        self.assertIn("concrete observed prompt, output, or file anchor", content)
+        self.assertIn("at least one observed prompt, output, or file anchor", content)
         self.assertIn("## Key evidence", content)
+
+    def test_contract_separates_plugin_scope_from_skill_scope(self) -> None:
+        content = OUTPUT_CONTRACT.read_text(encoding="utf-8")
+
+        self.assertIn("## Plugin-level findings", content)
+        self.assertIn("## Scope", content)
+
+    def test_contract_allows_a_clean_result(self) -> None:
+        content = OUTPUT_CONTRACT.read_text(encoding="utf-8").lower()
+
+        self.assertIn("clean brief", content)
+        self.assertIn("manufacturing a finding", content)
 
 
 if __name__ == "__main__":

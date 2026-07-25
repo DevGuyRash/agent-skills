@@ -1,7 +1,8 @@
 [
-  "read the target skill's skill.md before loading other target files",
-  "decide which of the five improvement questions is primary",
-  "read at most one question-specific reference file before drafting the first brief",
-  "format the default deliverable",
-  "load one additional direct reference at a time only as needed"
+  "you are done when the brief carries one packaging verdict",
+  "format the brief with",
+  "route on the symptom the maintainer reports",
+  "the scripts supply mechanism",
+  "you shall read at most one question reference before drafting the first brief",
+  "when the leading bottleneck and its next check are clear then you shall stop"
 ]

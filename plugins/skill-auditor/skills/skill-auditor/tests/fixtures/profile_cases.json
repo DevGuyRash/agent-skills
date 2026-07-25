@@ -17,10 +17,10 @@
   },
   {
     "profile": "internal-house-style",
-    "cue": "local overlays, not universal"
+    "cue": "local overlays, never universal"
   },
   {
     "profile": "auto",
-    "cue": "avoid false certainty"
+    "cue": "false certainty"
   }
 ]
