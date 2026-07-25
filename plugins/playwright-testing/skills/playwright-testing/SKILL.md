@@ -17,6 +17,7 @@ Read the relevant test files, helper files, fixtures, and Playwright config befo
 Decide which question is primary:
 
 - test-tier fit
+- system-boundary realism
 - selector durability
 - journey/canary split
 - deterministic setup
@@ -35,6 +36,16 @@ WHEN the behavior is an app-owned contract such as API responses, stores, bridge
 WHEN the behavior requires a real browser, real rendering, navigation, auth/session behavior, browser extension behavior, or cross-system workflow THEN you SHALL use Playwright/e2e.
 
 IF a lower test tier can prove the outcome with less brittleness THEN you SHALL NOT add an e2e test.
+
+## Calibrate Claims To Traversed Boundaries
+
+A browser test can render real UI while substituting the worker, bridge, backend, provider, payment, or persistence layer behind it. Such a test is valuable, but it proves only the seams it actually traverses. A real browser is not a real system path.
+
+WHEN you name, review, or report an e2e test THEN you SHALL identify the critical seams in the claimed journey and mark each as real or substituted.
+
+You SHALL NOT claim behavior beyond the last real boundary the test independently observed.
+
+WHEN persistence, delivery, publication, settlement, or another durable mutation is part of the promise THEN you SHALL re-observe that committed outcome independently of the initiating acknowledgement, such as by reload, fresh navigation, a read API, or a fresh context.
 
 ## Assert Outcomes, Not Markup
 
@@ -80,9 +91,9 @@ You SHOULD include the last observed state in timeout errors.
 
 Prefer arrange-via-API, assert-via-UI.
 
-Use `storageState` for authentication unless the login flow itself is under test.
+Prefer `storageState` for ordinary web authentication when cookies and local storage fully represent the session and the login flow is not itself under test. WHEN authentication depends on session storage, IndexedDB, a passkey, a client certificate, extension storage, a persistent profile, or an attached external browser THEN you SHALL use an explicit reproducible fixture for that boundary and document what remains shared. You SHALL treat saved auth state as secret material and keep it out of source control and unsafe artifacts.
 
-Generate unique run tokens for created data. Playwright already isolates each test in a fresh browser context, so you SHALL direct isolation effort at shared backend state across parallel workers rather than at the browser.
+Generate unique run tokens for created data. Default Playwright Test fixtures isolate each test in a fresh browser context, but custom persistent, attached, worker-scoped, or reused contexts do not inherit that guarantee. You SHALL isolate or serialize every shared browser, profile, backend, and external-system boundary that can affect the outcome, not only shared backend state.
 
 Pin timezone and locale when relevant. Freeze time with Playwright clock controls when the test depends on time.
 
@@ -114,11 +125,25 @@ WHEN a page classifies as `unknown` THEN you SHALL treat it as a selector/page-u
 
 WHEN the test does not explicitly require a ready authenticated state THEN you MAY treat a known blocked state as a valid outcome.
 
+A known blocked state MAY prove that classification and diagnostics work, but you SHALL NOT count it as proof that a required-ready product journey succeeded.
+
 You SHALL NOT treat every non-ready state as a selector failure.
 
 ## Capture Useful Failure Artifacts
 
 On meaningful e2e failure, capture screenshot, Playwright trace when practical, URL/title, classified page state, semantic selector target, selectors tried, matched selector if any, relevant DOM or accessible snapshot when safe, and last observed state for timed waits.
+
+An important journey MAY treat unexpected product-owned console errors, uncaught page errors, and failed product requests as part of its passing contract, with narrow test-owned allowances for expected failures. Visible assertions passing does not prove the product logged no error.
+
+"Safe" means no raw tokens, cookies, auth/storage state, signed URLs, secret headers, or unrelated private DOM. You SHALL prefer synthetic accounts and inputs, scope evidence to the contract under test, and sanitize before attaching.
+
+## Verify Before Claiming Pass
+
+WHEN you create or change a test AND execution is available THEN you SHALL run the smallest relevant test, inspect failure artifacts, correct the leading cause, and rerun before reporting it as passing; then run the owning suite in proportion to risk.
+
+You SHALL NOT report a test as passing when it was only authored or listed.
+
+WHEN execution is unavailable THEN you SHALL report the test as `not_verified` with the blocker rather than as passing.
 
 ## Review Tests As Product Contracts
 
@@ -126,8 +151,11 @@ Review Playwright tests by asking:
 
 - What user/product outcome does this prove?
 - Could a unit or integration test prove it better?
+- Which seams are real and which are substituted?
+- Does the final oracle independently prove the outcome the test name claims?
 - Are selectors stable and ownership-aware?
 - Would a selector failure name the semantic target that broke?
 - Are waits web-first, named, and bounded?
 - Is auth/data setup deterministic?
-- Are artifacts enough to debug without immediately rerunning?
+- Was the changed test actually executed, and what ran?
+- Are artifacts enough to debug without immediately rerunning, and free of credentials or unrelated private data?

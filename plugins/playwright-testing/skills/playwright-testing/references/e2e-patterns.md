@@ -9,23 +9,28 @@ Use this for app-owned journeys such as checkout, record creation, dashboard fil
 ```js
 test("user completes checkout and sees the order in history", async ({ page, request }) => {
   await test.step("arrange account and cart through API", async () => {
-    // Seed deterministic state.
+    // Seed deterministic state via the app's API, e.g.:
+    // await request.post("/test/seed", { data: { cart: "..." } });
   });
 
-  await test.step("open checkout", async () => {
+  await test.step("submit order through the UI", async () => {
     await page.goto("/checkout");
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
-  });
-
-  await test.step("submit order", async () => {
     await page.getByRole("button", { name: "Place order" }).click();
+    await expect(page.getByRole("status")).toContainText("Order confirmed");
   });
 
-  await test.step("assert product outcome", async () => {
-    await expect(page.getByRole("status")).toContainText("Order confirmed");
+  await test.step("re-observe the durable order in history", async () => {
+    const orderId = (await page.getByLabel("Order number").textContent())?.trim();
+    expect(orderId).toBeTruthy();
+
+    await page.goto("/orders");
+    await expect(page.getByRole("link", { name: orderId })).toBeVisible();
   });
 });
 ```
+
+The confirmation status is useful intermediate evidence. WHEN durability is part of the contract THEN re-observe the committed state through an independent surface such as a reload, fresh navigation, or read API; do not stop at the acknowledgement.
 
 ## Selector Canary Template
 
@@ -52,43 +57,56 @@ test("checkout submit selector still resolves", async ({ page }, testInfo) => {
 
 ## State Classifier Template
 
-For unstable surfaces, return structured state instead of booleans.
+For unstable surfaces, return structured state instead of booleans, and poll until a terminal state so a slow load is not misread as `unknown`.
 
 ```js
-async function classifyPageState(page) {
-  const base = {
-    url: page.url(),
-    title: await page.title(),
-    matchedSelectors: [],
-    notes: [],
-  };
+const TERMINAL = new Set(["ready", "login_required", "error", "blocked", "not_found"]);
+
+// Poll until the page reaches a terminal state; a transient `loading` keeps polling.
+async function waitForKnownState(page, { timeout = 10_000 } = {}) {
+  const history = [];
+  let state = { kind: "unknown" };
+
+  try {
+    await expect
+      .poll(async () => {
+        state = await observeState(page);
+        history.push(state.kind);
+        return TERMINAL.has(state.kind);
+      }, { timeout })
+      .toBe(true);
+  } catch {
+    state = {
+      kind: "unknown",
+      notes: [`No terminal state within ${timeout}ms; observed ${history.join(" -> ") || "nothing"}.`],
+    };
+  }
+
+  return { ...state, url: page.url(), title: await page.title(), history };
+}
+
+// One observation. Check the strongest ready signal first, and treat duplicate
+// controls as a page-understanding failure instead of catching the error away.
+async function observeState(page) {
+  const dashboard = page.getByRole("heading", { name: "Dashboard" });
+  if ((await dashboard.count()) === 1 && (await dashboard.isVisible())) {
+    return { kind: "ready", matchedSelectors: ["role=heading[name='Dashboard']"] };
+  }
 
   const signIn = page.getByRole("button", { name: "Sign in" });
-  if (await signIn.isVisible().catch(() => false)) {
-    return {
-      ...base,
-      kind: "login_required",
-      matchedSelectors: ["role=button[name='Sign in']"],
-      notes: ["Sign-in action is visible before the tested surface is ready."],
-    };
+  const signInCount = await signIn.count();
+  if (signInCount > 1) {
+    return { kind: "error", notes: [`Ambiguous: ${signInCount} 'Sign in' controls; page not understood.`] };
+  }
+  if (signInCount === 1 && (await signIn.isVisible())) {
+    return { kind: "login_required", matchedSelectors: ["role=button[name='Sign in']"] };
   }
 
-  const dashboard = page.getByRole("heading", { name: "Dashboard" });
-  if (await dashboard.isVisible().catch(() => false)) {
-    return {
-      ...base,
-      kind: "ready",
-      matchedSelectors: ["role=heading[name='Dashboard']"],
-    };
-  }
-
-  return {
-    ...base,
-    kind: "unknown",
-    notes: ["No known ready, login, error, or blocked-state selector matched."],
-  };
+  return { kind: "loading" }; // transient; caller keeps polling
 }
 ```
+
+This bounded settle fixes the classic single-shot pitfalls: a slow load resolves to `ready` instead of `unknown`, the stronger ready signal is checked before the weaker sign-in signal, ambiguity surfaces as `error` rather than being swallowed by a blanket `.catch()`, and the returned notes describe only checks the code actually performed.
 
 ## Third-Party Or Provider Surfaces
 
