@@ -89,6 +89,7 @@ print_text() {
 
 print_json() {
     printf '{'
+    printf '"script":"instruction_shape",'
     printf '"skill_dir":"%s",' "$(json_escape "$SKILL_DIR")"
     printf '"skill_md_lines":%s,' "$SKILL_MD_LINES"
     printf '"second_person_refs":%s,' "$YOU_COUNT"

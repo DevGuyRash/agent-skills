@@ -77,9 +77,6 @@ $code: $subject
     fi
 }
 
-contains_line() {
-    printf '%s\n' "$2" | grep -Fx -- "$1" >/dev/null 2>&1
-}
 
 normalize_link() {
     case "$1" in

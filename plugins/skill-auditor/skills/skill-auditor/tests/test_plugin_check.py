@@ -100,7 +100,7 @@ class ErrorTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 1)
         self.assertIn("skill_description_mismatch", {e["code"] for e in data["errors"]})
 
-    def test_a_missing_host_manifest_fails(self) -> None:
+    def test_a_missing_codex_manifest_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             plugin = make_plugin(tmp)
             (plugin / ".codex-plugin/plugin.json").unlink()
@@ -108,6 +108,18 @@ class ErrorTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 1)
         self.assertIn("missing_codex_manifest", {e["code"] for e in data["errors"]})
+
+    def test_a_missing_claude_manifest_fails(self) -> None:
+        # The sibling of the codex case. Both host manifests are required, so
+        # testing only one leaves the other free to regress unnoticed — which is
+        # the live state of linux-desktop-control.
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = make_plugin(tmp)
+            (plugin / ".claude-plugin/plugin.json").unlink()
+            completed, data = run_plugin_check(plugin)
+
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn("missing_claude_manifest", {e["code"] for e in data["errors"]})
 
     def test_no_bundled_skills_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
