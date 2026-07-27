@@ -152,7 +152,26 @@ def run(cmd: list[str], *, env: dict[str, str] | None = None) -> None:
 
 
 def docker_available() -> bool:
-    return shutil.which("docker") is not None
+    """Whether Docker can actually run a container, not merely whether it is installed.
+
+    An installed binary is not a working daemon. A kernel update that has not been
+    rebooted into leaves the running kernel without its modules directory, so Docker
+    starts and answers but cannot create a container's veth pair. Probing `docker info`
+    catches that and every other broken-daemon case; checking PATH does not, and turns
+    a recoverable condition into a hard failure halfway through a build.
+    """
+    if shutil.which("docker") is None:
+        return False
+    try:
+        probe = subprocess.run(
+            ["docker", "info"],
+            capture_output=True,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return probe.returncode == 0
 
 
 def env_value(name: str, *, deprecated: str | None = None, default: str = "") -> str:
@@ -188,7 +207,12 @@ def use_container_build(platform_id: str) -> bool:
         return False
     if mode == "container":
         if not docker_available():
-            raise SystemExit("docker is required for AGENT_TOOLING_DIST_BUILD_MODE=container")
+            raise SystemExit(
+                "AGENT_TOOLING_DIST_BUILD_MODE=container, but docker cannot run a container.\n"
+                "Run `docker info` to see why. An installed docker with a kernel that has been\n"
+                "updated but not rebooted into is the common case: the daemon answers but has\n"
+                "no veth module to build a container network with."
+            )
         return True
     return docker_available()
 
@@ -592,8 +616,19 @@ def stage_host(skill_names: list[str] | None = None) -> None:
     platform_id = host_platform_id()
     if use_container_build(platform_id):
         stage_host_container(selected, platform_id)
-    else:
-        stage_host_native(selected, platform_id)
+        return
+
+    # A host build against the local toolchain and linker will not reproduce the
+    # committed bytes, so say so rather than let non-reproducible payloads look
+    # like a normal result. Only worth saying where a container was the default.
+    if platform_id == "linux-x86_64" and dist_build_mode() == "auto":
+        print(
+            "warning: docker is unavailable; building on the host instead.\n"
+            "         Host-built binaries will not match the committed payloads, which are\n"
+            "         built against a pinned toolchain. Do not commit the result.",
+            file=sys.stderr,
+        )
+    stage_host_native(selected, platform_id)
 
 
 def verify_host() -> None:

@@ -323,7 +323,53 @@ class PackageSkillsTests(unittest.TestCase):
 
         with self.assertRaises(SystemExit) as ctx:
             package_skills.use_container_build("linux-x86_64")
-        self.assertIn("docker is required", str(ctx.exception))
+        self.assertIn("cannot run a container", str(ctx.exception))
+
+    def _stub_docker(self, *, on_path: bool, info_returncode: int = 0, raises: bool = False):
+        """Replace the two calls docker_available makes on the outside world."""
+        original_which = package_skills.shutil.which
+        original_run = package_skills.subprocess.run
+        self.addCleanup(setattr, package_skills.shutil, "which", original_which)
+        self.addCleanup(setattr, package_skills.subprocess, "run", original_run)
+
+        package_skills.shutil.which = lambda name: "/usr/bin/docker" if on_path else None
+
+        def fake_run(cmd, *args, **kwargs):
+            if raises:
+                raise OSError("docker went away")
+            return subprocess.CompletedProcess(cmd, info_returncode, b"", b"")
+
+        package_skills.subprocess.run = fake_run
+
+    def test_docker_available_is_false_when_docker_is_not_installed(self) -> None:
+        self._stub_docker(on_path=False)
+        self.assertFalse(package_skills.docker_available())
+
+    def test_docker_available_is_false_when_the_daemon_cannot_run_a_container(self) -> None:
+        # The case that motivated the probe: docker is installed and answers, but
+        # a kernel updated without a reboot leaves it unable to build a container
+        # network. Checking PATH alone reported this as available and turned a
+        # recoverable condition into a hard failure mid-build.
+        self._stub_docker(on_path=True, info_returncode=1)
+        self.assertFalse(package_skills.docker_available())
+
+    def test_docker_available_is_false_when_probing_raises(self) -> None:
+        self._stub_docker(on_path=True, raises=True)
+        self.assertFalse(package_skills.docker_available())
+
+    def test_docker_available_is_true_when_the_daemon_answers(self) -> None:
+        self._stub_docker(on_path=True, info_returncode=0)
+        self.assertTrue(package_skills.docker_available())
+
+    def test_auto_mode_falls_back_to_host_when_the_daemon_is_broken(self) -> None:
+        original_env = os.environ.copy()
+        os.environ.pop("AGENT_TOOLING_DIST_BUILD_MODE", None)
+        os.environ.pop("AGENT_SKILLS_DIST_BUILD_MODE", None)
+        self.addCleanup(os.environ.clear)
+        self.addCleanup(os.environ.update, original_env)
+        self._stub_docker(on_path=True, info_returncode=1)
+
+        self.assertFalse(package_skills.use_container_build("linux-x86_64"))
 
     def test_watched_repo_paths_include_crates_launchers_and_dist(self) -> None:
         self.write_config()
