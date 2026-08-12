@@ -48,6 +48,9 @@ class ReportsRatherThanJudgesTests(unittest.TestCase):
         self.assertEqual(data["second_person_refs"], 0)
         self.assertEqual(data["third_person_binds"], 2)
         self.assertEqual(data["modal_case"], "mixed")
+        self.assertNotIn("if_without_else", data)
+        self.assertNotIn("sections_out_of_order", data)
+        self.assertNotIn("separate_examples_section", data)
         self.assertNotIn("ok", data)
         self.assertNotIn("issues", data)
 
@@ -101,45 +104,35 @@ class ObservationTests(unittest.TestCase):
 
         self.assertEqual(data["duplicate_branch_outcomes"], 1)
 
-    def test_unterminated_if_chain_is_counted(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            skill_dir = make_skill(
-                tmp,
-                "# Demo Skill\n\nyou own this.\n\n"
-                "IF a holds THEN you SHALL do x ELSE you SHALL do y.\n\n"
-                "IF b holds THEN you SHALL do z.\n",
-            )
-            _, data = run_shape(skill_dir)
-
-        self.assertEqual(data["if_without_else"], 1)
-
-    def test_canonical_sections_are_reported_in_order(self) -> None:
+    def test_function_headings_are_reported_without_order_judgment(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = make_skill(
                 tmp,
                 "# Demo Skill\n\nyou own this. You are done when it holds.\n"
-                "## Environment\nx\n## Boundaries\ny\n## Loop\nz\n"
-                "## Verification\nw\n## Precedence\nv\n",
+                "## Binding Language\nx\n"
+                "## Output Contract\ny\n"
+                "## State and Environment\nz\n"
+                "## Mission\nw\n",
             )
             _, data = run_shape(skill_dir)
 
         self.assertEqual(
-            data["sections_present"],
-            "Environment,Boundaries,Loop,Verification,Precedence",
+            data["function_headings_present"],
+            "Mission,Environment,State,Output Contract,Binding Language",
         )
-        self.assertEqual(data["sections_out_of_order"], 0)
+        self.assertNotIn("sections_present", data)
+        self.assertNotIn("sections_out_of_order", data)
         self.assertEqual(data["done_condition"], "yes")
 
-    def test_sections_out_of_order_are_counted(self) -> None:
+    def test_function_headings_may_be_omitted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = make_skill(
                 tmp,
-                "# Demo Skill\n\nyou own this.\n"
-                "## Precedence\nv\n## Environment\nx\n",
+                "# Demo Skill\n\nyou own this.\n## Operating Notes\nx\n",
             )
             _, data = run_shape(skill_dir)
 
-        self.assertEqual(data["sections_out_of_order"], 1)
+        self.assertEqual(data["function_headings_present"], "none")
 
     def test_frontmatter_is_excluded_from_the_body(self) -> None:
         # "description" in frontmatter must not be mistaken for prose.
@@ -178,12 +171,13 @@ class SelfAuditTests(unittest.TestCase):
         self.assertGreater(data["second_person_refs"], 0)
         self.assertEqual(data["third_person_binds"], 0)
         self.assertEqual(data["modal_case"], "consistent")
-        self.assertEqual(data["if_without_else"], 0)
         self.assertEqual(data["duplicate_branch_outcomes"], 0)
-        self.assertEqual(data["sections_out_of_order"], 0)
         self.assertEqual(data["done_condition"], "yes")
-        self.assertEqual(data["separate_examples_section"], "no")
         self.assertEqual(data["notation_self_reference"], "no")
+        self.assertNotIn("if_without_else", data)
+        self.assertNotIn("sections_present", data)
+        self.assertNotIn("sections_out_of_order", data)
+        self.assertNotIn("separate_examples_section", data)
 
 
 if __name__ == "__main__":

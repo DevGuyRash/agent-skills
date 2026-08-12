@@ -75,7 +75,7 @@
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
       "description": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
-      "version": "2.0.0"
+      "version": "3.0.0"
     }
   ]
 }

@@ -12,10 +12,9 @@ Report observations about the instruction design of SKILL.md:
   - SKILL.md line count
   - second-person address and third-person binds
   - modal case consistency
-  - IF chains not terminating in ELSE, and repeated branch outcomes
-  - canonical section presence and order
+  - repeated branch outcomes
+  - recognized instruction-function headings, without requiring headings or order
   - done-condition presence
-  - a separate examples section
   - the document naming its own notation
 
 This reports; it does not judge. Whether an observation is a defect depends on
@@ -73,12 +72,9 @@ print_text() {
     echo "second_person_refs=$YOU_COUNT"
     echo "third_person_binds=$THIRD_PERSON"
     echo "modal_case=$MODAL_CASE"
-    echo "if_without_else=$UNTERMINATED"
     echo "duplicate_branch_outcomes=$DUP_THEN"
-    echo "sections_present=$SECTIONS_PRESENT"
-    echo "sections_out_of_order=$SECTIONS_OUT_OF_ORDER"
+    echo "function_headings_present=$FUNCTION_HEADINGS_PRESENT"
     echo "done_condition=$DONE_CONDITION"
-    echo "separate_examples_section=$EXAMPLES_SECTION"
     echo "notation_self_reference=$NOTATION_REF"
     echo "heading_count=$HEADING_COUNT"
     if [ -n "$HEADINGS" ]; then
@@ -95,12 +91,9 @@ print_json() {
     printf '"second_person_refs":%s,' "$YOU_COUNT"
     printf '"third_person_binds":%s,' "$THIRD_PERSON"
     printf '"modal_case":"%s",' "$MODAL_CASE"
-    printf '"if_without_else":%s,' "$UNTERMINATED"
     printf '"duplicate_branch_outcomes":%s,' "$DUP_THEN"
-    printf '"sections_present":"%s",' "$(json_escape "$SECTIONS_PRESENT")"
-    printf '"sections_out_of_order":%s,' "$SECTIONS_OUT_OF_ORDER"
+    printf '"function_headings_present":"%s",' "$(json_escape "$FUNCTION_HEADINGS_PRESENT")"
     printf '"done_condition":"%s",' "$DONE_CONDITION"
-    printf '"separate_examples_section":"%s",' "$EXAMPLES_SECTION"
     printf '"notation_self_reference":"%s",' "$NOTATION_REF"
     printf '"heading_count":%s,' "$HEADING_COUNT"
     printf '"headings":[%s]' "$HEADING_JSON"
@@ -115,12 +108,9 @@ SKILL_MD_LINES=0
 YOU_COUNT=0
 THIRD_PERSON=0
 MODAL_CASE=consistent
-UNTERMINATED=0
 DUP_THEN=0
-SECTIONS_PRESENT=""
-SECTIONS_OUT_OF_ORDER=0
+FUNCTION_HEADINGS_PRESENT=""
 DONE_CONDITION=no
-EXAMPLES_SECTION=no
 NOTATION_REF=no
 SKILL_DIR=""
 
@@ -165,17 +155,7 @@ if [ "$UPPER_SHALL" -gt 0 ] && [ "$LOWER_SHALL" -gt 0 ]; then
     MODAL_CASE=mixed
 fi
 
-IF_COUNT=$(count_matches '(^|[^A-Za-z])IF([^A-Za-z]|$)' "$BODY_FILE")
-ELSE_COUNT=$(count_matches '(^|[^A-Za-z])ELSE([^A-Za-z]|$)' "$BODY_FILE")
-if [ "$IF_COUNT" -gt "$ELSE_COUNT" ]; then
-    UNTERMINATED=$((IF_COUNT - ELSE_COUNT))
-fi
-
 DUP_THEN=$(grep -oE 'THEN you SHALL [^.]*' "$FLAT_FILE" 2>/dev/null | sort | uniq -d | wc -l | tr -d ' ')
-
-if grep -qE '^#{2,} +([A-Za-z ]+ )?[Ee]xamples? *$' "$BODY_FILE" 2>/dev/null; then
-    EXAMPLES_SECTION=yes
-fi
 
 if grep -qiE '\bEARS\b|this notation|governing architecture|these instructions follow' "$BODY_FILE" 2>/dev/null; then
     NOTATION_REF=yes
@@ -199,23 +179,26 @@ $HEADINGS
 EOF
 fi
 
-CANONICAL="Mission Environment Boundaries Loop Verification Precedence Output"
-LAST_RANK=0
-for section in $CANONICAL; do
-    if grep -qiE "^#{2,} +.*$section" "$BODY_FILE" 2>/dev/null; then
-        if [ -n "$SECTIONS_PRESENT" ]; then
-            SECTIONS_PRESENT="$SECTIONS_PRESENT,$section"
+while IFS='|' read -r label pattern; do
+    if grep -qiE "^#{2,} +.*$pattern" "$BODY_FILE" 2>/dev/null; then
+        if [ -n "$FUNCTION_HEADINGS_PRESENT" ]; then
+            FUNCTION_HEADINGS_PRESENT="$FUNCTION_HEADINGS_PRESENT,$label"
         else
-            SECTIONS_PRESENT="$section"
+            FUNCTION_HEADINGS_PRESENT="$label"
         fi
-        rank=$(grep -nE "^#{2,} +.*$section" "$BODY_FILE" 2>/dev/null | head -1 | cut -d: -f1)
-        if [ "$rank" -lt "$LAST_RANK" ]; then
-            SECTIONS_OUT_OF_ORDER=$((SECTIONS_OUT_OF_ORDER + 1))
-        fi
-        LAST_RANK="$rank"
     fi
-done
-[ -n "$SECTIONS_PRESENT" ] || SECTIONS_PRESENT="none"
+done <<'EOF'
+Mission|Mission
+Environment|Environment
+State|State
+Boundaries|Boundaries
+Loop|Loop
+Verification|Verification
+Precedence|Precedence
+Output Contract|Output([[:space:]]+Contract)?
+Binding Language|Binding([[:space:]]+Language)?
+EOF
+[ -n "$FUNCTION_HEADINGS_PRESENT" ] || FUNCTION_HEADINGS_PRESENT="none"
 
 case "$FORMAT" in
     json) print_json ;;

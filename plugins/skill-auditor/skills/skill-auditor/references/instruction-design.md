@@ -18,311 +18,214 @@ departs from it and to name the departure as a defect with a location.
 
 ## Governing Architecture
 
-When you are writing instructions for another agent — the executor. Address every line to it as
-"you"; text about the executor rather than to it reads as background and goes unfollowed.
+These rules apply only when you create or revise instructions for another AI. They govern the instruction system, not the surrounding answer.
 
-The executor's intelligence is the resource these instructions direct. Fence the hazards, fix the
-outcome, check the result, and leave the route to the executor. The path you did not anticipate is
-often the better one, and it stays reachable only where the document has not paved a single road.
+The executor's intelligence is the resource. Supply only what it cannot safely provide: mission, environment, authority, decision-relevant state, loop limits, completion evidence, precedence, and interfaces. Leave reasoning and methods open unless the route itself carries a named hazard.
 
-### Document shape
+Treat the deliverable as an instruction system, not necessarily one prompt. Put stable intent in instructions; changing facts in context; mutable decisions in state; authority in permissions, tools, and schemas; persistence and stopping in the loop; correctness in tests; and handoff in the output contract. Duplicate a control only when the redundancy has a named purpose and test.
 
-Build in this order. A section with nothing to say is omitted, not padded.
+The functions below define coverage, not a reasoning sequence or closed ontology. Omit, combine, or add functions as the work requires.
 
-1. Mission — what the executor produces and what done means. Prose plus invariants.
-2. Environment — facts the executor cannot infer or safely rediscover: names, limits, quirks,
-   hazards, and why each hazard is real. Hazards include what an action emits — a receipt or notice
-   sent on completion has its own reversibility, separate from the state change behind it. Where a
-   fact you need is unknown to you, name it as a gap with the behavior that degrades without it,
-   rather than guess. If the executor can infer it from what it can see, leave it out.
-3. Boundaries — prohibitions and hard stops. Where the environment could enforce one instead (a
-   permission, a tool setting, a missing capability, an automatic check), note that in brackets
-   rather than restating the rule more forcefully.
-4. Loop — persistence, budgets, stop conditions, escalation: what keeps the executor going, what
-   stops it, where it hands off, what it does when no one can answer. Loop controls govern when to
-   continue, stop, or escalate — never how to work.
-5. Verification — the checks that define done, written so the executor or anyone else can run them
-   against the work alone. A document whose done-criteria cannot be checked is not finished.
-6. Precedence — who wins when clauses collide.
-7. Output contract — format and destination of the work.
+### Mission
 
-### What earns a binding clause
+Define the outcome, whom it serves, the current decision horizon, and what distinguishes done from plausible. Separate required results from suggested methods. Keep later decisions conditional when earlier evidence could materially change them.
 
-A binding clause is one the executor must obey or a check must verify. Admit one only if it transfers
-something the executor lacks: a fact about the world, a requirement of the maker, or a compensation
-for a known weakness. If it transfers nothing, or its check cannot be named in one sentence, write
-prose or write nothing.
+### Environment
 
-Bind outcomes, not pathways. State every requirement as the result that must hold plus the fences
-around it, and leave the route free. Write positive procedure — this, then this — only where order
-itself carries the hazard, and name that hazard beside the steps. The test: if the executor reordered
-or replaced the steps while avoiding every named hazard and passing every check, would the maker
-care? No — write fence and outcome; the path belongs to the executor. Yes (consent before an
-irreversible act; read the state before retrying) — the sequence is the requirement; write it with
-its hazard attached. A procedure that cannot name its hazard is a preference wearing a mandate;
-convert it.
+Supply what the executor cannot safely infer, inspect, or rediscover: resources, limits, permissions, dependencies, hazards, and external effects. Explain non-obvious hazards through consequences; mark consequential gaps rather than guessing.
 
-Before compressing a domain into invariants, enumerate its known failure modes. Any failure mode the
-invariants do not plainly absorb keeps its own one-line clause. Compression that loses a hazard is a
-defect, not a saving.
+Keep facts, maker-set constraints, working assumptions, and proposals distinguishable. A fact creates no duty by implication; when its consequence is mandatory, encode it once.
 
-### Forms
+### State
 
-Modals: SHALL (must), SHALL NOT (must not), SHOULD (strong default), MAY (option). Say a thing once,
-precisely, rather than restating absolutes for emphasis.
+Keep action-changing state recoverable across turns and handoffs: objective, settled decisions, assumptions, evidence, dependencies, blockers, alternatives, progress, and reopening conditions.
 
-Invariant — holds always, checked against the artifact, never the actions:
-You SHALL <outcome that must hold>.
-You SHALL NOT expand an invariant into trigger cases; where only the outcome is required, a case list
-is the defect.
+Choose prose, tables, logs, graphs, Mermaid, or another representation according to what must remain inspectable. Every representation is a revisable projection, not canonical truth or a closed ontology. Replace it when understanding changes; absence from the view never excludes a possibility.
 
-Factored invariants — three or more sharing a stem:
-You SHALL return work that:
+### Boundaries
 
-1. <outcome>
-2. <outcome>
+Define prohibited outcomes, authority limits, approvals, and constraints whose violation would cause material harm, invalidate the work, or exceed the mandate. Prefer enforcement through permissions, tools, schemas, or checks; use text where interpretation remains necessary. State each boundary once.
 
-Each line binds independently.
+### Loop
 
-Table — three or more clauses sharing a modal and an action shape, differing only in slot values.
-State the binding once in the header; each row plus the header must reconstruct a complete clause.
-Number rows that other clauses cite. A clause that is load-bearing alone, or quoted elsewhere, stays
-a sentence.
+Define progress, continuation, completion, retry, escalation, handoff, budgets, and blocked behavior. Loop controls govern persistence and commitment, not internal reasoning. A probe must be able to reopen what it tests; later commitments remain conditional while earlier evidence could invalidate them.
 
-Fence: You SHALL NOT <prohibition>.
+### Verification
 
-Trigger: WHEN <condition> THEN you SHALL <action>. Conditions may name judgment categories — the
-request's purpose, the input's intent — not only surface features. Define each category in prose
-before its first use.
+Define observable evidence of completion, correctness, safety, and handoff. Prefer executable checks and observable evidence; assertion alone is not evidence. Match verification strength to consequence.
 
-Mode: WHILE <state> you SHALL <behavior>.
+### Precedence
 
-Branch: IF <test> THEN you SHALL <A> ELSE IF ... ELSE you SHALL <B>. Every chain ends in ELSE. Route
-on purpose categories by default; enumerate literal cases only where a misroute is costly enough that
-the decision must be auditable by reading. No branch may share its neighbor's outcome — merge them.
+Resolve foreseeable collisions among mission, authority, safety, correctness, scope, and reversibility. Do not invent exhaustive branches for unknown space. Give unhandled collisions a residual policy that preserves hard boundaries and prevents silent, hard-to-reverse commitment.
 
-Loop controls (trigger-shaped by nature):
-WHEN <done-check passes> THEN you SHALL stop.
-WHEN <budget of attempts or time> is spent THEN you SHALL stop or escalate with what you have and
-what remains.
-IF no one can answer THEN you SHALL act under the stated stakes, prefer the more reversible course,
-and leave the reasoning visible.
+### Output Contract
 
-Tiebreak — wherever two clauses can collide, name the loser:
-WHEN <A> conflicts with <B> THEN <winner> prevails and <loser> yields.
+Specify audience, destination, interface or format, completion evidence, and conditions for claiming success. Impose headings, labels, diagrams, or style only when they improve use.
 
-Residual: WHEN clauses collide with no tiebreak written THEN the prohibition beats the mandate;
-failing that you SHALL take the more reversible course and escalate.
+### Binding Language
 
-### Register discipline
+Use natural prose for purpose, facts, rationale, definitions, and open judgment. Address obligations directly to the executor. SHALL means required, SHALL NOT prohibited, SHOULD a strong default, and MAY permitted.
 
-Keep host prose natural; convert only genuine control clauses. The maker's intent, the reason each
-hazard is real, and the definitions of the judgment categories your conditions use stay in prose —
-they are what let the executor handle the case no clause anticipated and choose the route no clause
-prescribed. Where a definition or rule needs an example, attach one or two lines inside it at the
-point of use — never a separate examples section.
+Use formal clauses only when literal compliance or auditability matters. A clause earns binding force only when it transfers a maker requirement, a non-inferable constraint, or compensation for a demonstrated model weakness, and compliance can be checked. Bind outcomes, not pathways. Prescribe sequence only when order carries a named hazard. Say each obligation once.
 
-Cut prose that narrates process, praises, or restates what the executor can infer.
+Keep model-specific compensation separate from stable governance. Tie it to an observed failure, a detecting evaluation, and a removal condition.
 
-Never name this notation, reference this document, or comment on compliance. Write as if this is
-simply how the executor's instructions are.
+You SHALL produce instructions that distinguish facts, assumptions, proposals, commitments, and evidence; preserve every compliant route; place each control where it is most reliable; remain open to unanticipated cases and better representations; and stand alone without visible compliance theater.
+
+You SHALL NOT require private chain-of-thought, named reasoning methods, repeated self-critique, or proof that judgment occurred.
+
+You SHALL NOT promote your own inference, recommendation, or assumption into a maker-set requirement.
+
+You SHALL NOT name this architecture or copy its headings, notation, or structure into the produced artifact unless doing so materially improves that artifact.
 
 ---
 
-## One bounded carve-out
+## Scope and placement
 
-The closing line binds the artifacts you audit. It does not bind your brief.
+The standard governs an instruction system, not every sentence in an answer that happens to discuss
+AI work. Identify the target's instruction boundary before judging it. A surrounding explanation is
+not defective merely because it would be inappropriate as an executor obligation.
 
-A document written under the standard must not name the notation or comment on its own compliance —
-an artifact that discusses its own conformance has spent context on something the executor cannot
-act on. Your Improvement Brief is the opposite case: reporting conformance is its entire function.
-Cite the standard by rule and quote the target's text. WHEN you find a target that names the notation
-or discusses its own compliance THEN you SHALL report it as a defect against this rule.
+Judge coverage by what the system makes recoverable and enforceable, not by its headings or their
+order. Mission, Environment, State, Boundaries, Loop, Verification, Precedence, Output Contract, and
+Binding Language may be omitted, combined, renamed, or supplemented. A missing heading is never a
+finding by itself; a missing function is a finding only when the target needs it to remain correct.
 
----
+Check where each control lives. Stable intent belongs in instructions, changing facts in context,
+mutable decisions in state, authority in permissions, tools, and schemas, persistence and stopping in
+the loop, correctness in tests, and handoff in the output contract. Report a placement only when its
+current location makes the control stale, unenforceable, irrecoverable, or ambiguous. Report a
+duplicate only when it lacks both a named purpose and a test.
 
-## The routing rule
+## Outcomes and methods
 
-Most instruction-design defects reduce to one branch, applied per passage:
+Apply this question to any prescribed route: would replacing or reordering the method still satisfy
+the maker, avoid every named hazard, and pass every check? If so, state the outcome and leave the route
+open. If not, state the load-bearing sequence and the hazard that makes its order matter.
 
-> IF the process is itself the requirement THEN state the procedure with the hazard that makes its
-> order required ELSE state the outcome and leave the route free.
+The finding runs in both directions:
 
-This is the standard's own test applied to prose rather than only to binding clauses: would the maker
-care if the executor reordered or replaced the steps while avoiding every named hazard and passing
-every check?
+1. **False procedure** — a method is mandatory even though only its result matters, closing compliant
+   routes without protecting a named hazard.
+2. **Missing procedure** — order carries a named hazard, but the instruction does not make the
+   load-bearing sequence explicit.
 
-The finding runs in **both** directions, and the second is the more dangerous one because a
-one-sided reading passes it silently:
+Do not reduce this judgment to counting imperatives or ordered lists. A method can be a valid maker
+requirement, and an outcome can be dangerously incomplete when sequence carries the hazard.
 
-1. **False procedure** — steps written where the outcome was the requirement. Over-constrains the
-   executor and closes off the route nobody anticipated. Tell: a procedure with no hazard beside it.
-2. **Missing procedure** — an outcome stated where the sequence was load-bearing, leaving the hazard
-   unfenced. Tell: a named hazard with no ordering word. *"Present the diff and get approval before
-   applying"* carries its requirement in "before"; delete that word and the clause permits the exact
-   thing it exists to prevent. Consent before an irreversible act, reading state before a retry, and
-   Loop sections generally live here.
+Mission is the same distinction at document scale. It should define the outcome, beneficiary,
+decision horizon, and evidence that separates done from plausible. Later commitments remain
+conditional while earlier evidence could materially change them.
 
-You SHALL NOT reduce this to counting imperatives. A check that flags every ordered step is a style
-rule, not a finding, and rebuilds the heuristic lint gate this skill exists to avoid.
+Model-specific compensation is not stable governance. Report it when the target cannot name the
+observed failure, the evaluation that detects recurrence, or the condition under which the
+compensation can be removed.
 
-## Outcome-oriented prose
+## Information and state
 
-Distinct from binding outcomes rather than pathways, which governs binding clauses only. This governs
-everything else — prose, section headings, and the done-definition. A document can carry sound
-outcome-bound clauses inside process-narrating prose under step-named headings.
+Check that facts, maker-set constraints, working assumptions, proposals, commitments, and evidence
+remain distinguishable. A fact does not create an obligation by implication, and the auditor must not
+promote an author's recommendation or its own inference into a maker requirement.
 
-**The heading test, one sentence:** can you tell from the heading what will be true once that section
-is satisfied? `Wait For Outcomes` and `Assert Outcomes, Not Markup` pass. `Default Workflow` and
-`Start Here` name a phase of work instead.
+Environment should carry only what the executor cannot safely infer, inspect, or rediscover. A
+non-obvious hazard needs its consequence; a consequential unknown stays a named gap rather than a
+guess.
 
-**The done-definition** is the same rule at document scale. A Mission that opens "You are done when
-every test you leave behind states an outcome the user cares about" fixes a condition. A Mission that
-describes what the executor will do next fixes a sequence. Absence of any done-condition is a prompt
-to look, not a verdict on its own.
+State should preserve action-changing information across turns and handoffs. Its representation is a
+revisable view chosen for inspectability, not a canonical ontology. Report a state design that loses
+settled decisions, live assumptions, evidence, dependencies, blockers, alternatives, progress, or
+reopening conditions when those facts could change the next action.
 
-## Policy and mechanism
+## Authority and controls
 
-Instructions carry policy: what counts as acceptable, what the outcome must be, what is forbidden.
-Scripts supply mechanism: they observe, transform, and report. A target that lets a script decide
-acceptability has moved policy into a place the executor cannot reason about — an exit code carries
-no argument, admits no profile, and cannot be weighed against anything.
+Judge a boundary by the outcome it prevents and the authority that enforces it. Permissions, tools,
+schemas, and checks are stronger than repeated prose when they can enforce the boundary directly;
+text remains appropriate where interpretation is necessary. Do not invent an approval or authority
+limit that the maker did not set.
 
-This is the standard's outcome-versus-pathway rule wearing a different hat. A workflow the executor
-cannot complete without running a particular script is a paved road with an exit status, and it
-fails the same test: could the executor reach the outcome another way while avoiding every named
-hazard?
+Treat policy and mechanism as separate placement questions. Scripts and tools may observe,
+transform, verify, or enforce. Their presence is not a defect, and
+neither is a route that relies on them when they supply determinism, external reach, scale, or a more
+reliable control. Report tooling only when it displaces open judgment without adding one of those
+properties, or when it duplicates a control without a named purpose and test.
 
-The separation to look for: the script reports what it found, the instructions say what that means,
-and the executor MAY reach the same evidence by reading instead.
+External effects and reversibility matter when they change authority, safety, or commitment. Check
+that the target represents those consequences and honors any stated approval boundary before the
+load-bearing act. What an action emits — a notice, receipt, publication, or other outward effect —
+may have a different reversal path from the state change behind it. Do not infer a universal consent
+gate from irreversibility alone.
 
-**The test that decides it, in one question: can you name a legitimate target for which this is
-fine?**
+Precedence should resolve foreseeable collisions among mission, authority, safety, correctness,
+scope, and reversibility. Unhandled collisions need a residual policy that preserves hard boundaries
+and prevents silent, hard-to-reverse commitment; they do not need an exhaustive branch over unknown
+space.
 
-A link pointing at a file that does not exist fails on no host, at no age, under no convention —
-there is no such target, so a script may fail on it. A four-hundred-line reference, a lowercase name
-field, a four-word description, and a missing path prefix all have obvious legitimate targets, so a
-script that fails on them is enforcing taste as breakage.
+## Persistence, verification, and handoff
 
-That test sorts a target's own tooling into two shapes, and you SHALL check that its scripts keep
-them apart:
+Loop controls define progress, continuation, completion, retry, escalation, handoff, budgets, and
+blocked behavior. They govern persistence and commitment, not private reasoning. A probe must be able
+to reopen the decision it tests, and downstream commitment stays conditional while upstream evidence
+could invalidate it.
 
-| Shape | Content | Exit |
-| --- | --- | --- |
-| Error | The artifact is broken. Dead links, absent required files, internal contradictions between two files that describe the same thing | non-zero |
-| Observation | A fact whose significance depends on the target. Lengths, naming, idiom, house conventions | zero |
+Verification needs observable evidence appropriate to the consequence. Assertion alone is not
+evidence; prefer checks that the executor or recipient can run against the result.
 
-WHEN a target's script fails on something with a legitimate reading THEN you SHALL report it,
-because wired into a gate it blocks work on a rule its author never agreed to and no one wrote down.
+The output contract should identify the audience, destination, interface or format, completion
+evidence, and conditions for claiming success. Formatting requirements earn their place by improving
+use, not by displaying conformance.
 
-WHEN a target's script reports a fact without the rule it bears on THEN you SHALL report that too. A
-bare observation forces the reader to either obey blindly or ignore blindly; the same fact carrying
-"this is house convention, portable targets may differ" lets two readers reach opposite verdicts and
-both be right.
+## Binding language and self-reference
 
-WHEN a script's non-zero exit encodes a convention rather than a breakage THEN you SHALL report it,
-because wired into a gate it blocks work on a rule its author never agreed to.
+Keep purpose, facts, rationale, definitions, and open judgment in natural prose. Address obligations
+directly to the executor, use SHALL, SHALL NOT, SHOULD, and MAY with their defined strengths, and use
+formal clauses only where literal compliance or auditability matters. A binding clause must transfer
+a maker requirement, a non-inferable constraint, or evidenced model compensation, and its compliance
+must be checkable.
 
-WHEN instructions defer to a script's verdict rather than to their own stated policy THEN you SHALL
-report it: the maker's intent has been delegated to whatever the script happened to implement, and
-the two drift apart silently.
+The closing prohibition is conditional. Naming the architecture, notation, headings, or structure is
+a defect only when doing so does not materially improve the produced artifact. An Improvement Brief
+may name the rule it evaluates because that attribution can make the brief actionable; an authoring
+skill may also need to discuss instruction architecture directly. The script reports self-reference
+as an observation, and you decide whether the exception applies before reporting a finding.
 
-WHEN a script must run for the workflow to proceed at all THEN you SHALL check that the hazard
-requiring it is named. Absent a hazard, the requirement is a preference, and the script has become
-the pathway the standard says not to pave.
-
-### Tooling where a paragraph would do
-
-The other direction of the same defect, and the easier one to miss because it looks like diligence.
-A capability that could have been a paragraph of guidance is instead a bounded script the executor
-must run, and the workflow is written around invoking it rather than around the outcome.
-
-The cost is not the script. It is the ceiling. A script encodes the approach its author could think
-of, and it performs exactly that well forever; a paragraph naming the outcome and its hazards is
-read by whatever executor arrives, and gets better as they do. Tooling that replaced judgment locks
-the capability to the day it was written.
-
-Read a target's scripts against what they replace:
-
-WHEN a script's whole content is a decision an executor could make from a paragraph THEN you SHALL
-report the tooling as the defect, not its implementation. The fix is deleting it and stating the
-outcome.
-
-WHEN a script exists for a reason a paragraph cannot supply — determinism across runs, reaching
-external state, a transformation too large or too exact to do by hand, an operation that must be
-identical every time — THEN it earns its place, and you SHALL say so rather than treating every
-script as suspect.
-
-The question to ask of each one: if the executor deleted this and were told only what must be true
-at the end, would the result be worse? WHEN the honest answer is no THEN the script is a road paved
-over a capability the executor already had.
-
-## Irreversibility
-
-The standard puts hazards in Environment and names consent before an irreversible act as the case
-where sequence is the requirement. Both are easy to lose when a document is otherwise well built,
-because nothing about a clean structure forces the question to be asked.
-
-Two things need finding. The first is the act itself: publishing, deploying, sending, deleting,
-paying, or overwriting, reached without an approval step ahead of it. The second is subtler and the
-standard states it directly — what an action *emits* has its own reversibility, separate from the
-state change behind it. A deploy that also notifies a channel has two irreversible parts, and
-rolling back the first does not recall the second.
-
-WHEN a target performs or generates outward or destructive actions THEN you SHALL check that consent
-is required before the act rather than reported after it, and that the ordering word is present. An
-approval mentioned without "before" permits the thing it exists to prevent.
-
-WHEN a target's reversibility is not obvious from the act THEN you SHALL check that the instructions
-say which steps can be taken back. An executor that cannot tell will either freeze on safe work or
-proceed on unsafe work, and both failures look like judgment errors rather than missing facts.
+Instructions must not require private chain-of-thought, named reasoning methods, repeated
+self-critique, or proof that judgment occurred. These demands constrain or expose internal reasoning
+without improving the observable artifact.
 
 ## Findings this standard produces
 
 Each row is a defect you can name with a location. Rows marked **script** have a matching observation
-in `<skills-file-root>/scripts/instruction_shape.sh`, which counts and reports but never decides —
-the judgment stays yours in every row, and a target that never adopted this doctrine can carry the
-observation without carrying the defect.
+in `<skills-file-root>/scripts/instruction_shape.sh`, which reports evidence without deciding whether
+the target is defective.
 
 | Rule | Observable defect | |
 | --- | --- | --- |
-| Address the executor as "you" | Third-person "the executor shall"; text about rather than to | script |
-| Build in the document order | Sections out of order, or present but carrying no content | script |
-| A section with nothing to say is omitted | Padded or ceremonial section | |
-| Environment names the hazard and why it is real | Hazard asserted with no reason attached | |
-| Environment names unknown facts as gaps | A guess presented as a fact | |
-| Bind outcomes, not pathways | Steps written where the outcome was the requirement | |
-| Order carries its hazard | Procedure with no hazard beside it — a preference wearing a mandate | |
-| Sequence written where sequence is required | Outcome stated where the ordering word was load-bearing | |
-| A clause transfers a fact, requirement, or weakness-compensation | Clause restating what the executor can infer from what it sees | |
-| A clause's check is nameable in one sentence | Unverifiable clause | |
-| Failure modes enumerated before compression | An invariant that silently absorbed and lost a hazard | |
-| Invariants are not expanded into trigger cases | Case list where only the outcome was required | |
-| Every IF chain ends in ELSE | Non-exhaustive branch | script |
-| No branch shares its neighbor's outcome | Duplicate branches that should merge | script |
-| Tiebreak wherever clauses can collide | Collision with no loser named | |
-| Residual clause present | No fallback for collisions with no tiebreak written | script |
-| Say a thing once, precisely | Restated absolutes for emphasis; inconsistent modal case | script |
-| Table only for 3+ clauses sharing modal and shape | Table used where a clause is load-bearing alone or cited elsewhere | |
-| Factored invariants for 3+ sharing a stem | Repeated stems written longhand | |
-| Keep host prose natural | Over-converted — every sentence a clause | |
-| Examples attached at point of use | Separate examples section | script |
-| Cut prose that narrates, praises, or restates | Ceremonial filler | |
-| Never name the notation or comment on compliance | Document discusses its own conformance | script |
-| Headings name a state, not a step | Heading names a phase of work | script |
-| Mission defines done as a condition | No done-condition anywhere in the document | script |
-| Loop controls govern when, never how | Loop section prescribing working method | |
-| Scripts report; instructions judge | A script's exit status encodes a convention rather than a breakage | |
-| Policy stays in the instructions | Instructions defer to a script verdict instead of stating what it means | |
-| A required script names its hazard | The workflow cannot proceed without a script and no hazard is given | |
-| The executor may reach the outcome another way | No route to the result exists except the provided tooling | |
-| A failing check has no legitimate target | A script fails on something a reasonable target could do on purpose | |
-| An observation carries the rule it bears on | A bare fact the reader can only obey or ignore blindly | |
-| Tooling earns its place | A script whose content is a decision a paragraph could have handed to the executor | |
-| Determinism, reach, or scale justifies a script | Tooling treated as suspect when it does something prose cannot | |
-| Irreversible acts carry a consent gate before them | An outward or destructive action with no approval step ahead of it | |
-| What an action emits is treated as its own hazard | A notice, receipt, or publication whose reversibility is never considered | |
-| Reversibility is stated where it is not obvious | The executor cannot tell which steps it can take back | |
+| Govern the instruction system, not the surrounding answer | Explanatory prose outside the instruction boundary is graded as an executor obligation | |
+| Supply only what the executor cannot safely provide | Inferable facts or preferred methods consume instruction space without carrying a requirement or hazard | |
+| Place each control where it is most reliable | Stable intent, changing context, mutable state, authority, tests, or handoff live where they become stale or unenforceable | |
+| Duplicate a control only for a named purpose and test | The same obligation appears more than once with no stated reason or independent check | script |
+| Functions define coverage, not structure or sequence | Missing, combined, renamed, or reordered headings are reported as defects | script |
+| Mission defines outcome, beneficiary, horizon, and done | The mission narrates activity, omits who it serves, commits past available evidence, or cannot distinguish done from plausible | script |
+| Environment carries non-inferable resources, limits, dependencies, hazards, and effects | Inferable background is repeated, a non-obvious hazard has no consequence, or an unknown is presented as fact | |
+| Facts, constraints, assumptions, proposals, commitments, and evidence remain distinct | An inference is labeled fact, a proposal appears settled, or a fact silently creates a duty | |
+| State preserves action-changing information | A handoff loses a settled decision, live assumption, dependency, blocker, alternative, progress marker, or reopening condition | |
+| Representations remain revisable | A table, graph, taxonomy, or log is treated as canonical truth or as excluding unrepresented possibilities | |
+| Boundaries define prohibited outcomes and authority | A material harm or authority limit is left ambiguous, or prose duplicates an enforceable control without purpose | |
+| Loop controls govern persistence and commitment | The loop prescribes internal reasoning, lacks a needed stop or escalation condition, or cannot reopen a tested decision | |
+| Verification uses observable evidence | Completion rests on assertion, an unexecutable check, or evidence too weak for the consequence | |
+| Precedence handles foreseeable collisions and unknown residuals | A likely collision has no winner, or the fallback permits silent hard-to-reverse commitment | |
+| Output contracts define audience, destination, interface, evidence, and success | The recipient cannot tell where the result goes, how to consume it, or when success may be claimed | |
+| Formatting improves use | Headings, labels, diagrams, or required style exist only to display process or conformance | script |
+| Obligations address the executor directly | Binding text speaks about a third-person executor instead of directing it | script |
+| Binding modals retain their defined strengths | SHALL, SHALL NOT, SHOULD, and MAY are used inconsistently or with ambiguous force | script |
+| Formal clauses transfer a requirement, constraint, or evidenced compensation | A preference becomes a mandate, or compliance cannot be checked | |
+| Bind outcomes, not pathways | A method is mandatory although another route could avoid every hazard and pass every check | |
+| Prescribed sequence carries a named hazard | Order is mandatory without a load-bearing consequence, or a named ordering hazard lacks the necessary sequence | |
+| Model compensation is evidence-bound and removable | A model-specific rule has no observed failure, detecting evaluation, or removal condition | |
+| Preserve every compliant route | A closed case list or tool path excludes unanticipated compliant approaches | |
+| Do not require private reasoning artifacts | The target asks for chain-of-thought, a named reasoning ritual, repeated self-critique, or proof that judgment occurred | |
+| Do not promote inference into maker requirements | An author or auditor recommendation is presented as a maker-set obligation | |
+| Self-reference must materially improve the artifact | The target names or copies the architecture only to announce compliance | script |
 
 ## Corpus placement
 
