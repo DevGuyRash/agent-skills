@@ -20,63 +20,63 @@ departs from it and to name the departure as a defect with a location.
 
 These rules apply only when you create or revise instructions for another AI. They govern the instruction system, not the surrounding answer.
 
-The executor's intelligence is the resource. Supply only what it cannot safely provide: mission, environment, authority, decision-relevant state, loop limits, completion evidence, precedence, and interfaces. Leave reasoning and methods open unless the route itself carries a named hazard.
+The executor's intelligence is the resource. Supply only what it cannot safely provide: mission, environment, relevant reality and authority, decision-relevant state, loop limits, success evidence, precedence, and interfaces. Leave reasoning and methods open unless the route itself carries a named hazard.
 
-Treat the deliverable as an instruction system, not necessarily one prompt. Put stable intent in instructions; changing facts in context; mutable decisions in state; authority in permissions, tools, and schemas; persistence and stopping in the loop; correctness in tests; and handoff in the output contract. Duplicate a control only when the redundancy has a named purpose and test.
+Treat the deliverable as an instruction system, not necessarily one prompt. Put stable intent in instructions; changing facts in context; mutable decisions in state; authority in permissions, tools, and schemas; persistence and stopping in the loop; correctness in tests; and handoff in the output contract. Do not duplicate controls.
 
-The functions below define coverage, not a reasoning sequence or closed ontology. Omit, combine, or add functions as the work requires.
+Completeness means coverage of every material control need, not every possible concern. Remove anything whose absence would not weaken mission, authority, material hazards, continuity, verification, or handoff.
+
+These functions are semantic contracts, not a reasoning sequence, template, or closed ontology. Omit, combine, or add as needed.
 
 ### Mission
 
-Define the outcome, whom it serves, the current decision horizon, and what distinguishes done from plausible. Separate required results from suggested methods. Keep later decisions conditional when earlier evidence could materially change them.
+Define the outcome, whom it serves, the current decision horizon, and what distinguishes done from plausible. Separate required properties from suggested methods. Keep later commitments conditional when earlier evidence could change them.
+
+A mechanism chosen by the author remains a proposal unless the maker fixed it, the task delegates that decision, or a named requirement cannot otherwise be met. Binding force attaches to the required property and hazard. Preserve alternatives satisfying the same mission, boundaries, evidence, and interfaces.
 
 ### Environment
 
-Supply what the executor cannot safely infer, inspect, or rediscover: resources, limits, permissions, dependencies, hazards, and external effects. Explain non-obvious hazards through consequences; mark consequential gaps rather than guessing.
+Supply what the executor cannot safely infer, inspect, or rediscover: resources, limits, permissions, dependencies, hazards, external effects, and consequential gaps. Explain non-obvious hazards through consequences; mark consequential gaps rather than guessing.
 
-Keep facts, maker-set constraints, working assumptions, and proposals distinguishable. A fact creates no duty by implication; when its consequence is mandatory, encode it once.
+Keep consequential information's source and authority unambiguous. Preserve observation, assumption, proposal, commitment, and evidence distinctions wherever collapsing them could change truth, authorization, or verification. Do not surface the taxonomy merely to prove it exists. Encode any mandatory consequence once.
 
 ### State
 
 Keep action-changing state recoverable across turns and handoffs: objective, settled decisions, assumptions, evidence, dependencies, blockers, alternatives, progress, and reopening conditions.
 
-Choose prose, tables, logs, graphs, Mermaid, or another representation according to what must remain inspectable. Every representation is a revisable projection, not canonical truth or a closed ontology. Replace it when understanding changes; absence from the view never excludes a possibility.
+Choose prose, tables, logs, graphs, Mermaid, or another fitting representation. Every representation is a revisable projection, not canonical truth or a closed ontology. Replace it when understanding changes; absence from a view never excludes a possibility.
 
 ### Boundaries
 
-Define prohibited outcomes, authority limits, approvals, and constraints whose violation would cause material harm, invalidate the work, or exceed the mandate. Prefer enforcement through permissions, tools, schemas, or checks; use text where interpretation remains necessary. State each boundary once.
+Define prohibited outcomes, authority limits, approvals, and constraints whose violation would cause material harm, invalidate the work, or exceed the mandate. Prefer external enforcement where more reliable. State each boundary once.
 
 ### Loop
 
-Define progress, continuation, completion, retry, escalation, handoff, budgets, and blocked behavior. Loop controls govern persistence and commitment, not internal reasoning. A probe must be able to reopen what it tests; later commitments remain conditional while earlier evidence could invalidate them.
+Define progress, continuation, stopping, completion, retry, escalation, handoff, budgets, and blocked behavior. Loop controls govern persistence and commitment, not internal reasoning. Bind only the current evidence horizon. A probe must be able to reopen what it tests; later commitments remain conditional while earlier evidence could invalidate them.
 
 ### Verification
 
-Define observable evidence of completion, correctness, safety, and handoff. Prefer executable checks and observable evidence; assertion alone is not evidence. Match verification strength to consequence.
+Define observable evidence of completion, correctness, safety, and handoff. Prefer executable checks and/or observable evidence. Assertion alone is not evidence. Match verification strength to consequence.
 
 ### Precedence
 
-Resolve foreseeable collisions among mission, authority, safety, correctness, scope, and reversibility. Do not invent exhaustive branches for unknown space. Give unhandled collisions a residual policy that preserves hard boundaries and prevents silent, hard-to-reverse commitment.
+Resolve foreseeable collisions among mission, authority, safety, correctness, scope, and reversibility. Do not invent exhaustive branches for unknown space. Where no safe residual is known, preserve uncertainty and stop or escalate.
 
 ### Output Contract
 
-Specify audience, destination, interface or format, completion evidence, and conditions for claiming success. Impose headings, labels, diagrams, or style only when they improve use.
+Specify audience, destination, interface or format, completion evidence, and conditions for claiming success. Impose structure or style only when it improves use.
 
 ### Binding Language
 
 Use natural prose for purpose, facts, rationale, definitions, and open judgment. Address obligations directly to the executor. SHALL means required, SHALL NOT prohibited, SHOULD a strong default, and MAY permitted.
 
-Use formal clauses only when literal compliance or auditability matters. A clause earns binding force only when it transfers a maker requirement, a non-inferable constraint, or compensation for a demonstrated model weakness, and compliance can be checked. Bind outcomes, not pathways. Prescribe sequence only when order carries a named hazard. Say each obligation once.
+Use formal clauses only when literal compliance or auditability is part of the outcome: invariants, hard boundaries, recognizable triggers, necessary sequences, and precedence. A clause earns binding force only when it transfers a maker requirement, non-inferable constraint, or compensation for a demonstrated model weakness, and compliance can be checked.
 
-Keep model-specific compensation separate from stable governance. Tie it to an observed failure, a detecting evaluation, and a removal condition.
+Bind outcomes, not pathways. Prescribe sequence only when order carries a named hazard. Say each obligation once. Keep model-specific compensation separate from stable governance and tie it to an observed failure, evaluation, and removal condition.
 
-You SHALL produce instructions that distinguish facts, assumptions, proposals, commitments, and evidence; preserve every compliant route; place each control where it is most reliable; remain open to unanticipated cases and better representations; and stand alone without visible compliance theater.
+Instructions must stand alone, preserve compliant routes, keep consequential information unambiguous, and place controls where it is most reliable.
 
-You SHALL NOT require private chain-of-thought, named reasoning methods, repeated self-critique, or proof that judgment occurred.
-
-You SHALL NOT promote your own inference, recommendation, or assumption into a maker-set requirement.
-
-You SHALL NOT name this architecture or copy its headings, notation, or structure into the produced artifact unless doing so materially improves that artifact.
+Do not require private chain-of-thought, named reasoning methods, visible compliance theater, or proof that judgment occurred. Do not promote an inference, recommendation, or assumption into a maker-set requirement. Do not name this architecture or copy its structure unless doing so materially improves the produced artifact.
 
 ---
 
@@ -94,8 +94,12 @@ finding by itself; a missing function is a finding only when the target needs it
 Check where each control lives. Stable intent belongs in instructions, changing facts in context,
 mutable decisions in state, authority in permissions, tools, and schemas, persistence and stopping in
 the loop, correctness in tests, and handoff in the output contract. Report a placement only when its
-current location makes the control stale, unenforceable, irrecoverable, or ambiguous. Report a
-duplicate only when it lacks both a named purpose and a test.
+current location makes the control stale, unenforceable, irrecoverable, or ambiguous. Report every
+duplicated control; repetition that carries no control is a context-cost question instead.
+
+Judge completeness against material control needs, not a catalog of possible concerns. Report a gap
+when it weakens mission, authority, material-hazard coverage, continuity, verification, or handoff;
+report excess when removing it would weaken none of those functions.
 
 ## Outcomes and methods
 
@@ -115,17 +119,22 @@ requirement, and an outcome can be dangerously incomplete when sequence carries 
 
 Mission is the same distinction at document scale. It should define the outcome, beneficiary,
 decision horizon, and evidence that separates done from plausible. Later commitments remain
-conditional while earlier evidence could materially change them.
+conditional while earlier evidence could change them. A mechanism selected by the author remains a
+proposal unless the maker fixed it, the task delegates that decision, or no alternative can satisfy
+a named requirement. Judge binding force against the required property and hazard, preserving other
+routes that satisfy the same mission, boundaries, evidence, and interfaces.
 
 Model-specific compensation is not stable governance. Report it when the target cannot name the
-observed failure, the evaluation that detects recurrence, or the condition under which the
+observed failure, the evaluation, or the condition under which the
 compensation can be removed.
 
 ## Information and state
 
-Check that facts, maker-set constraints, working assumptions, proposals, commitments, and evidence
-remain distinguishable. A fact does not create an obligation by implication, and the auditor must not
-promote an author's recommendation or its own inference into a maker requirement.
+Check that consequential information keeps its source and authority unambiguous, and that
+observations, assumptions, proposals, commitments, and evidence remain distinct wherever collapsing
+them could change truth, authorization, or verification. Do not demand visible taxonomy labels when
+the distinctions are already clear. A fact does not create an obligation by implication, and the
+auditor must not promote an author's recommendation or its own inference into a maker requirement.
 
 Environment should carry only what the executor cannot safely infer, inspect, or rediscover. A
 non-obvious hazard needs its consequence; a consequential unknown stays a named gap rather than a
@@ -147,7 +156,7 @@ Treat policy and mechanism as separate placement questions. Scripts and tools ma
 transform, verify, or enforce. Their presence is not a defect, and
 neither is a route that relies on them when they supply determinism, external reach, scale, or a more
 reliable control. Report tooling only when it displaces open judgment without adding one of those
-properties, or when it duplicates a control without a named purpose and test.
+properties, or when it duplicates a control.
 
 External effects and reversibility matter when they change authority, safety, or commitment. Check
 that the target represents those consequences and honors any stated approval boundary before the
@@ -156,16 +165,15 @@ may have a different reversal path from the state change behind it. Do not infer
 gate from irreversibility alone.
 
 Precedence should resolve foreseeable collisions among mission, authority, safety, correctness,
-scope, and reversibility. Unhandled collisions need a residual policy that preserves hard boundaries
-and prevents silent, hard-to-reverse commitment; they do not need an exhaustive branch over unknown
-space.
+scope, and reversibility. When no safe residual is known, the target should preserve uncertainty and
+stop or escalate; it does not need an exhaustive branch over unknown space.
 
 ## Persistence, verification, and handoff
 
-Loop controls define progress, continuation, completion, retry, escalation, handoff, budgets, and
-blocked behavior. They govern persistence and commitment, not private reasoning. A probe must be able
-to reopen the decision it tests, and downstream commitment stays conditional while upstream evidence
-could invalidate it.
+Loop controls define progress, continuation, stopping, completion, retry, escalation, handoff,
+budgets, and blocked behavior. They govern persistence and commitment, not private reasoning, and
+bind only the current evidence horizon. A probe must be able to reopen the decision it tests, and
+downstream commitment stays conditional while upstream evidence could invalidate it.
 
 Verification needs observable evidence appropriate to the consequence. Assertion alone is not
 evidence; prefer checks that the executor or recipient can run against the result.
@@ -178,9 +186,10 @@ use, not by displaying conformance.
 
 Keep purpose, facts, rationale, definitions, and open judgment in natural prose. Address obligations
 directly to the executor, use SHALL, SHALL NOT, SHOULD, and MAY with their defined strengths, and use
-formal clauses only where literal compliance or auditability matters. A binding clause must transfer
-a maker requirement, a non-inferable constraint, or evidenced model compensation, and its compliance
-must be checkable.
+formal clauses only where literal compliance or auditability is part of the outcome, such as
+invariants, hard boundaries, recognizable triggers, necessary sequences, and precedence. A binding
+clause must transfer a maker requirement, a non-inferable constraint, or evidenced model
+compensation, and its compliance must be checkable.
 
 The closing prohibition is conditional. Naming the architecture, notation, headings, or structure is
 a defect only when doing so does not materially improve the produced artifact. An Improvement Brief
@@ -188,8 +197,8 @@ may name the rule it evaluates because that attribution can make the brief actio
 skill may also need to discuss instruction architecture directly. The script reports self-reference
 as an observation, and you decide whether the exception applies before reporting a finding.
 
-Instructions must not require private chain-of-thought, named reasoning methods, repeated
-self-critique, or proof that judgment occurred. These demands constrain or expose internal reasoning
+Instructions must not require private chain-of-thought, named reasoning methods, visible compliance
+theater, or proof that judgment occurred. These demands constrain or expose internal reasoning
 without improving the observable artifact.
 
 ## Findings this standard produces
@@ -201,29 +210,29 @@ the target is defective.
 | Rule | Observable defect | |
 | --- | --- | --- |
 | Govern the instruction system, not the surrounding answer | Explanatory prose outside the instruction boundary is graded as an executor obligation | |
-| Supply only what the executor cannot safely provide | Inferable facts or preferred methods consume instruction space without carrying a requirement or hazard | |
+| Supply only material, non-inferable needs | Inferable facts or preferred methods consume instruction space without carrying mission, authority, material-hazard, continuity, verification, or handoff value | |
 | Place each control where it is most reliable | Stable intent, changing context, mutable state, authority, tests, or handoff live where they become stale or unenforceable | |
-| Duplicate a control only for a named purpose and test | The same obligation appears more than once with no stated reason or independent check | script |
-| Functions define coverage, not structure or sequence | Missing, combined, renamed, or reordered headings are reported as defects | script |
-| Mission defines outcome, beneficiary, horizon, and done | The mission narrates activity, omits who it serves, commits past available evidence, or cannot distinguish done from plausible | script |
-| Environment carries non-inferable resources, limits, dependencies, hazards, and effects | Inferable background is repeated, a non-obvious hazard has no consequence, or an unknown is presented as fact | |
-| Facts, constraints, assumptions, proposals, commitments, and evidence remain distinct | An inference is labeled fact, a proposal appears settled, or a fact silently creates a duty | |
+| Do not duplicate controls | The same obligation appears more than once | script |
+| Functions are semantic contracts, not a template or sequence | Missing, combined, renamed, or reordered headings are reported as defects | script |
+| Mission defines outcome, beneficiary, horizon, required properties, and done | The mission narrates activity, omits who it serves, commits past available evidence, or cannot distinguish done from plausible | script |
+| Environment carries non-inferable resources, limits, dependencies, hazards, effects, and gaps | Inferable background is repeated, a non-obvious hazard has no consequence, or an unknown is presented as fact | |
+| Consequential information keeps source, authority, and status clear | An observation is labeled fact, a proposal appears settled, evidence loses provenance, or information silently creates a duty | |
 | State preserves action-changing information | A handoff loses a settled decision, live assumption, dependency, blocker, alternative, progress marker, or reopening condition | |
 | Representations remain revisable | A table, graph, taxonomy, or log is treated as canonical truth or as excluding unrepresented possibilities | |
-| Boundaries define prohibited outcomes and authority | A material harm or authority limit is left ambiguous, or prose duplicates an enforceable control without purpose | |
+| Boundaries define prohibited outcomes and authority | A material harm or authority limit is left ambiguous, or a control remains in prose when external enforcement would be more reliable | |
 | Loop controls govern persistence and commitment | The loop prescribes internal reasoning, lacks a needed stop or escalation condition, or cannot reopen a tested decision | |
 | Verification uses observable evidence | Completion rests on assertion, an unexecutable check, or evidence too weak for the consequence | |
-| Precedence handles foreseeable collisions and unknown residuals | A likely collision has no winner, or the fallback permits silent hard-to-reverse commitment | |
+| Precedence handles foreseeable collisions and unknown residuals | A likely collision has no winner, or an unsafe unknown residual does not preserve uncertainty and stop or escalate | |
 | Output contracts define audience, destination, interface, evidence, and success | The recipient cannot tell where the result goes, how to consume it, or when success may be claimed | |
-| Formatting improves use | Headings, labels, diagrams, or required style exist only to display process or conformance | script |
+| Structure and style improve use | Required formatting exists only to display process or conformance | script |
 | Obligations address the executor directly | Binding text speaks about a third-person executor instead of directing it | script |
 | Binding modals retain their defined strengths | SHALL, SHALL NOT, SHOULD, and MAY are used inconsistently or with ambiguous force | script |
-| Formal clauses transfer a requirement, constraint, or evidenced compensation | A preference becomes a mandate, or compliance cannot be checked | |
+| Formal clauses make outcome-relevant compliance auditable | A preference becomes a mandate, a clause serves no invariant, boundary, trigger, necessary sequence, or precedence need, or compliance cannot be checked | |
 | Bind outcomes, not pathways | A method is mandatory although another route could avoid every hazard and pass every check | |
 | Prescribed sequence carries a named hazard | Order is mandatory without a load-bearing consequence, or a named ordering hazard lacks the necessary sequence | |
-| Model compensation is evidence-bound and removable | A model-specific rule has no observed failure, detecting evaluation, or removal condition | |
-| Preserve every compliant route | A closed case list or tool path excludes unanticipated compliant approaches | |
-| Do not require private reasoning artifacts | The target asks for chain-of-thought, a named reasoning ritual, repeated self-critique, or proof that judgment occurred | |
+| Model compensation is evidence-bound and removable | A model-specific rule has no observed failure, evaluation, or removal condition | |
+| Preserve compliant routes | A closed case list or tool path excludes unanticipated compliant approaches | |
+| Do not require private reasoning artifacts or compliance theater | The target asks for chain-of-thought, a named reasoning ritual, visible compliance theater, or proof that judgment occurred | |
 | Do not promote inference into maker requirements | An author or auditor recommendation is presented as a maker-set obligation | |
 | Self-reference must materially improve the artifact | The target names or copies the architecture only to announce compliance | script |
 
