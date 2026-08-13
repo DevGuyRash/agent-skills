@@ -1,0 +1,23 @@
+{
+  "skill_name": "behavior-preserving-migration",
+  "evals": [
+    {
+      "id": "eval-storage-cutover",
+      "prompt": "Move active authentication-token storage from SQL to Redis with no client-visible interruption and a rollback option.",
+      "expected_output": "Define token semantics and consistency as the preservation contract, inventory readers and writers, choose a justified transition with authority and partial-failure handling, migrate bounded cohorts, compare semantic state, define cutover and rollback evidence, then retire transitional paths only after dependents and the rollback window are clear.",
+      "files": []
+    },
+    {
+      "id": "eval-api-expand-contract",
+      "prompt": "Rename a field in a published event consumed by independently deployed services, and remove the old field eventually.",
+      "expected_output": "Use an additive compatibility phase, identify supported version combinations and consumers, migrate producers and consumers in a safe order, observe old-field usage, and contract only after evidence and policy allow it; do not label immediate removal as refactoring.",
+      "files": []
+    },
+    {
+      "id": "eval-dual-write-hazard",
+      "prompt": "A proposed database migration writes source and target in two separate transactions so either write can fail independently.",
+      "expected_output": "Identify partial success, ordering, duplication, and reconciliation hazards; prefer single-authority replication when viable or specify idempotency and repair for dual writes; define consistency comparison, stop conditions, and a rollback path without asserting atomicity.",
+      "files": []
+    }
+  ]
+}

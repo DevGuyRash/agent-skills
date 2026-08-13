@@ -1,0 +1,39 @@
+{
+  "skill_name": "ruby-development",
+  "comment": "Boundary probes for maintained Ruby artifacts versus conceptual, template-only, or incidental Ruby use.",
+  "queries": [
+    {
+      "id": "implicit-source-change",
+      "should_trigger": true,
+      "query": "Fix the keyword forwarding bug in lib/client.rb while preserving the gem's supported Ruby range."
+    },
+    {
+      "id": "implicit-bundler-tooling",
+      "should_trigger": true,
+      "query": "Add this optional gem dependency without broadly updating the existing Gemfile.lock."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $ruby-development to review the public methods and RBS signatures in this gem."
+    },
+    {
+      "id": "composition-framework",
+      "should_trigger": true,
+      "expected_skills": ["ruby-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "Rails and Sidekiq lifecycle guidance",
+      "query": "Repair this Rails job's transaction cleanup and preserve Sidekiq retry behavior."
+    },
+    {
+      "id": "negative-conceptual",
+      "should_trigger": false,
+      "query": "Explain Ruby symbols versus strings without editing any artifact."
+    },
+    {
+      "id": "negative-template-only",
+      "should_trigger": false,
+      "query": "Change only the static HTML classes in this ERB template; no Ruby expressions or behavior should change."
+    }
+  ]
+}

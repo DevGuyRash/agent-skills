@@ -1,0 +1,6 @@
+interface:
+  display_name: "Trunk-Based Development"
+  short_description: "Plan small, safe, frequent integrations"
+  default_prompt: "Use $trunk-based-development to split this work into safe, short-lived integrations."
+policy:
+  allow_implicit_invocation: true

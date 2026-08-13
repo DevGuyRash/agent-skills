@@ -1,0 +1,45 @@
+{
+  "skill_name": "async-rust",
+  "evals": [
+    {
+      "id": "eval-timeout-is-not-stop",
+      "prompt": "A timeout returns to the caller while a spawned database-writing task continues in the background.",
+      "expected_decision": "Separate caller wait timeout from task cancellation and external-effect reconciliation, then implement the product's stated lifecycle.",
+      "expected_result": "The caller and spawned task have explicit ownership, cancellation, and final-error behavior; no claim equates timeout with rollback.",
+      "expected_output": "Describe all relevant lifecycle states, the chosen policy, and tests covering cancellation before and after the write boundary.",
+      "files": []
+    },
+    {
+      "id": "eval-select-cancellation-safety",
+      "prompt": "A select loop races a shutdown signal against a multi-read protocol operation and recreates the read future each iteration.",
+      "expected_decision": "Determine whether abandoning the losing read loses partial framing state and move ownership or restructuring to a cancellation-safe layer.",
+      "expected_result": "Shutdown remains responsive without corrupting or discarding protocol progress contrary to contract.",
+      "expected_output": "Identify the cancellation point, state owner, and deterministic race/shutdown tests.",
+      "files": []
+    },
+    {
+      "id": "eval-send-live-range",
+      "prompt": "A spawned future is not Send because a mutex guard is held across await.",
+      "expected_decision": "Inspect whether the guarded state must span the await; shorten the guard's live range or choose the repository's intentional async/local synchronization primitive.",
+      "expected_result": "The future meets the required boundary without an unsafe Send implementation or an accidental lock-held suspension.",
+      "expected_output": "State the retained values, executor requirement, and concurrency behavior verified.",
+      "files": []
+    },
+    {
+      "id": "eval-bounded-backpressure",
+      "prompt": "An unbounded channel accepts requests faster than workers can process them during a traffic spike.",
+      "expected_decision": "Choose a capacity and full-queue behavior from the service's memory, latency, and loss contract.",
+      "expected_result": "In-flight memory is bounded and callers observe the intended wait, rejection, shedding, coalescing, or durable-spill behavior.",
+      "expected_output": "Explain the bound, capacity behavior, and saturation tests rather than presenting an arbitrary queue size.",
+      "files": []
+    },
+    {
+      "id": "eval-deterministic-async-test",
+      "prompt": "A flaky async test sleeps 100 milliseconds and assumes the worker has completed by then.",
+      "expected_decision": "Replace timing inference with an observable synchronization point or controlled clock and retain only a bounded outer timeout.",
+      "expected_result": "The test proves the required state transition without depending on scheduler speed.",
+      "expected_output": "Name the synchronization evidence and the failure bound used by the test harness.",
+      "files": []
+    }
+  ]
+}

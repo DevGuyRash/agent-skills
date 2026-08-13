@@ -1,0 +1,39 @@
+{
+  "skill_name": "csharp-development",
+  "comment": "Trigger boundary for C#/.NET source and project work without absorbing ASP.NET, EF, or generic workflows.",
+  "queries": [
+    {
+      "id": "implicit-csharp-source",
+      "should_trigger": true,
+      "query": "Fix the nullable-reference warning and runtime null path in Parser.cs without changing the public contract."
+    },
+    {
+      "id": "implicit-dotnet-project",
+      "should_trigger": true,
+      "query": "Add a package to this multi-target .NET library without breaking its netstandard target."
+    },
+    {
+      "id": "explicit-skill",
+      "should_trigger": true,
+      "query": "Use $csharp-development to review this async cancellation path and its xUnit tests."
+    },
+    {
+      "id": "negative-ef-migration",
+      "should_trigger": false,
+      "query": "Explain what this existing Entity Framework migration will do; no C# or project files are changing."
+    },
+    {
+      "id": "negative-git-policy",
+      "should_trigger": false,
+      "query": "Define trunk-based merge rules for this .NET repository without changing source or tooling."
+    },
+    {
+      "id": "composition-aspnet-csharp",
+      "should_trigger": true,
+      "expected_skills": ["csharp-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "ASP.NET-specific guidance",
+      "query": "Change an ASP.NET controller's C# return contract and update its route behavior."
+    }
+  ]
+}

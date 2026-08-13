@@ -1,4 +1,4 @@
-title = "gitops-workflow gitleaks config"
+title = "agent-tooling gitleaks config"
 minVersion = "v8.25.0"
 
 [extend]

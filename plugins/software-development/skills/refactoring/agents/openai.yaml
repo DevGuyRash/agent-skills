@@ -1,0 +1,6 @@
+interface:
+  display_name: "Refactoring"
+  short_description: "Restructure code without behavior drift"
+  default_prompt: "Use $refactoring to improve this code's structure while preserving its declared behavior."
+policy:
+  allow_implicit_invocation: true

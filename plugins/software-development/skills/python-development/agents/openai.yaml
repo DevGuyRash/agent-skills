@@ -1,0 +1,6 @@
+interface:
+  display_name: "Python Development"
+  short_description: "Build repository-aligned Python code"
+  default_prompt: "Use $python-development to implement or review this repository's Python code while preserving its toolchain and contracts."
+policy:
+  allow_implicit_invocation: true

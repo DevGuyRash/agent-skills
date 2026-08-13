@@ -1,0 +1,31 @@
+{
+  "skill_name": "python-development",
+  "evals": [
+    {
+      "id": "eval-version-and-toolchain",
+      "prompt": "A package supports Python 3.9 through 3.13 in pyproject.toml and CI, uses Poetry, and has a lockfile. Implement a small feature whose tempting standard-library API was introduced in Python 3.11.",
+      "expected_output": "Preserve the declared Python range and Poetry workflow, choose a compatible implementation or explicitly negotiate a version change, avoid unrelated dependency resolution, and verify through repository-owned checks on the warranted versions.",
+      "files": []
+    },
+    {
+      "id": "eval-public-api-and-typing",
+      "prompt": "Refactor a typed public function used with keyword arguments and mirrored by a .pyi stub. The repository runs Pyright but not mypy.",
+      "expected_output": "Preserve or intentionally migrate parameter names, defaults, return and exception behavior; keep the stub aligned; use the configured Pyright contract; and avoid imposing another checker or broad annotation rewrite.",
+      "files": []
+    },
+    {
+      "id": "eval-async-resource-lifetime",
+      "prompt": "Fix an async worker that starts untracked tasks and leaks a client session when cancellation arrives.",
+      "expected_output": "Respect the repository's async framework, give tasks and the session explicit owners, make cancellation-safe cleanup bounded, propagate cancellation as required, and verify the failure and shutdown paths.",
+      "files": [
+        "evals/files/async_worker.py"
+      ]
+    },
+    {
+      "id": "eval-subprocess-resource-boundary",
+      "prompt": "Fix a maintained Python CLI that launches a configured helper, leaks its temporary file on timeout, and treats captured output as success without checking the exit status.",
+      "expected_output": "Preserve the repository's CLI contract, pass explicit arguments, define timeout and exit-status behavior, give the temporary file an explicit cleanup owner, and verify success, failure, and timeout paths with configured tools.",
+      "files": []
+    }
+  ]
+}

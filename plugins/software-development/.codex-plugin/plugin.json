@@ -1,0 +1,32 @@
+{
+  "name": "software-development",
+  "version": "1.0.0",
+  "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
+  "author": {
+    "name": "Agent Tooling Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "development",
+    "debugging",
+    "languages",
+    "performance",
+    "refactoring",
+    "skills",
+    "testing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Software Development",
+    "shortDescription": "Focused language and engineering-method skills",
+    "longDescription": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
+    "developerName": "Agent Tooling Contributors",
+    "category": "Development",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": "Use $rust-development, $python-development, or another software-development skill for repository-native code changes."
+  }
+}

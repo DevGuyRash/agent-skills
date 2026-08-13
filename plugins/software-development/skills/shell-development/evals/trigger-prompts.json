@@ -1,0 +1,44 @@
+{
+  "skill_name": "shell-development",
+  "comment": "Boundary probes for maintained POSIX sh, Bash, and PowerShell artifacts; zsh, fish, and incidental commands are excluded.",
+  "queries": [
+    {
+      "id": "implicit-posix-change",
+      "should_trigger": true,
+      "query": "Fix argument handling in scripts/install.sh, which runs under dash and BusyBox sh."
+    },
+    {
+      "id": "implicit-powershell-change",
+      "should_trigger": true,
+      "query": "Repair this PowerShell module so native command failures propagate without converting pipeline objects to strings."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $shell-development to review this Bash deployment script's traps, arrays, and exit statuses."
+    },
+    {
+      "id": "composition-ci-security",
+      "should_trigger": true,
+      "expected_skills": ["shell-development"],
+      "excluded_skills": ["trunk-based-development"],
+      "external_companion": "security-review guidance",
+      "query": "Harden the Bash run block in this GitHub Actions job that passes a secret and user-selected deployment target to a CLI."
+    },
+    {
+      "id": "negative-zsh",
+      "should_trigger": false,
+      "query": "Update my maintained zsh plugin to use zsh associative arrays and completion widgets."
+    },
+    {
+      "id": "negative-fish",
+      "should_trigger": false,
+      "query": "Fix this fish function and its abbreviations in config.fish."
+    },
+    {
+      "id": "negative-incidental",
+      "should_trigger": false,
+      "query": "Run a single ls command so you can see which files are present; do not create a script."
+    }
+  ]
+}

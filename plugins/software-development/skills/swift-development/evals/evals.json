@@ -1,0 +1,47 @@
+{
+  "skill_name": "swift-development",
+  "evals": [
+    {
+      "id": "eval-preserve-tools-version",
+      "prompt": "A Swift package on an older declared tools version needs a small dependency-free parsing feature that can be implemented without an upgrade.",
+      "expected_decision": "Implement within the repository's selected tools/language mode and platform floors rather than modernizing the manifest incidentally.",
+      "expected_result": "The feature works without unrelated package-resolution or compatibility changes.",
+      "expected_output": "Name the preserved tools, language, platform, and dependency contracts and the configurations tested.",
+      "files": []
+    },
+    {
+      "id": "eval-force-unwrap-boundary",
+      "prompt": "A library force-unwraps a value decoded from caller-controlled JSON.",
+      "expected_decision": "Represent malformed or absent input through the established optional/throwing/result contract while retaining force operations only for locally proven invariants.",
+      "expected_result": "Malformed caller input cannot trigger an undocumented trap.",
+      "expected_output": "Explain the failure boundary and tests for missing, malformed, and valid values without imposing a universal force-unwrap ban.",
+      "files": [
+        "evals/files/JSONNameDecoder.swift"
+      ]
+    },
+    {
+      "id": "eval-actor-reentrancy",
+      "prompt": "An actor method validates state, awaits a remote call, then mutates state assuming no intervening actor work occurred.",
+      "expected_decision": "Treat await as a reentrancy point and revalidate, reserve, version, or otherwise make the multi-step transition explicit.",
+      "expected_result": "Interleaved actor messages cannot violate the state invariant.",
+      "expected_output": "State the actor-owned invariant, interruption point, chosen transaction strategy, and deterministic interleaving tests.",
+      "files": []
+    },
+    {
+      "id": "eval-continuation-late-callback",
+      "prompt": "Bridge a callback API that may call back twice or after the Swift task has been canceled.",
+      "expected_decision": "Define exactly-once continuation resumption, retained state, cancellation behavior, and late/duplicate callback handling before bridging.",
+      "expected_result": "The continuation is resumed exactly once, retained resources are released, and cancellation does not create a use-after-release path.",
+      "expected_output": "Describe the lifecycle and tests for success, failure, cancellation, duplicate callback, and late callback.",
+      "files": []
+    },
+    {
+      "id": "eval-apple-platform-routing",
+      "prompt": "An iOS feature request combines a pure Swift decoding bug with SwiftUI navigation and app-signing changes.",
+      "expected_decision": "Use swift-development for the decoding contract and compose the appropriate Apple UI/platform and signing workflows for their distinct concerns.",
+      "expected_result": "Language logic receives Swift verification without this skill inventing UI architecture or signing guidance.",
+      "expected_output": "Separate the Swift-owned work from platform-owned work and report evidence for each through its proper workflow.",
+      "files": []
+    }
+  ]
+}

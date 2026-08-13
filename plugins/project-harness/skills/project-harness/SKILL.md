@@ -57,8 +57,9 @@ This skill does **not** rewrite:
 - existing build manifests in general
 
 This skill also does **not** own governance enforcement such as required checks,
-CODEOWNERS reconciliation, or branch/ruleset policy. Keep those in a governance
-tooling surface such as `gitops-workflow`.
+CODEOWNERS reconciliation, review policy, or branch/ruleset policy. Keep those
+in repository policy plus native host tooling such as `git`, `gh`, and official
+GitHub or GitLab integrations.
 
 Repo-owned Git hooks are a local convenience overlay, not the authoritative enforcement surface. Keep CI and branch governance authoritative even when this skill emits `githooks/pre-push` and a `hooks-install` recipe.
 
@@ -193,7 +194,8 @@ Keep change detection at `none` unless the repo has an expensive, distinct `buil
 Keep path filters manual and explicit; do not infer them unless the repo truly has stable ownership boundaries.
 
 Load `<skills-file-root>/references/ci-workflows.md` for workflow quality rules,
-runner notes, contributor-scale guidance, governance handoff notes, and open-source versus private-repo tradeoffs.
+runner notes, contributor-scale guidance, governance boundaries, and
+open-source versus private-repo tradeoffs.
 
 When examples do not match the repo exactly:
 - explore the actual repo first

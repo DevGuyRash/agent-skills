@@ -1,0 +1,43 @@
+{
+  "skill_name": "nodejs-development",
+  "comment": "Boundary probes for Node runtime and package work versus language-only and browser-only neighbors.",
+  "queries": [
+    {
+      "id": "implicit-stream-fix",
+      "should_trigger": true,
+      "query": "Fix this Node file-processing service so its streams respect backpressure and close descriptors after an upstream error."
+    },
+    {
+      "id": "implicit-package-exports",
+      "should_trigger": true,
+      "query": "Repair the package.json exports map so supported ESM consumers can load the public subpath without exposing internals."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $nodejs-development to make this CLI handle signals, child-process failure, and exit codes correctly."
+    },
+    {
+      "id": "composition-typescript-server",
+      "should_trigger": true,
+      "expected_skills": ["nodejs-development", "typescript-development"],
+      "excluded_skills": ["javascript-development"],
+      "query": "Update this TypeScript Node HTTP server so AbortSignal cancellation reaches the database adapter and shutdown drains requests."
+    },
+    {
+      "id": "negative-browser-javascript",
+      "should_trigger": false,
+      "query": "Fix the JavaScript event handler in this browser-only widget; no server or package behavior changes."
+    },
+    {
+      "id": "negative-typescript-model",
+      "should_trigger": false,
+      "query": "Improve this TypeScript union and generic API; it is runtime-neutral and package metadata is unchanged."
+    },
+    {
+      "id": "negative-docker-runtime",
+      "should_trigger": false,
+      "query": "Reduce the Docker image size for this service without changing its Node runtime or package configuration."
+    }
+  ]
+}

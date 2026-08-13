@@ -1,0 +1,38 @@
+{
+  "skill_name": "trunk-based-development",
+  "comment": "Boundary probes for integration strategy and change slicing versus routine Git, CI, release, and governance operations.",
+  "queries": [
+    {
+      "id": "explicit-trunk",
+      "should_trigger": true,
+      "query": "Use $trunk-based-development to turn this long-running feature branch into safe, frequently merged increments."
+    },
+    {
+      "id": "implicit-slicing",
+      "should_trigger": true,
+      "query": "This feature will take three weeks. Design independently testable pieces we can merge to main every day without exposing unfinished behavior."
+    },
+    {
+      "id": "implicit-divergence",
+      "should_trigger": true,
+      "query": "Our branch has diverged for ten days and now conflicts with main. Help reslice and integrate it safely instead of adding more work."
+    },
+    {
+      "id": "negative-routine-github",
+      "should_trigger": false,
+      "query": "Commit the current changes, push the branch, and open a draft pull request."
+    },
+    {
+      "id": "negative-ci-release",
+      "should_trigger": false,
+      "query": "Create a GitHub Actions release workflow, tag version 2.1.0, and publish the artifacts."
+    },
+    {
+      "id": "ambiguous-composition",
+      "should_trigger": true,
+      "expected_skills": ["trunk-based-development", "behavior-preserving-migration"],
+      "excluded_skills": [],
+      "query": "Plan the database migration as short, independently mergeable changes while preserving compatibility through cutover."
+    }
+  ]
+}

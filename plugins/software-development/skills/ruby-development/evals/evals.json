@@ -1,0 +1,31 @@
+{
+  "skill_name": "ruby-development",
+  "evals": [
+    {
+      "id": "eval-version-and-bundler",
+      "prompt": "A gem supports Ruby 2.7 and 3.x, has a gemspec and repository-owned Bundler workflow, and needs a small feature that is easy with Ruby 3.2 syntax.",
+      "expected_output": "Honor the declared runtime range or explicitly negotiate a migration, use the repository's Bundler context, avoid broad dependency updates, and verify on the relevant Ruby matrix.",
+      "files": []
+    },
+    {
+      "id": "eval-keyword-api",
+      "prompt": "Refactor a public delegator whose callers mix keyword arguments and blocks, and whose published RBS file mirrors the API.",
+      "expected_output": "Preserve Ruby-version-appropriate keyword and block forwarding, keep public keyword names and behavior intentional, align RBS with implementation, and test positional, keyword, and block cases.",
+      "files": []
+    },
+    {
+      "id": "eval-worker-lifetime",
+      "prompt": "Fix a long-running Ruby worker that rescues Exception, leaks a transaction, and leaves a child process running after failure.",
+      "expected_output": "Narrow the rescue boundary, preserve termination behavior, make transaction and child-process ownership explicit with bounded cleanup, propagate/report the failure once, and test shutdown paths.",
+      "files": [
+        "evals/files/worker.rb"
+      ]
+    },
+    {
+      "id": "eval-rails-security-composition",
+      "prompt": "A Rails endpoint dynamically dispatches a user-provided method name and interpolates it into a query; fix it without redesigning the application.",
+      "expected_output": "Compose Ruby and Rails/security guidance, authorize dispatch through a finite allowlist, parameterize values and constrain identifiers, preserve framework lifecycle and response contracts, and add a focused regression test.",
+      "files": []
+    }
+  ]
+}

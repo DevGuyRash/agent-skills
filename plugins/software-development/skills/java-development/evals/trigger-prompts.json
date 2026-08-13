@@ -1,0 +1,48 @@
+{
+  "skill_name": "java-development",
+  "comment": "Trigger boundary for Java/JVM source and build work versus frameworks and generic repository workflows.",
+  "queries": [
+    {
+      "id": "implicit-java-source",
+      "should_trigger": true,
+      "expected_skills": ["java-development"],
+      "excluded_skills": ["kotlin-development"],
+      "query": "Fix equals and hashCode for this Java value type used only by Java callers; no Kotlin source or Kotlin-facing contract is involved."
+    },
+    {
+      "id": "implicit-java-build",
+      "should_trigger": true,
+      "query": "Make this Maven module compile for the repository's Java 17 runtime without changing the parent toolchain."
+    },
+    {
+      "id": "explicit-skill",
+      "should_trigger": true,
+      "query": "Use $java-development to review this CompletableFuture error path and its JUnit tests."
+    },
+    {
+      "id": "negative-spring-config",
+      "should_trigger": false,
+      "query": "Explain a Spring Boot actuator property; no Java source or build files are changing."
+    },
+    {
+      "id": "negative-git-policy",
+      "should_trigger": false,
+      "query": "Create a release branching policy for this Java repository without touching the build or source."
+    },
+    {
+      "id": "composition-java-framework",
+      "should_trigger": true,
+      "expected_skills": ["java-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "Spring transaction and framework guidance",
+      "query": "Change a Spring Java service method's public API and update its transaction boundary."
+    },
+    {
+      "id": "composition-java-kotlin-api",
+      "should_trigger": true,
+      "expected_skills": ["java-development", "kotlin-development"],
+      "excluded_skills": [],
+      "query": "Change a public Java interface and its Kotlin implementation's nullability contract, preserving the JVM signatures used by supported Java and Kotlin callers."
+    }
+  ]
+}

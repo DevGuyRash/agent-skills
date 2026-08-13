@@ -1,0 +1,43 @@
+{
+  "skill_name": "typescript-development",
+  "evals": [
+    {
+      "id": "eval-runtime-boundary",
+      "prompt": "Repair a TypeScript API client that casts parsed JSON directly to User and later crashes when a required nested property is absent.",
+      "expected_output": "The solution treats parsed data as untrusted, reuses or introduces a repository-compatible boundary parser, narrows before use, preserves actionable failure behavior, and adds runtime tests for invalid input.",
+      "files": [
+        "evals/files/api-client.ts"
+      ]
+    },
+    {
+      "id": "eval-invalid-states",
+      "prompt": "Refactor a TypeScript job state represented by one status string and six optional fields so consumers cannot construct invalid combinations.",
+      "expected_output": "The result models variants with their required data, updates construction and exhaustive consumption, preserves serialized compatibility where required, and avoids unrelated type-system complexity.",
+      "files": []
+    },
+    {
+      "id": "eval-effective-config",
+      "prompt": "A monorepo package passes an ad hoc tsc --noEmit command but fails its configured build with module-resolution errors. Diagnose and fix it.",
+      "expected_output": "The work resolves the effective package config, project references, runtime or bundler contract, and repository command before editing; it verifies with native build and type-check commands rather than weakening checks globally.",
+      "files": []
+    },
+    {
+      "id": "eval-public-generic",
+      "prompt": "Review a TypeScript library patch that replaces a generic return relationship with any to suppress a declaration-generation error.",
+      "expected_output": "The review preserves or redesigns the caller-visible input/output relationship, contains any unavoidable escape hatch, inspects emitted declarations, and verifies downstream inference or type fixtures.",
+      "files": []
+    },
+    {
+      "id": "eval-node-composition",
+      "prompt": "Add an AbortSignal-aware TypeScript API to a Node stream package and expose it through the package exports map.",
+      "expected_output": "The implementation composes TypeScript API and declaration guidance with Node stream and package guidance, preserves module consumers, validates runtime cancellation and cleanup, and checks emitted declarations.",
+      "files": []
+    },
+    {
+      "id": "eval-browser-worker-cancellation",
+      "prompt": "Refactor a browser TypeScript API that sends jobs to a Web Worker and accepts AbortSignal; cancellation currently leaves listeners and late replies behind.",
+      "expected_output": "Preserve the browser and worker runtime contract, message protocol, public types, and terminal-result ordering; make abort versus reply races deterministic, remove listeners and pending entries on every exit, define worker ownership, and test cancellation without introducing Node assumptions or loading JavaScript-only guidance.",
+      "files": []
+    }
+  ]
+}

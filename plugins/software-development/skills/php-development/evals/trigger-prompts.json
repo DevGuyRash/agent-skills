@@ -1,0 +1,39 @@
+{
+  "skill_name": "php-development",
+  "comment": "Boundary probes for maintained PHP artifacts versus conceptual, template-only, or incidental PHP use.",
+  "queries": [
+    {
+      "id": "implicit-source-change",
+      "should_trigger": true,
+      "query": "Fix the stream leak in src/ImportWorker.php while preserving the package's minimum PHP version."
+    },
+    {
+      "id": "implicit-composer-tooling",
+      "should_trigger": true,
+      "query": "Add the required ext-intl constraint and keep composer.json and composer.lock consistent without updating unrelated packages."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $php-development to review this library's public types and named-argument compatibility."
+    },
+    {
+      "id": "composition-framework",
+      "should_trigger": true,
+      "expected_skills": ["php-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "Laravel lifecycle guidance",
+      "query": "Repair this Laravel queue job's transaction cleanup and preserve the framework retry lifecycle."
+    },
+    {
+      "id": "negative-conceptual",
+      "should_trigger": false,
+      "query": "Explain PHP union types without creating or changing code."
+    },
+    {
+      "id": "negative-template-only",
+      "should_trigger": false,
+      "query": "Change only the static CSS classes in this Twig template; do not alter PHP expressions or behavior."
+    }
+  ]
+}

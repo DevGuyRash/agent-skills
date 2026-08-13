@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "id": "python-feature-tdd",
+      "prompt": "Add retry limits to this maintained Python client and first prove the missing behavior with an automated test.",
+      "expected_skills": ["python-development", "test-driven-development"],
+      "excluded_skills": []
+    },
+    {
+      "id": "unknown-async-rust-hang",
+      "prompt": "This Rust async integration test hangs only in CI and we do not know why. Diagnose it.",
+      "expected_skills": ["rust-development", "async-rust", "systematic-debugging"],
+      "excluded_skills": ["performance-engineering"]
+    },
+    {
+      "id": "rust-ffi-invariants",
+      "prompt": "Review this Rust FFI boundary and document the unsafe aliasing and unwind invariants.",
+      "expected_skills": ["rust-development", "unsafe-rust"],
+      "excluded_skills": ["rust-panic-audit"]
+    },
+    {
+      "id": "high-availability-panic-audit",
+      "prompt": "Audit direct panic surfaces in this high-availability Rust service using the strict boundary profile.",
+      "expected_skills": ["rust-development", "rust-panic-audit"],
+      "excluded_skills": []
+    },
+    {
+      "id": "sync-rust-worker-shutdown",
+      "prompt": "Repair a synchronous Rust std::thread worker pool built entirely on the standard library. Its bounded channel must apply backpressure, its Arc<Mutex<State>> must not deadlock shutdown, every worker must wake and join, and failures must reach the owner.",
+      "expected_skills": ["rust-development"],
+      "excluded_skills": ["async-rust", "unsafe-rust", "rust-panic-audit"]
+    },
+    {
+      "id": "node-module-resolution",
+      "prompt": "Review this maintained Node.js ESM/CJS package-exports configuration and hand-written JavaScript entrypoint for compatibility; do not change behavior.",
+      "expected_skills": ["nodejs-development", "javascript-development"],
+      "excluded_skills": ["typescript-development"]
+    },
+    {
+      "id": "java-only-api",
+      "prompt": "Review the equality contract of a public Java value type used only by Java callers; no Kotlin source or Kotlin-facing API contract is involved.",
+      "expected_skills": ["java-development"],
+      "excluded_skills": ["kotlin-development"]
+    },
+    {
+      "id": "kotlin-only-api",
+      "prompt": "Review copy and mutability semantics for a Kotlin data class used only by Kotlin callers; no Java source or Java-facing JVM API contract is involved.",
+      "expected_skills": ["kotlin-development"],
+      "excluded_skills": ["java-development"]
+    },
+    {
+      "id": "mixed-java-kotlin-api",
+      "prompt": "Change a public Java interface and its Kotlin implementation's nullability contract, preserving the JVM signatures used by supported Java and Kotlin callers.",
+      "expected_skills": ["java-development", "kotlin-development"],
+      "excluded_skills": []
+    },
+    {
+      "id": "tsx-type-system",
+      "prompt": "Repair generic prop narrowing in this .tsx component without changing runtime behavior.",
+      "expected_skills": ["typescript-development"],
+      "excluded_skills": ["javascript-development"]
+    },
+    {
+      "id": "bash-quoting",
+      "prompt": "Repair argument forwarding and quoting in this Bash deployment script.",
+      "expected_skills": ["shell-development"],
+      "expected_reference": "bash.md",
+      "excluded_skills": []
+    },
+    {
+      "id": "powershell-errors",
+      "prompt": "Fix terminating and non-terminating error handling in this PowerShell module and preserve native exit codes.",
+      "expected_skills": ["shell-development"],
+      "excluded_skills": [],
+      "expected_reference": "powershell.md",
+      "excluded_references": ["posix-sh.md"]
+    },
+    {
+      "id": "sql-schema-transition",
+      "prompt": "Move this relational schema to the new key representation while old and new app versions coexist.",
+      "expected_skills": ["sql-development", "behavior-preserving-migration"],
+      "excluded_skills": []
+    },
+    {
+      "id": "unknown-slow-relational-query",
+      "prompt": "This PostgreSQL query suddenly became slow and we do not know why. Diagnose the cause while preserving its exact relational results.",
+      "expected_skills": ["sql-development", "systematic-debugging"],
+      "excluded_skills": ["performance-engineering"]
+    },
+    {
+      "id": "slow-relational-query",
+      "prompt": "On the documented ten-million-row PostgreSQL workload, validate whether the proposed index lowers query p99 from 900 ms below 300 ms while preserving exact results.",
+      "expected_skills": ["sql-development", "performance-engineering"],
+      "excluded_skills": ["systematic-debugging"]
+    },
+    {
+      "id": "parser-split",
+      "prompt": "Split this Go parser into cohesive files without changing its public output or errors.",
+      "expected_skills": ["go-development", "refactoring"],
+      "excluded_skills": ["test-driven-development"]
+    },
+    {
+      "id": "routine-pr",
+      "prompt": "Push this branch and open a draft pull request.",
+      "expected_skills": [],
+      "excluded_skills": ["trunk-based-development"]
+    },
+    {
+      "id": "long-feature-integration",
+      "prompt": "A three-week feature spans several modules and cannot merge safely at once. Design independently buildable and testable increments that can reach trunk frequently while unfinished behavior remains unavailable, and define removal conditions for any temporary seam.",
+      "expected_skills": ["trunk-based-development"],
+      "excluded_skills": []
+    },
+    {
+      "id": "readme-typo",
+      "prompt": "Fix the spelling mistake in README.md.",
+      "expected_skills": [],
+      "excluded_skills": ["rust-development", "refactoring"]
+    },
+    {
+      "id": "conceptual-question",
+      "prompt": "Explain ownership in Rust without inspecting or changing a repository.",
+      "expected_skills": [],
+      "excluded_skills": ["rust-development"]
+    }
+  ]
+}

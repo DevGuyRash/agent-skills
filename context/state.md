@@ -9,7 +9,7 @@ Friction diagnostics 5.2.0 is in the tree; installed copies still carry the prev
 
 Plugin errors nobody has fixed. `just audit-plugins --errors-only` is the live list; delete an entry here when it is fixed:
 
-- Eight launchers and helpers across `excel-foundry` and `gitops-workflow` lack the executable bit, including the three `scripts/lib/` helpers the gitops launchers source.
+- Some `excel-foundry` launchers still lack the executable bit.
 - `goalspec` and `playwright-testing` catalog versions disagree with their manifests; goalspec's catalog description still describes the pre-decision-funnel design.
 - `linux-desktop-control` has no Claude manifest, and its two host manifests disagree on description.
 - No LICENSE file sits behind the MIT declaration every manifest carries.
@@ -23,3 +23,8 @@ Active risks:
 - Excel Foundry cloud commands still need opt-in live Graph/Fabric/Power BI validation with tenant env vars and safe test resources before any cloud surface is promoted to supported.
 - Claude `agents/*.md` surfaces are reported as `preserved_only` in claude→codex conversion but have no Codex mapping; decide whether a Codex-side agent equivalent should exist or whether preserved-only is the end state.
 - Skill-auditor 2.0.0 has produced exactly one Improvement Brief, written and graded by the same context that built the skill. Nobody independent has judged whether the brief is good, and there is no baseline against what 1.0.0 would have said for the same target. Treat the outcome as demonstrated once, not validated.
+
+Software-development v1 release acceptance remains incomplete:
+
+- Claude model-backed trigger and no-plugin task-quality evals require an authenticated Claude session; this machine is not logged in.
+- Representative no-plugin baseline comparisons and unavailable PowerShell/Swift/Kotlin runtime matrix checks remain release gates before publishing.

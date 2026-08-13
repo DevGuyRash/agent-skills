@@ -1,0 +1,37 @@
+{
+  "skill_name": "javascript-development",
+  "evals": [
+    {
+      "id": "eval-falsy-default",
+      "prompt": "Repair a JavaScript settings loader that replaces valid false, zero, and empty-string values with defaults because it uses || indiscriminately.",
+      "expected_output": "The change distinguishes nullish absence from valid falsy values, follows repository style, adds focused edge-case coverage, and reports the native checks run.",
+      "files": [
+        "evals/files/settings-loader.js"
+      ]
+    },
+    {
+      "id": "eval-module-contract",
+      "prompt": "Fix an initialization-order regression across existing ESM modules without changing their supported exports or converting the repository to CommonJS.",
+      "expected_output": "The solution first establishes the repository module contract, accounts for evaluation order or cycles, preserves public exports, and verifies the relevant build and tests without unrelated module migration.",
+      "files": []
+    },
+    {
+      "id": "eval-bounded-concurrency",
+      "prompt": "A JavaScript batch function launches one promise per input and exhausts a constrained downstream service. Make it safe while preserving result ordering and failure behavior.",
+      "expected_output": "The implementation defines the concurrency and error contract, bounds fan-out, preserves required ordering, handles rejection and cleanup, and tests both success and failure paths.",
+      "files": []
+    },
+    {
+      "id": "eval-object-copy",
+      "prompt": "Review a patch that spreads class instances into plain objects before passing them to an existing public API.",
+      "expected_output": "The review identifies any loss of prototype, descriptors, symbols, identity, or nested ownership that affects behavior and recommends only evidence-backed changes rather than a blanket cloning rule.",
+      "files": []
+    },
+    {
+      "id": "eval-node-composition",
+      "prompt": "Implement graceful cancellation in JavaScript source for a Node CLI that also reads package metadata and handles process signals.",
+      "expected_output": "The work composes JavaScript language guidance with Node runtime guidance, preserves the selected module and package-manager contracts, cleans up resources, and verifies CLI behavior under the supported Node version.",
+      "files": []
+    }
+  ]
+}

@@ -25,8 +25,6 @@ tmp/
 .local/
 .codex/
 .gitnexus/
-plugins/gitops-workflow/skills/gitops-workflow/.bin/
-plugins/gitops-workflow/skills/gitops-workflow/tests/artifacts/security-e2e-*.log
 ~$*.xls*
 
 # Python / test caches

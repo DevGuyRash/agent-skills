@@ -1,0 +1,45 @@
+{
+  "skill_name": "unsafe-rust",
+  "evals": [
+    {
+      "id": "eval-safe-caller-cannot-break",
+      "prompt": "A safe constructor accepts a length and later an unsafe method trusts that length for pointer arithmetic without validating the allocation.",
+      "expected_decision": "Move validation into the safe construction boundary or change the API so every constructible value satisfies the unsafe operation's bounds invariant.",
+      "expected_result": "No safe caller can create a value whose later safe use reaches out-of-bounds pointer access.",
+      "expected_output": "State the invariant, where it is established and preserved, and tests for rejected invalid lengths.",
+      "files": []
+    },
+    {
+      "id": "eval-ffi-callback-lifetime",
+      "prompt": "A C library stores a Rust context pointer and may invoke it concurrently until deregistration has completed.",
+      "expected_decision": "Define registration, concurrency, deregistration completion, context ownership, and panic behavior before reconstructing a Rust reference.",
+      "expected_result": "The context outlives every possible callback and is freed through its originating allocator only after callback quiescence.",
+      "expected_output": "Document both sides of the ABI contract and report race, late-callback, failure, and cleanup verification.",
+      "files": []
+    },
+    {
+      "id": "eval-pin-projection",
+      "prompt": "Implement projection for a self-referential struct containing one pinned field and one ordinary field.",
+      "expected_decision": "Specify structural pinning and drop/replacement invariants, then use the repository's established safe projection facility or the narrowest justified unsafe projection.",
+      "expected_result": "Pinned state cannot move through safe APIs while unpinned fields retain only the movement allowed by the contract.",
+      "expected_output": "State when pinning begins, which fields are pinned, and evidence covering construction, projection, and destruction.",
+      "files": []
+    },
+    {
+      "id": "eval-unsafe-send-rejected",
+      "prompt": "A native handle must remain on its creating thread, but adding unsafe impl Send would make a spawn call compile.",
+      "expected_decision": "Reject unconditional Send and preserve thread affinity through types, executor locality, or an explicit owner boundary.",
+      "expected_result": "Safe code cannot transfer the handle to a thread where its foreign contract is invalid.",
+      "expected_output": "Explain why the compiler error reflects a real invariant and the safe design used instead.",
+      "files": []
+    },
+    {
+      "id": "eval-dynamic-tool-not-proof",
+      "prompt": "Miri and a stress test pass for a custom lock-free queue on the host architecture.",
+      "expected_decision": "Treat the runs as supporting evidence while still reviewing publication, reclamation, ordering, ABA, and supported-target assumptions.",
+      "expected_result": "The soundness claim rests on a written invariant and memory-order argument, with unsupported targets or schedules named.",
+      "expected_output": "Report tool coverage accurately and avoid claiming that sampled executions prove the unsafe abstraction sound.",
+      "files": []
+    }
+  ]
+}

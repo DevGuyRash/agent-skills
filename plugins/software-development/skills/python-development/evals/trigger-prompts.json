@@ -1,0 +1,44 @@
+{
+  "skill_name": "python-development",
+  "comment": "Boundary probes for maintained Python artifacts versus conceptual, incidental, or publication-only Python use.",
+  "queries": [
+    {
+      "id": "implicit-source-change",
+      "should_trigger": true,
+      "query": "Fix the cancellation bug in src/worker/tasks.py without changing the package's supported Python versions."
+    },
+    {
+      "id": "implicit-project-tooling",
+      "should_trigger": true,
+      "query": "Update this pyproject.toml optional dependency and keep the existing uv lock and CI environments consistent."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $python-development to review this library's public annotations and import surface."
+    },
+    {
+      "id": "composition-framework",
+      "should_trigger": true,
+      "expected_skills": ["python-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "FastAPI lifecycle guidance",
+      "query": "Repair the FastAPI endpoint's async database cleanup and add the repository's normal regression test."
+    },
+    {
+      "id": "negative-conceptual",
+      "should_trigger": false,
+      "query": "Explain the difference between a Python iterator and an iterable; do not change any files."
+    },
+    {
+      "id": "negative-incidental",
+      "should_trigger": false,
+      "query": "Use a temporary Python one-liner to calculate the sum of these five numbers."
+    },
+    {
+      "id": "negative-publication-only",
+      "should_trigger": false,
+      "query": "Publish the already-built wheel and sdist to PyPI and draft release notes; do not change Python, stubs, or pyproject.toml."
+    }
+  ]
+}

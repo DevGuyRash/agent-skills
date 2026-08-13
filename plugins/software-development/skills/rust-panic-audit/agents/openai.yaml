@@ -1,0 +1,6 @@
+interface:
+  display_name: "Rust Panic Audit"
+  short_description: "Audit direct Rust panic surfaces and residual risk"
+  default_prompt: "Use $rust-panic-audit with $rust-development to audit direct panic surfaces in the declared Rust scope."
+policy:
+  allow_implicit_invocation: true

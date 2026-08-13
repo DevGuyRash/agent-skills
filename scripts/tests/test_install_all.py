@@ -200,7 +200,7 @@ class InstallAllTests(unittest.TestCase):
         )
 
     def test_exclude_accepts_csv_globs_and_removes_matching_plugins(self) -> None:
-        calls = self.run_install_all("--exclude", "rust*,gitops-workflow")
+        calls = self.run_install_all("--exclude", "software-development")
 
         codex_installs = [call["args"][-1] for call in calls if call["command"] == "codex" and call["args"][:2] == ["plugin", "add"]]
         claude_installs = [call["args"][-1] for call in calls if call["command"] == "claude" and call["args"][:2] == ["plugin", "install"]]
@@ -208,30 +208,30 @@ class InstallAllTests(unittest.TestCase):
         expected_codex = [
             selector
             for selector in marketplace_plugin_selectors(CODEX_MARKETPLACE)
-            if not selector.startswith(("rust", "gitops-workflow@"))
+            if selector != "software-development@agent-tooling"
         ]
         expected_claude = [
             selector
             for selector in marketplace_plugin_selectors(CLAUDE_MARKETPLACE)
-            if not selector.startswith(("rust", "gitops-workflow@"))
+            if selector != "software-development@agent-tooling"
         ]
         self.assertEqual(expected_codex, codex_installs)
         self.assertEqual(expected_claude, claude_installs)
-        self.assertNotIn("rust-development@agent-tooling", codex_installs)
-        self.assertNotIn("gitops-workflow@agent-tooling", codex_installs)
+        self.assertNotIn("software-development@agent-tooling", codex_installs)
+        self.assertNotIn("software-development@agent-tooling", claude_installs)
 
     def test_include_and_exclude_are_repeatable_and_globbed(self) -> None:
         calls = self.run_install_all(
             "--include",
-            "rust*,gitops-workflow",
+            "software-development",
             "--include",
             "goalspec",
             "--exclude",
-            "rust*",
+            "software-development",
         )
 
         codex_installs = [call["args"][-1] for call in calls if call["command"] == "codex" and call["args"][:2] == ["plugin", "add"]]
-        self.assertEqual(["gitops-workflow@agent-tooling", "goalspec@agent-tooling"], codex_installs)
+        self.assertEqual(["goalspec@agent-tooling"], codex_installs)
 
     def test_unmatched_filter_fails_fast(self) -> None:
         proc, calls = self.run_install_all_process("--include", "missing-plugin")

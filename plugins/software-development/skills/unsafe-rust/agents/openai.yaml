@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unsafe Rust"
+  short_description: "Auditable unsafe Rust boundaries and invariants"
+  default_prompt: "Use $unsafe-rust with $rust-development to make this unsafe boundary minimal, documented, and verifiable."
+policy:
+  allow_implicit_invocation: true

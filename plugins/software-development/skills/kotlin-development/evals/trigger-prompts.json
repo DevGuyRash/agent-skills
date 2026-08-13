@@ -1,0 +1,48 @@
+{
+  "skill_name": "kotlin-development",
+  "comment": "Trigger boundary for Kotlin source/tooling work, including mixed JVM and Multiplatform changes, without absorbing Android or generic workflows.",
+  "queries": [
+    {
+      "id": "implicit-kotlin-source",
+      "should_trigger": true,
+      "expected_skills": ["kotlin-development"],
+      "excluded_skills": ["java-development"],
+      "query": "Fix copy and mutability semantics for this Kotlin data class used only by Kotlin callers; no Java source or Java-facing JVM contract is involved."
+    },
+    {
+      "id": "implicit-kotlin-build",
+      "should_trigger": true,
+      "query": "Update this Kotlin Multiplatform source-set dependency without changing unrelated targets."
+    },
+    {
+      "id": "explicit-skill",
+      "should_trigger": true,
+      "query": "Use $kotlin-development to review this coroutine cancellation path and its tests."
+    },
+    {
+      "id": "negative-android-resource",
+      "should_trigger": false,
+      "query": "Change only an Android XML layout and its resource colors; no Kotlin or build files are involved."
+    },
+    {
+      "id": "negative-git-policy",
+      "should_trigger": false,
+      "query": "Define trunk-based merge rules for this Kotlin repository without changing source or tooling."
+    },
+    {
+      "id": "composition-android-kotlin",
+      "should_trigger": true,
+      "expected_skills": ["kotlin-development", "test-driven-development"],
+      "excluded_skills": [],
+      "external_companion": "Android lifecycle guidance",
+      "query": "Fix cancellation in a Kotlin Android ViewModel and update its lifecycle-aware collection."
+    },
+    {
+      "id": "composition-java-kotlin-api",
+      "should_trigger": true,
+      "expected_skills": ["java-development", "kotlin-development"],
+      "excluded_skills": [],
+      "query": "Change a public Java interface and its Kotlin implementation's nullability contract, preserving the JVM signatures used by supported Java and Kotlin callers."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "skill_name": "cpp-development",
+  "evals": [
+    {
+      "id": "eval-header-classification",
+      "prompt": "A file named storage.h contains syntax accepted by both languages, and the request does not state its consumers.",
+      "expected_decision": "Inspect compile commands, build targets, includers, and compatibility requirements before selecting C++, C, or both skills.",
+      "expected_result": "The header is changed under the actual language contracts rather than classified from its extension.",
+      "expected_output": "Name the classification evidence and compilation checks for every supported consumer language.",
+      "files": []
+    },
+    {
+      "id": "eval-dangling-view",
+      "prompt": "A method returns string_view derived from a local std::string and callers retain the result.",
+      "expected_decision": "Change ownership or return representation so the view cannot outlive its owner; do not rely on const or documentation alone.",
+      "expected_result": "Callers receive an owning value or a view whose owner demonstrably outlives every supported use.",
+      "expected_output": "State the ownership/lifetime contract and tests covering retention and invalidation.",
+      "files": [
+        "evals/files/dangling_view.cpp"
+      ]
+    },
+    {
+      "id": "eval-shared-ptr-not-default",
+      "prompt": "Two functions currently pass a raw pointer, and a reviewer suggests replacing every pointer with shared_ptr.",
+      "expected_decision": "Map the ownership graph and choose value, reference, raw non-owner, unique ownership, or shared lifetime from actual retention needs.",
+      "expected_result": "Ownership is explicit without unnecessary heap allocation, reference counting, or hidden lifetime extension.",
+      "expected_output": "Explain the chosen owner and observer roles rather than applying a mechanical smart-pointer rule.",
+      "files": []
+    },
+    {
+      "id": "eval-public-template-compatibility",
+      "prompt": "Tighten a concept on a public function template used by downstream code and move its definition into a source file.",
+      "expected_decision": "Review source compatibility, overload resolution, available instantiations, linkage, and the project's explicit-instantiation strategy.",
+      "expected_result": "Supported downstream types still instantiate and link, or the compatibility change is made explicit and versioned.",
+      "expected_output": "Name the template/linkage contract and consumer builds used as evidence.",
+      "files": []
+    },
+    {
+      "id": "eval-noexcept-contract",
+      "prompt": "Mark a move constructor noexcept to improve container behavior, although one called operation can throw under the current allocator policy.",
+      "expected_decision": "Treat noexcept as a semantic guarantee; either make the implementation truly non-throwing or leave the declaration consistent with reality.",
+      "expected_result": "The move path cannot unexpectedly terminate from a false noexcept promise.",
+      "expected_output": "Explain the exception contract, container tradeoff, and construction/move failure tests.",
+      "files": []
+    },
+    {
+      "id": "eval-worker-shutdown-race",
+      "prompt": "A C++ service detaches std::thread workers that capture this; its destructor sets an unsynchronized bool and destroys the condition variable and queue while workers may still use them.",
+      "expected_decision": "Give workers an owning RAII lifecycle, protect the stop/queue predicate coherently, wake waiters, prevent new work, and join completion before destroying observed state; define how startup and worker failures reach the owner.",
+      "expected_result": "No data race, detached lifetime escape, blocked waiter, or teardown use-after-free remains, and shutdown behavior for pending work is explicit.",
+      "expected_output": "State ownership, synchronization, lock scope, shutdown order, failure propagation, and deterministic coordination or supported ThreadSanitizer evidence.",
+      "files": []
+    }
+  ]
+}

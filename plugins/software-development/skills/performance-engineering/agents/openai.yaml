@@ -1,0 +1,6 @@
+interface:
+  display_name: "Performance Engineering"
+  short_description: "Measure and improve software performance"
+  default_prompt: "Use $performance-engineering to profile this workload and verify a defensible performance improvement."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,55 @@
+{
+  "skill_name": "typescript-development",
+  "comment": "Boundary probes for TypeScript type and source work versus JavaScript-only and Node-only concerns.",
+  "queries": [
+    {
+      "id": "implicit-union-model",
+      "should_trigger": true,
+      "query": "Replace this loose TypeScript response shape with a discriminated union and make the consumer exhaustive."
+    },
+    {
+      "id": "implicit-tsconfig-debug",
+      "should_trigger": true,
+      "query": "Why does this .tsx package type-check in the editor but fail under its project-reference build? Fix the configuration mismatch."
+    },
+    {
+      "id": "implicit-browser-worker-cancellation",
+      "should_trigger": true,
+      "expected_skills": [
+        "typescript-development"
+      ],
+      "excluded_skills": [
+        "javascript-development",
+        "nodejs-development"
+      ],
+      "query": "Repair cancellation and listener cleanup in this browser TypeScript Web Worker client while preserving its AbortSignal API and message types."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $typescript-development to remove these unsafe casts while preserving the library's inferred public API."
+    },
+    {
+      "id": "composition-node-library",
+      "should_trigger": true,
+      "expected_skills": ["typescript-development", "nodejs-development"],
+      "excluded_skills": ["javascript-development"],
+      "query": "Update this TypeScript Node library's public types and conditional package exports for ESM and CommonJS consumers."
+    },
+    {
+      "id": "negative-javascript-only",
+      "should_trigger": false,
+      "query": "Fix the promise rejection path in this browser .mjs file; the project contains no TypeScript."
+    },
+    {
+      "id": "negative-node-runtime-only",
+      "should_trigger": false,
+      "query": "Diagnose why this Node process does not exit after the HTTP server closes; no TypeScript source is involved."
+    },
+    {
+      "id": "negative-json-schema",
+      "should_trigger": false,
+      "query": "Review this standalone JSON Schema for backward compatibility without generating TypeScript."
+    }
+  ]
+}

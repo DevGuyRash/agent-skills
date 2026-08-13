@@ -1,0 +1,35 @@
+{
+  "skill_name": "nodejs-development",
+  "evals": [
+    {
+      "id": "eval-stream-cleanup",
+      "prompt": "Repair a Node.js import job that pipes an unbounded upload through transforms but leaks file descriptors and ignores backpressure when a transform rejects.",
+      "expected_output": "The solution uses repository-compatible stream composition, preserves backpressure, joins error and cancellation paths, closes every owned resource, and verifies success plus mid-stream failure without buffering the full upload.",
+      "files": []
+    },
+    {
+      "id": "eval-package-exports",
+      "prompt": "Add one documented public subpath to a Node library with an existing exports map and ESM-only support.",
+      "expected_output": "The change preserves the package's ESM and manager contracts, exposes only the requested path and types, inspects the packed artifact, tests a supported external consumer import, and avoids an unnecessary dual-package conversion.",
+      "files": []
+    },
+    {
+      "id": "eval-graceful-shutdown",
+      "prompt": "A Node HTTP service exits immediately on SIGTERM and drops active requests. Implement bounded graceful shutdown for its existing deployment environment.",
+      "expected_output": "The work identifies the platform signal and grace period, stops new work, drains or cancels bounded in-flight work, closes owned resources idempotently, preserves failure reporting, and tests the observable shutdown contract.",
+      "files": []
+    },
+    {
+      "id": "eval-dependency-update",
+      "prompt": "Update one vulnerable direct Node dependency in a workspace without changing package managers or sweeping unrelated packages.",
+      "expected_output": "The result uses the selected manager, scopes the manifest and lockfile change, reviews transitive and lifecycle-script effects plus Node compatibility, runs affected package tests, and reports residual advisory or compatibility risk.",
+      "files": []
+    },
+    {
+      "id": "eval-typescript-composition",
+      "prompt": "Implement a typed Node CLI that spawns an existing executable, streams output, supports cancellation, and publishes a bin entry.",
+      "expected_output": "The work composes Node runtime/package guidance with TypeScript source and declaration guidance, avoids shell interpolation, handles spawn and exit outcomes, cleans up on cancellation, and verifies the packed bin under a supported Node version.",
+      "files": []
+    }
+  ]
+}

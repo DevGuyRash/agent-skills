@@ -1,0 +1,52 @@
+{
+  "skill_name": "sql-development",
+  "comment": "Boundary probes for relational SQL semantics and dialect discovery versus NoSQL, vendor operations, ORM-only, and performance-only work.",
+  "queries": [
+    {
+      "id": "implicit-query-fix",
+      "should_trigger": true,
+      "query": "Fix the duplicate rows and missing customers in this relational report query without using DISTINCT as a patch."
+    },
+    {
+      "id": "implicit-migration",
+      "should_trigger": true,
+      "query": "Add a migration and constraint so each tenant can have at most one active record with a given slug."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $sql-development to review this transaction for nullable comparisons, affected-row assumptions, and injection risk."
+    },
+    {
+      "id": "composition-unknown-slow-query",
+      "should_trigger": true,
+      "expected_skills": ["sql-development", "systematic-debugging"],
+      "excluded_skills": ["performance-engineering"],
+      "external_companion": "Matching PostgreSQL/vendor guidance when installed; otherwise PostgreSQL primary documentation for the detected version",
+      "query": "This PostgreSQL query suddenly became slow and we do not know why. Diagnose the cause while preserving its exact relational results."
+    },
+    {
+      "id": "composition-defined-performance",
+      "should_trigger": true,
+      "expected_skills": ["sql-development", "performance-engineering"],
+      "excluded_skills": ["systematic-debugging"],
+      "external_companion": "Matching PostgreSQL/vendor guidance when installed; otherwise PostgreSQL primary documentation for the detected version",
+      "query": "On the supplied ten-million-row PostgreSQL workload, validate whether the proposed index lowers query p99 from 900 ms below 300 ms while preserving exact results."
+    },
+    {
+      "id": "negative-nosql",
+      "should_trigger": false,
+      "query": "Rewrite this MongoDB aggregation pipeline to group documents by customer and month."
+    },
+    {
+      "id": "negative-vendor-operations",
+      "should_trigger": false,
+      "query": "Configure PostgreSQL streaming replication and test failover; no query or schema changes are needed."
+    },
+    {
+      "id": "negative-orm-only",
+      "should_trigger": false,
+      "query": "Rename this in-memory ORM model helper; generated SQL, schema, migrations, and transactions are unchanged."
+    }
+  ]
+}

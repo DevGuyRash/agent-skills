@@ -1,0 +1,67 @@
+{
+  "skill_name": "java-development",
+  "evals": [
+    {
+      "id": "eval-release-boundary",
+      "prompt": "The build runs on JDK 21 but compiles with --release 17. Implement a collection transformation.",
+      "expected_output": "The implementation uses Java 17 language and library APIs, preserves the configured release target, and does not infer compatibility from the build JVM.",
+      "files": []
+    },
+    {
+      "id": "eval-equality-contract",
+      "prompt": "Fix a domain object used as a HashMap key whose equals changed but hashCode did not.",
+      "expected_output": "equals and hashCode are made coherent, mutable key fields are considered, and map behavior is covered by a focused regression test.",
+      "files": [
+        "evals/files/AccountKey.java"
+      ]
+    },
+    {
+      "id": "eval-optional-restraint",
+      "prompt": "A nullable private helper parameter has one caller. Make the code safer and idiomatic.",
+      "expected_output": "The response follows repository nullness conventions and does not force Optional into parameters, fields, or collections without an API need.",
+      "files": []
+    },
+    {
+      "id": "eval-interruption",
+      "prompt": "A worker catches InterruptedException and continues processing after logging it.",
+      "expected_output": "The worker propagates interruption or restores the interrupt flag and terminates according to its lifecycle, without silently retrying.",
+      "files": []
+    },
+    {
+      "id": "eval-volatile-compound-state",
+      "prompt": "Repair a lost update on a volatile integer shared by executor tasks.",
+      "expected_output": "The compound state transition receives an appropriate atomic or synchronization mechanism; volatile is not treated as compound atomicity.",
+      "files": []
+    },
+    {
+      "id": "eval-virtual-thread-version",
+      "prompt": "Convert a blocking worker pool to virtual threads in a library supporting Java 17 and 21.",
+      "expected_output": "The response rejects an unconditional Java 21-only API change or designs an explicit compatible boundary; it does not claim virtual threads improve CPU work or thread safety.",
+      "files": []
+    },
+    {
+      "id": "eval-wrapper-and-dependency",
+      "prompt": "Upgrade one Gradle dependency constrained by a version catalog and lock files.",
+      "expected_output": "The Gradle wrapper and repository tasks are used, only the requested graph changes, lock/catalog diffs are inspected, and no broad refresh or wrapper upgrade occurs.",
+      "files": []
+    },
+    {
+      "id": "eval-library-compatibility",
+      "prompt": "Add a method to a public Java interface implemented by downstream consumers.",
+      "expected_output": "The downstream binary/source break is identified and a compatible default method, companion API, or deliberate migration is chosen and verified.",
+      "files": []
+    },
+    {
+      "id": "eval-test-framework-adaptation",
+      "prompt": "Add a regression test to a JUnit 4 module while another module uses JUnit Jupiter.",
+      "expected_output": "The focused module keeps JUnit 4 and its configured runner; no repository-wide test-framework migration or new assertion library is introduced.",
+      "files": []
+    },
+    {
+      "id": "eval-framework-composition",
+      "prompt": "Change a Java persistence entity and its Hibernate mapping behavior.",
+      "expected_output": "Core Java type/API decisions use this skill while ORM lifecycle and mapping semantics are routed to a framework skill; framework conventions are not generalized into Java rules.",
+      "files": []
+    }
+  ]
+}

@@ -65,18 +65,6 @@
       "category": "Diagnostics"
     },
     {
-      "name": "gitops-workflow",
-      "source": {
-        "source": "local",
-        "path": "./plugins/gitops-workflow"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development"
-    },
-    {
       "name": "goalspec",
       "source": {
         "source": "local",
@@ -113,10 +101,10 @@
       "category": "Development"
     },
     {
-      "name": "rust-development",
+      "name": "software-development",
       "source": {
         "source": "local",
-        "path": "./plugins/rust-development"
+        "path": "./plugins/software-development"
       },
       "policy": {
         "installation": "AVAILABLE",

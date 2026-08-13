@@ -1,0 +1,38 @@
+{
+  "skill_name": "systematic-debugging",
+  "comment": "Boundary probes for unknown-cause diagnosis, including precedence over TDD and performance work.",
+  "queries": [
+    {
+      "id": "explicit-debugging",
+      "should_trigger": true,
+      "query": "Use $systematic-debugging to determine why this worker sometimes stops consuming messages."
+    },
+    {
+      "id": "implicit-crash",
+      "should_trigger": true,
+      "query": "The service crashes only on one production host after several hours. We do not know the cause; diagnose it."
+    },
+    {
+      "id": "implicit-flaky-ci",
+      "should_trigger": true,
+      "query": "A test passes locally but fails about one run in twenty in CI. Isolate what actually causes the failure before changing the code."
+    },
+    {
+      "id": "negative-known-fix",
+      "should_trigger": false,
+      "query": "Validation trims after checking emptiness. Add a regression test for blank input, then move trimming before the guard."
+    },
+    {
+      "id": "negative-defined-performance",
+      "should_trigger": false,
+      "query": "Profile this known CPU-heavy import path and reduce median runtime by 20% on the supplied corpus."
+    },
+    {
+      "id": "ambiguous-performance-regression",
+      "should_trigger": true,
+      "expected_skills": ["systematic-debugging", "performance-engineering"],
+      "excluded_skills": [],
+      "query": "Yesterday's deployment doubled p99 latency, but we do not know why. Find the cause, then validate any optimization against the prior baseline."
+    }
+  ]
+}

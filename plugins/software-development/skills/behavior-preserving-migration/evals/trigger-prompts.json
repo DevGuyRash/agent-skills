@@ -1,0 +1,38 @@
+{
+  "skill_name": "behavior-preserving-migration",
+  "comment": "Boundary probes for compatibility-preserving transitions versus local refactors, routine upgrades, and ordinary behavior changes.",
+  "queries": [
+    {
+      "id": "explicit-migration",
+      "should_trigger": true,
+      "query": "Use $behavior-preserving-migration to move this public API to v2 while existing clients continue working through cutover."
+    },
+    {
+      "id": "implicit-storage",
+      "should_trigger": true,
+      "query": "Move token storage from SQL to Redis without interrupting clients, validate equivalence, and retain a tested rollback path."
+    },
+    {
+      "id": "implicit-schema",
+      "should_trigger": true,
+      "query": "Roll out the new customer schema while old and new application versions overlap, backfill existing rows, then retire the old fields safely."
+    },
+    {
+      "id": "negative-local-refactor",
+      "should_trigger": false,
+      "query": "Rename these private helpers and split the module without changing its public behavior."
+    },
+    {
+      "id": "negative-routine-upgrade",
+      "should_trigger": false,
+      "query": "Apply the repository's normal patch-version dependency update and run the existing checks; no compatibility issue is expected."
+    },
+    {
+      "id": "ambiguous-composition",
+      "should_trigger": true,
+      "expected_skills": ["behavior-preserving-migration", "test-driven-development"],
+      "excluded_skills": ["refactoring"],
+      "query": "Upgrade the framework across rolling deployments, preserve current clients, and intentionally adopt its new validation semantics with explicit behavior tests."
+    }
+  ]
+}

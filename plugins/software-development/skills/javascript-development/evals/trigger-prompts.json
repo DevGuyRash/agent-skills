@@ -1,0 +1,43 @@
+{
+  "skill_name": "javascript-development",
+  "comment": "Boundary probes for JavaScript language work versus TypeScript-only, Node-only, and non-code neighbors.",
+  "queries": [
+    {
+      "id": "implicit-module-fix",
+      "should_trigger": true,
+      "query": "Fix the circular import and initialization-order bug in these .mjs modules without changing their public exports."
+    },
+    {
+      "id": "implicit-async-fix",
+      "should_trigger": true,
+      "query": "This browser-side JavaScript sometimes returns before all uploads settle. Repair the async flow and add a regression test."
+    },
+    {
+      "id": "explicit-invocation",
+      "should_trigger": true,
+      "query": "Use $javascript-development to review this .cjs utility for coercion and error-handling bugs."
+    },
+    {
+      "id": "composition-node-service",
+      "should_trigger": true,
+      "expected_skills": ["javascript-development", "nodejs-development"],
+      "excluded_skills": ["typescript-development"],
+      "query": "Update the JavaScript Node service so rejected requests cancel outstanding work and shutdown closes the server cleanly."
+    },
+    {
+      "id": "negative-typescript-only",
+      "should_trigger": false,
+      "query": "Refine this TypeScript discriminated union so every reducer branch is exhaustively checked."
+    },
+    {
+      "id": "negative-node-package-only",
+      "should_trigger": false,
+      "query": "Correct the conditional exports and engines range in package.json; no JavaScript source changes are needed."
+    },
+    {
+      "id": "negative-css",
+      "should_trigger": false,
+      "query": "Adjust the CSS grid breakpoints for the dashboard layout."
+    }
+  ]
+}

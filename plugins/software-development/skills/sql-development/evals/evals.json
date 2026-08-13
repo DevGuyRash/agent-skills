@@ -1,0 +1,43 @@
+{
+  "skill_name": "sql-development",
+  "evals": [
+    {
+      "id": "eval-outer-join-cardinality",
+      "prompt": "Repair a customer report where a LEFT JOIN plus a WHERE predicate drops customers without orders, while duplicate dimension rows multiply totals.",
+      "expected_output": "The solution establishes row grain and expected multiplicity, preserves unmatched customers, fixes the actual join or aggregation semantics without a DISTINCT patch, and tests missing, duplicate, and tied-order cases on the detected dialect.",
+      "files": []
+    },
+    {
+      "id": "eval-nullable-not-in",
+      "prompt": "Fix a relational exclusion query that unexpectedly returns no rows when the subquery contains NULL.",
+      "expected_output": "The change explains and addresses three-valued logic using a semantically appropriate anti-match, preserves duplicate and empty-set behavior, and tests NULL, empty, matching, and nonmatching inputs through the repository driver.",
+      "files": [
+        "evals/files/exclusion.sql"
+      ]
+    },
+    {
+      "id": "eval-unique-migration",
+      "prompt": "Design a rolling migration that enforces one active slug per tenant while inactive historical rows may reuse a slug.",
+      "expected_output": "The work discovers engine/version and deployment topology, selects a supported invariant mechanism, plans compatible expansion/backfill/validation/cutover steps, avoids rewriting applied history, and identifies recovery plus post-migration checks.",
+      "files": []
+    },
+    {
+      "id": "eval-double-booking",
+      "prompt": "Prevent two concurrent transactions from reserving the same seat while preserving the repository's existing retry and connection-pool model.",
+      "expected_output": "The solution states the invariant and relevant anomaly, uses a matching vendor skill when installed and otherwise primary documentation for the detected engine/version, names assumptions or unverified semantics, selects a justified concurrency mechanism, bounds whole-transaction retries, and verifies with a concurrent test.",
+      "files": []
+    },
+    {
+      "id": "eval-dynamic-order-security",
+      "prompt": "Repair an embedded SQL endpoint that binds filter values but concatenates a user-provided ORDER BY column and direction.",
+      "expected_output": "The result retains value binding, maps structural choices through a closed allowlist with dialect-safe identifier handling, preserves authorization and pagination semantics, and tests hostile structural and value inputs.",
+      "files": []
+    },
+    {
+      "id": "eval-performance-composition",
+      "prompt": "For the documented ten-million-row workload, validate whether the proposed index reduces query p99 from 900 ms below 300 ms without changing results or risking production writes.",
+      "expected_output": "The work composes SQL correctness and performance engineering; uses a matching vendor skill when installed and otherwise primary documentation for the detected engine/version, naming assumptions or unverified semantics; establishes representative baselines and result equivalence, uses a safe plan mode, measures the index, and reports write, storage, concurrency, and untested-production tradeoffs.",
+      "files": []
+    }
+  ]
+}

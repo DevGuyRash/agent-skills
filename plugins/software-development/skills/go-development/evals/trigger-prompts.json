@@ -1,0 +1,38 @@
+{
+  "skill_name": "go-development",
+  "comment": "Trigger boundary for substantive Go source/tooling work versus sibling workflows and non-Go repository tasks.",
+  "queries": [
+    {
+      "id": "implicit-go-source",
+      "should_trigger": true,
+      "query": "Fix the typed-nil bug in internal/client/client.go and keep the exported API compatible."
+    },
+    {
+      "id": "implicit-go-module",
+      "should_trigger": true,
+      "query": "Update the protobuf dependency in this Go module without disturbing unrelated indirect requirements."
+    },
+    {
+      "id": "explicit-skill",
+      "should_trigger": true,
+      "query": "Use $go-development to review this goroutine shutdown path and its tests."
+    },
+    {
+      "id": "negative-git-policy",
+      "should_trigger": false,
+      "query": "Define a trunk-based branch policy for this repository; do not change source code."
+    },
+    {
+      "id": "negative-sql-only",
+      "should_trigger": false,
+      "query": "Optimize this PostgreSQL query used by a Go service; the Go caller is out of scope."
+    },
+    {
+      "id": "composition-go-performance",
+      "should_trigger": true,
+      "expected_skills": ["go-development", "performance-engineering"],
+      "excluded_skills": ["systematic-debugging"],
+      "query": "Profile and reduce allocations in this Go JSON hot path, with before-and-after benchmarks."
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "skill_name": "c-development",
+  "comment": "Routing probes for C compilation, header classification, C++ near-neighbors, and mixed-language composition.",
+  "queries": [
+    {
+      "id": "implicit-c-buffer",
+      "should_trigger": true,
+      "query": "Fix the overflow in src/frame.c when an untrusted length is multiplied before allocation."
+    },
+    {
+      "id": "implicit-c-header",
+      "should_trigger": true,
+      "query": "Update include/device.h; compile_commands.json shows it is included by three C11 translation units built with clang."
+    },
+    {
+      "id": "implicit-c-worker-race",
+      "should_trigger": true,
+      "expected_skills": [
+        "c-development"
+      ],
+      "excluded_skills": [
+        "cpp-development"
+      ],
+      "query": "Fix a pthread shutdown race in worker_pool.c: workers poll a volatile flag and can touch the shared queue after main frees it."
+    },
+    {
+      "id": "explicit-c-development",
+      "should_trigger": true,
+      "query": "Use $c-development to review this C cleanup path and preserve the library ABI."
+    },
+    {
+      "id": "negative-cpp-header",
+      "should_trigger": false,
+      "query": "Refactor widget.h, which is included only by .cpp files and defines templates, std::span parameters, and a C++20 concept."
+    },
+    {
+      "id": "negative-cmake-cpp-only",
+      "should_trigger": false,
+      "query": "Change the CMake compile features for a target containing only C++ sources; no C target or C-facing header is involved."
+    },
+    {
+      "id": "composition-shared-header",
+      "should_trigger": true,
+      "expected_skills": ["c-development", "cpp-development"],
+      "excluded_skills": [],
+      "query": "Change api.h, which is compiled into a C shared library and included directly by supported C++ consumers through extern C."
+    }
+  ]
+}

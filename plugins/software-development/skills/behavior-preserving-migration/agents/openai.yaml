@@ -1,0 +1,6 @@
+interface:
+  display_name: "Behavior-Preserving Migration"
+  short_description: "Migrate systems while preserving contracts"
+  default_prompt: "Use $behavior-preserving-migration to design a compatible transition, cutover, and rollback path."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ruby Development"
+  short_description: "Build repository-aligned Ruby code"
+  default_prompt: "Use $ruby-development to implement or review this repository's Ruby code while preserving its Bundler, runtime, and API contracts."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,38 @@
+{
+  "skill_name": "performance-engineering",
+  "comment": "Boundary probes for explicit, measurable performance work versus unknown-cause diagnosis and speculative optimization.",
+  "queries": [
+    {
+      "id": "explicit-performance",
+      "should_trigger": true,
+      "query": "Use $performance-engineering to profile the importer and prove whether the proposed optimization reduces runtime."
+    },
+    {
+      "id": "implicit-tail-latency",
+      "should_trigger": true,
+      "query": "Reduce API p99 latency from 450 ms to under 250 ms at 1,000 requests per second without using more than 10% additional memory."
+    },
+    {
+      "id": "implicit-memory",
+      "should_trigger": true,
+      "query": "Peak resident memory during the supplied corpus import must stay below 512 MiB. Profile allocations, improve it, and show before-and-after evidence."
+    },
+    {
+      "id": "negative-unknown-regression",
+      "should_trigger": false,
+      "query": "The service suddenly became slow after yesterday's deployment and we do not know why. Find the cause."
+    },
+    {
+      "id": "negative-speculation",
+      "should_trigger": false,
+      "query": "Replace every nested loop in the repository because O(n squared) is always too slow."
+    },
+    {
+      "id": "ambiguous-composition",
+      "should_trigger": true,
+      "expected_skills": ["performance-engineering", "refactoring"],
+      "excluded_skills": ["systematic-debugging"],
+      "query": "A profile already identifies this behavior-neutral allocation path as the bottleneck. Restructure it and verify the p95 and memory effects against the baseline."
+    }
+  ]
+}

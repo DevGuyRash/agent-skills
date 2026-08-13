@@ -1,0 +1,67 @@
+{
+  "skill_name": "kotlin-development",
+  "evals": [
+    {
+      "id": "eval-language-version",
+      "prompt": "A library pins an older Kotlin language and API version. Implement a public model without changing build settings.",
+      "expected_output": "The implementation uses syntax and APIs supported by the declared versions and does not upgrade the compiler or opt into a newer feature.",
+      "files": []
+    },
+    {
+      "id": "eval-platform-null",
+      "prompt": "A Java API returns a platform type that is unexpectedly null in production.",
+      "expected_output": "Null is validated or translated at the Java boundary with domain context; uncertainty and !! are not spread through unrelated Kotlin code.",
+      "files": []
+    },
+    {
+      "id": "eval-data-class-copy",
+      "prompt": "A copied data class shares a mutable list and callers expected isolation.",
+      "expected_output": "The shallow-copy semantics are recognized and isolation is added at the owning boundary with tests; data-class copy is not described as deep cloning.",
+      "files": [
+        "evals/files/Batch.kt"
+      ]
+    },
+    {
+      "id": "eval-read-only-alias",
+      "prompt": "An API returns List but its internal MutableList later changes under the caller.",
+      "expected_output": "The read-only-versus-immutable distinction is identified and a snapshot is made only where the API promises isolation.",
+      "files": []
+    },
+    {
+      "id": "eval-cancellation",
+      "prompt": "A broad catch in a suspend function converts every exception to an empty result.",
+      "expected_output": "CancellationException remains propagating, recoverable domain failures are handled narrowly, and cleanup is verified without a blanket exception ban.",
+      "files": []
+    },
+    {
+      "id": "eval-scope-ownership",
+      "prompt": "Replace an unowned GlobalScope launch in a reusable component.",
+      "expected_output": "The work is attached to an explicit component or caller lifecycle with observable failure and cancellation, not merely moved to another global scope.",
+      "files": []
+    },
+    {
+      "id": "eval-java-interop",
+      "prompt": "A public Kotlin API with default arguments is awkward for an established Java caller.",
+      "expected_output": "The emitted JVM API and existing caller are inspected; only necessary overloads or annotations are added and binary/source compatibility is checked.",
+      "files": []
+    },
+    {
+      "id": "eval-common-source-set",
+      "prompt": "Add filesystem logic to commonMain in a JVM and Native project.",
+      "expected_output": "Platform APIs are kept out of commonMain through a portable API or a justified expect/actual boundary, and affected targets are verified.",
+      "files": []
+    },
+    {
+      "id": "eval-test-adaptation",
+      "prompt": "Add a coroutine regression test to a module using kotlin.test and kotlinx-coroutines-test.",
+      "expected_output": "The configured scheduler and assertions are reused, virtual time or events replace sleeps, and no JUnit/Kotest migration is introduced.",
+      "files": []
+    },
+    {
+      "id": "eval-android-composition",
+      "prompt": "Fix a Kotlin Flow collection bug tied to an Android lifecycle owner.",
+      "expected_output": "Kotlin coroutine semantics use this skill while lifecycle ownership and Android APIs are routed to an Android skill; neither domain is collapsed into the other.",
+      "files": []
+    }
+  ]
+}

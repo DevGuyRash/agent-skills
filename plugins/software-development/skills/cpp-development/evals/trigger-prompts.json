@@ -1,0 +1,49 @@
+{
+  "skill_name": "cpp-development",
+  "comment": "Routing probes for C++ compilation, header classification, C near-neighbors, and shared-language composition.",
+  "queries": [
+    {
+      "id": "implicit-dangling-view",
+      "should_trigger": true,
+      "query": "Fix this C++ function returning std::string_view into a temporary without changing the caller's required behavior."
+    },
+    {
+      "id": "implicit-template-build",
+      "should_trigger": true,
+      "query": "Move this C++20 constrained template without causing duplicate definitions or breaking explicit instantiations."
+    },
+    {
+      "id": "implicit-cpp-worker-race",
+      "should_trigger": true,
+      "expected_skills": [
+        "cpp-development"
+      ],
+      "excluded_skills": [
+        "c-development"
+      ],
+      "query": "Fix this C++ worker shutdown: detached std::threads capture this and can wake after the queue and condition_variable are destroyed."
+    },
+    {
+      "id": "explicit-cpp-development",
+      "should_trigger": true,
+      "query": "Use $cpp-development to add RAII ownership for this native resource and preserve the shared-library ABI."
+    },
+    {
+      "id": "negative-c-header",
+      "should_trigger": false,
+      "query": "Update codec.h, which is compiled and included only by C99 translation units and exposes no C++ consumer contract."
+    },
+    {
+      "id": "negative-cmake-c-only",
+      "should_trigger": false,
+      "query": "Adjust warnings for a CMake target whose language is C and whose source list contains only .c files."
+    },
+    {
+      "id": "composition-shared-header",
+      "should_trigger": true,
+      "expected_skills": ["c-development", "cpp-development"],
+      "excluded_skills": [],
+      "query": "Change api.h, which declares a C library ABI and is also a supported public include for C++ applications."
+    }
+  ]
+}

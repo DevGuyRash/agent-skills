@@ -1,0 +1,6 @@
+interface:
+  display_name: "PHP Development"
+  short_description: "Build repository-aligned PHP code"
+  default_prompt: "Use $php-development to implement or review this repository's PHP code while preserving its Composer, runtime, and API contracts."
+policy:
+  allow_implicit_invocation: true

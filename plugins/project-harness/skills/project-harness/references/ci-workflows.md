@@ -228,14 +228,17 @@ It is safe only when the repo has clear boundaries and the generated checks are 
 `project-harness` stops at CI generation, workflow shape, and starter examples.
 It does not own branch protection, required-check enforcement, CODEOWNERS reconciliation, or ruleset management.
 
-Use stable workflow and job names here so downstream governance can depend on them later.
-For enforcement, hand off to `gitops-workflow`, which owns:
-- required-check policy and discovery
-- CODEOWNERS policy and reconciliation
-- rulesets or legacy branch-protection reconciliation
-- label and review-governance surfaces
+Use stable workflow and job names here so repository policy and native host
+tooling can depend on them later.
 
-That split keeps `project-harness` focused on command and CI scaffolding and avoids duplicating governance logic in two skills.
+For enforcement and operations, rely on the repo's chosen governance surface:
+- required-check policy in repository settings or rulesets
+- CODEOWNERS policy in tracked repository files
+- branch protection or ruleset reconciliation through official host integrations
+- review and label operations through native `git`, `gh`, or first-party host tooling
+
+That split keeps `project-harness` focused on command and CI scaffolding
+without reintroducing a separate Git governance skill.
 
 ## Generated versus example-only CI assets
 

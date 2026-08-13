@@ -1,0 +1,31 @@
+{
+  "skill_name": "php-development",
+  "evals": [
+    {
+      "id": "eval-version-platform-lock",
+      "prompt": "A Composer application declares PHP 8.2, emulates 8.2 with config.platform, runs locally on PHP 8.5, and has a lockfile. Implement a change that is tempting to write with PHP 8.4 syntax.",
+      "expected_output": "Honor the declared minimum or explicitly negotiate a migration, distinguish config.platform from the actual runtime, preserve locked dependencies unless resolution is intended, and verify metadata plus relevant platform requirements.",
+      "files": []
+    },
+    {
+      "id": "eval-public-named-api",
+      "prompt": "Refactor a public library method whose consumers use named arguments and whose PHPStan generic PHPDoc adds information beyond native types.",
+      "expected_output": "Preserve or intentionally migrate parameter names, defaults, variance, exceptions, and analyzer contracts; keep useful PHPStan detail; avoid a broad strict-types or documentation rewrite; and add focused compatibility tests.",
+      "files": []
+    },
+    {
+      "id": "eval-worker-resource-lifetime",
+      "prompt": "Fix a long-running PHP worker that catches Throwable, leaks a transaction and stream, and relies on a destructor for cleanup.",
+      "expected_output": "Narrow the catch boundary, preserve fatal/programming error behavior, make transaction and stream ownership deterministic with finally, avoid destructor-dependent correctness, and verify failure and repeated-job paths.",
+      "files": [
+        "evals/files/Worker.php"
+      ]
+    },
+    {
+      "id": "eval-framework-security-composition",
+      "prompt": "A WordPress plugin accepts an archive upload, interpolates a requested column into SQL, and must retain its declared older PHP baseline.",
+      "expected_output": "Compose PHP, WordPress, and security guidance; preserve the declared baseline; validate archive destinations; parameterize values and allowlist query structure; retain framework lifecycle conventions; and add focused regression coverage.",
+      "files": []
+    }
+  ]
+}

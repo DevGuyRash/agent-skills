@@ -1,0 +1,38 @@
+{
+  "skill_name": "unsafe-rust",
+  "comment": "Routing probes for unsafe Rust boundaries versus ordinary safe Rust and panic-pattern auditing.",
+  "queries": [
+    {
+      "id": "implicit-ffi-callback",
+      "should_trigger": true,
+      "query": "Fix the Rust wrapper around this C callback; the context pointer may be used after the owner is dropped."
+    },
+    {
+      "id": "implicit-unsafe-sync",
+      "should_trigger": true,
+      "query": "Review and correct this unsafe Sync implementation for a wrapper around a thread-affine native handle."
+    },
+    {
+      "id": "explicit-unsafe-rust",
+      "should_trigger": true,
+      "query": "Use $unsafe-rust to design a safe abstraction over this raw pointer and document its invariants."
+    },
+    {
+      "id": "negative-safe-borrowing",
+      "should_trigger": false,
+      "query": "Fix this safe Rust borrow-checker error using ordinary ownership and lifetime changes; the crate contains no unsafe code."
+    },
+    {
+      "id": "negative-panic-report",
+      "should_trigger": false,
+      "query": "Produce a repository-wide report of Rust panic sites without changing or reviewing any unsafe boundary."
+    },
+    {
+      "id": "composition-async-ffi",
+      "should_trigger": true,
+      "expected_skills": ["rust-development", "unsafe-rust", "async-rust"],
+      "excluded_skills": ["rust-panic-audit"],
+      "query": "An async Rust future registers an unsafe foreign callback and can be canceled before deregistration completes."
+    }
+  ]
+}

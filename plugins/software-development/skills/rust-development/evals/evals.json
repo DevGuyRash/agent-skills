@@ -1,0 +1,63 @@
+{
+  "skill_name": "rust-development",
+  "evals": [
+    {
+      "id": "eval-panic-resistant-boundary",
+      "prompt": "A library function currently unwraps malformed caller input. Replace the failure behavior without imposing a repository-wide ban on unwrap or expect.",
+      "expected_decision": "Represent caller-recoverable failure in the function's contract while leaving locally proven invariants and test setup to contextual judgment.",
+      "expected_result": "Malformed input no longer causes an undocumented panic, and callers receive the repository-appropriate Option or Result behavior.",
+      "expected_output": "Explain the chosen failure boundary, preserve useful source/context without leaking data, and report targeted success and failure-path tests.",
+      "files": [
+        "evals/files/panic_boundary.rs"
+      ]
+    },
+    {
+      "id": "eval-preserve-cargo-contract",
+      "prompt": "Add one optional dependency to a published crate whose manifest pins an MSRV and disables that dependency's default features.",
+      "expected_decision": "Preserve the edition, MSRV, resolver, lockfile policy, default features, and dependency feature posture unless the requested capability requires a documented change.",
+      "expected_result": "The new capability is opt-in and supported configurations still compile without incidental dependency or lockfile churn.",
+      "expected_output": "Name the manifest contracts preserved and the exact feature/configuration checks run.",
+      "files": []
+    },
+    {
+      "id": "eval-ownership-before-clone",
+      "prompt": "The borrow checker rejects a change, and adding clone calls everywhere would compile.",
+      "expected_decision": "First determine the intended owner and borrowing duration, then use transfer, borrowing, restructuring, or a justified bounded clone.",
+      "expected_result": "The code compiles with ownership matching the data lifecycle rather than accidental pervasive cloning.",
+      "expected_output": "State the ownership model, any accepted allocation tradeoff, and the targeted compiler/test evidence.",
+      "files": []
+    },
+    {
+      "id": "eval-feature-matrix-not-all-features",
+      "prompt": "A crate documents two mutually exclusive backend features, while the default build uses neither.",
+      "expected_decision": "Use the repository's supported feature matrix instead of assuming cargo test --all-features is meaningful.",
+      "expected_result": "Default and each supported backend configuration are checked independently; the intentionally invalid combination is not presented as a product failure.",
+      "expected_output": "List the supported configurations exercised and any unavailable target or feature surface.",
+      "files": []
+    },
+    {
+      "id": "eval-specialist-composition",
+      "prompt": "A Rust function combines async cancellation with an unsafe FFI callback.",
+      "expected_decision": "Compose rust-development with both async-rust and unsafe-rust rather than expanding the core skill into either specialist domain.",
+      "expected_result": "The ordinary Rust API/toolchain contract, cancellation lifecycle, and unsafe boundary are all addressed without conflicting guidance.",
+      "expected_output": "Identify the three relevant contracts and report verification for each independently.",
+      "files": []
+    },
+    {
+      "id": "eval-sync-worker-shutdown",
+      "prompt": "A synchronous Rust service owns std::thread workers fed by an unbounded channel and updating Arc<Mutex<State>>. Shutdown sometimes hangs because a sender clone survives, the owner joins while holding the state lock, worker errors are logged and lost, and JoinHandles are dropped. Repair the lifecycle without introducing async or unsafe code.",
+      "expected_decision": "Keep synchronous concurrency because the existing worker requirement is concrete; give the pool one owner, bound admission with a declared overload policy, close or signal every producer, release shared-state locks before waiting, wake blocked workers, and join them while distinguishing returned errors from panics.",
+      "expected_result": "Queued and in-flight work are bounded, shutdown has an explicit drain-or-cancel contract, all workers terminate and are joined, and failures reach the owner without an async runtime, detached thread, polling sleep, or unjustified atomic protocol.",
+      "expected_output": "State ownership, channel versus shared-state responsibilities, capacity and backpressure, lock and shutdown ordering, failure and panic propagation, required ordering semantics, and deterministic tests for capacity, blocked shutdown, disconnect, error, and panic paths.",
+      "files": []
+    },
+    {
+      "id": "eval-sync-condvar-state",
+      "prompt": "A standard-library Rust queue uses Arc<(Mutex<State>, Condvar)>, waits with if instead of a predicate loop, ignores mutex poisoning, and adds a relaxed AtomicBool solely for shutdown. The repository already has concurrency model checks configured. Repair the coordination contract.",
+      "expected_decision": "Keep the queue predicate and terminal shutdown state under one mutex, wait in a predicate loop, make the terminal transition while locked, notify every waiter that must exit, choose an explicit poison policy, and remove the redundant atomic unless a separate atomic contract and happens-before relation justify it.",
+      "expected_result": "Spurious or consumed wakeups cannot violate the queue invariant, shutdown cannot strand waiters, poisoned state is handled intentionally, and atomics do not split one compound invariant across unsynchronized mechanisms.",
+      "expected_output": "Name the protected invariant, lock scope and order, wait predicate, terminal transition and notification, poison policy, and any justified memory ordering; use deterministic coordination tests and the repository's configured model checks while reporting their state-space limits.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Shell Development"
+  short_description: "Build safe, dialect-correct shell code"
+  default_prompt: "Use $shell-development to implement or review this repository's POSIX sh, Bash, or PowerShell code under its declared interpreter."
+policy:
+  allow_implicit_invocation: true

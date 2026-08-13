@@ -34,6 +34,7 @@ test:
   python3 -m unittest scripts.tests.test_render_table scripts.tests.test_package_skills scripts.tests.test_plugin_port scripts.tests.test_install_all
   python3 -m unittest discover -s plugins/excel-foundry/skills/excel-foundry/tests -p 'test_*.py'
   PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/linux-desktop-control/skills/linux-desktop-control/tests -p 'test_*.py'
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/software-development/tests -p 'test_*.py'
   PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/skill-auditor/skills/skill-auditor/tests -p 'test_*.py'
   bash plugins/friction-diagnostics/skills/friction-diagnostics/tests/smoke-posix.sh
 

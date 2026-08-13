@@ -1,0 +1,23 @@
+{
+  "skill_name": "test-driven-development",
+  "evals": [
+    {
+      "id": "eval-new-behavior",
+      "prompt": "Add an optional maximum-attempts parameter to an existing retry helper. The repository already has a test framework and focused test command.",
+      "expected_output": "Define one observable retry behavior, add and run a focused test that fails because the option is absent, implement only the required behavior, then report the focused and relevant surrounding passing checks without demanding tests per function.",
+      "files": []
+    },
+    {
+      "id": "eval-known-bug",
+      "prompt": "A parser is known to accept an empty header because the guard checks before trimming. Fix it without changing other accepted inputs.",
+      "expected_output": "Add a regression test for the desired rejection, observe it fail for the known behavior gap, make the narrow correction, verify accepted-input coverage, and keep unrelated parser behavior unchanged.",
+      "files": []
+    },
+    {
+      "id": "eval-existing-implementation",
+      "prompt": "The requested feature was already implemented before this task but has no tests. Add trustworthy coverage now.",
+      "expected_output": "Preserve the existing implementation, describe the work honestly as characterization or test-after rather than deleting code or fabricating a red phase, prove the test reaches the behavior when practical, and report any remaining verification limitation.",
+      "files": []
+    }
+  ]
+}

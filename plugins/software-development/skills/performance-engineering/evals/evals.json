@@ -1,0 +1,35 @@
+{
+  "skill_name": "performance-engineering",
+  "evals": [
+    {
+      "id": "eval-tail-latency",
+      "prompt": "Reduce p99 request latency below 200 ms at 800 requests per second while keeping peak memory within 10% of baseline.",
+      "expected_output": "Define the workload and environment, collect comparable baseline latency-distribution and memory evidence, profile the representative path, test one supported change, verify correctness, and report magnitude, variability, guardrails, and whether the target was met.",
+      "files": []
+    },
+    {
+      "id": "eval-micro-system-disagreement",
+      "prompt": "A new implementation is 40% faster in a microbenchmark but the application-level benchmark is unchanged.",
+      "expected_output": "Limit the microbenchmark claim to its measured operation, investigate call frequency and shifted bottlenecks, keep the application result authoritative for product impact, and avoid claiming a user-visible win without representative evidence.",
+      "files": []
+    },
+    {
+      "id": "eval-unknown-slowdown",
+      "prompt": "After a deployment, p99 doubled unexpectedly and no cause has been identified. Optimize the service.",
+      "expected_output": "Route first to systematic debugging because the regression cause is unknown, preserve the prior and current performance evidence, and defer optimization claims until diagnosis identifies a path that can be measured under a defined criterion.",
+      "files": []
+    },
+    {
+      "id": "eval-speculative-parallelism",
+      "prompt": "Make a batch importer faster by adding a worker pool. There is no representative benchmark or profile, and current latency, throughput, ordering, and resource limits are unknown.",
+      "expected_output": "Do not add parallelism on speculation; define the workload and success metric, measure a baseline, profile the representative path, and compare simpler supported changes before accepting synchronization, scheduling, and lifecycle complexity.",
+      "files": []
+    },
+    {
+      "id": "eval-justified-parallelism",
+      "prompt": "A representative profile shows independent CPU transforms consume 72% of an image pipeline and miss its throughput target. Design and validate a parallel implementation without unbounded work or behavioral drift.",
+      "expected_output": "Define concurrency and queue bounds, result ordering, cancellation, backpressure, cleanup, worker failure propagation, and correctness/resource guardrails; then compare before-and-after representative measurements with variability and reject the change if end-to-end benefit does not justify the complexity.",
+      "files": []
+    }
+  ]
+}

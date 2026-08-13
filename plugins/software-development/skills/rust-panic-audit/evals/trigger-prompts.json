@@ -1,0 +1,43 @@
+{
+  "skill_name": "rust-panic-audit",
+  "comment": "Boundary probes for explicit and strict Rust panic auditing versus ordinary Rust development, debugging, and unsafe review.",
+  "queries": [
+    {
+      "id": "implicit-high-availability",
+      "should_trigger": true,
+      "query": "Audit direct panic surfaces in this high-availability Rust request path and report the residual risk."
+    },
+    {
+      "id": "implicit-strict-policy",
+      "should_trigger": true,
+      "query": "This Rust workspace has a strict no-direct-panic boundary policy; check the selected production crates."
+    },
+    {
+      "id": "explicit-codex",
+      "should_trigger": true,
+      "query": "Use $rust-panic-audit with the core profile on crates/gateway/Cargo.toml."
+    },
+    {
+      "id": "explicit-claude",
+      "should_trigger": true,
+      "query": "Run /software-development:rust-panic-audit for package edge-api."
+    },
+    {
+      "id": "negative-ordinary-error",
+      "should_trigger": false,
+      "query": "Replace this Rust parse error type without changing the public API."
+    },
+    {
+      "id": "negative-unknown-crash",
+      "should_trigger": false,
+      "query": "The Rust service crashes intermittently and we do not know why; diagnose the cause."
+    },
+    {
+      "id": "ambiguous-ffi-boundary",
+      "should_trigger": true,
+      "expected_skills": ["rust-development", "rust-panic-audit", "unsafe-rust"],
+      "excluded_skills": ["async-rust"],
+      "query": "Review a Rust FFI boundary used by an embedded host for both unwind safety and direct panic paths."
+    }
+  ]
+}

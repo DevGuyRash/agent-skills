@@ -1,0 +1,29 @@
+{
+  "skill_name": "rust-panic-audit",
+  "evals": [
+    {
+      "id": "eval-core-clean",
+      "prompt": "Run the core audit on a crate with no direct constructs under the selected default features.",
+      "expected_decision": "Preserve Cargo defaults, run supported core lints and the lexical pass, and retain residual-risk limits.",
+      "expected_result": "Exit 0 only when every requested check completed and no compiler finding or lexical candidate remains.",
+      "expected_output": "Identify scope, expectations, unavailable lints, and residual risk; say no forbidden direct constructs were found, never panic-free.",
+      "files": []
+    },
+    {
+      "id": "eval-strict-findings",
+      "prompt": "Audit a strict boundary containing unwrap, indexing, arithmetic, panic in a Result function, assert, and debug_assert.",
+      "expected_decision": "Select strict lints individually and independently scan direct and assertion candidates without enabling the restriction group.",
+      "expected_result": "Exit 1 with compiler findings and/or lexical review candidates, while distinguishing unavailable lint coverage.",
+      "expected_output": "Report each evidence class and the selected profile without claiming whole-program coverage.",
+      "files": []
+    },
+    {
+      "id": "eval-incomplete-tooling",
+      "prompt": "The repository toolchain lacks Clippy or the requested target cannot compile.",
+      "expected_decision": "Keep the requested scope, record the failing tooling category, and do not silently switch toolchains, targets, or features.",
+      "expected_result": "Exit 2 and preserve any partial lexical evidence as incomplete rather than clean.",
+      "expected_output": "Name the unavailable evidence and a repository-compatible next check.",
+      "files": []
+    }
+  ]
+}

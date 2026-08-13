@@ -1,0 +1,31 @@
+{
+  "skill_name": "shell-development",
+  "evals": [
+    {
+      "id": "eval-posix-routing",
+      "prompt": "A file named deploy.sh is invoked explicitly with dash in CI. Fix its argument parsing; the local developer ran it successfully with Bash.",
+      "expected_output": "Route to POSIX sh based on the configured runner, avoid Bash-only syntax and pipefail, preserve argument and exit contracts, and verify with dash plus repository checks rather than local Bash alone.",
+      "files": [
+        "evals/files/deploy.sh"
+      ]
+    },
+    {
+      "id": "eval-bash-version-contract",
+      "prompt": "A Bash script supports macOS's older repository-declared Bash and Linux Bash. Refactor its command construction and cleanup without changing that support range.",
+      "expected_output": "Use Bash features available across the declared versions, preserve argument boundaries with arrays, avoid a mechanical strict-mode change, retain failure status through cleanup, and test the supported matrix.",
+      "files": []
+    },
+    {
+      "id": "eval-powershell-pipeline-errors",
+      "prompt": "A PowerShell function emits objects to callers, invokes a native executable, and currently catches neither non-terminating cmdlet errors nor native nonzero exits correctly.",
+      "expected_output": "Preserve object output and stream placement, promote only the intended cmdlet errors to terminating scope, check the native exit code under supported PowerShell semantics, retain failure through cleanup, and verify object and error paths.",
+      "files": []
+    },
+    {
+      "id": "eval-process-security",
+      "prompt": "A deployment script receives a user-selected environment, creates a temporary directory, builds a command string with eval, and recursively deletes the directory on exit.",
+      "expected_output": "Compose the selected dialect with process-security guidance, replace reparsed command construction with structured arguments, allowlist control values, create and own temporary state safely, validate the exact deletion target, preserve status, and test adversarial inputs.",
+      "files": []
+    }
+  ]
+}

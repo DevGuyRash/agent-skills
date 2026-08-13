@@ -1,0 +1,55 @@
+{
+  "skill_name": "c-development",
+  "evals": [
+    {
+      "id": "eval-header-classification",
+      "prompt": "A file named parser.h must be changed, but its syntax alone is valid in both C and C++.",
+      "expected_decision": "Inspect build targets, compiler invocations, includers, and compatibility guarantees before selecting C, C++, or both skills.",
+      "expected_result": "The header remains valid for every declared consumer and no language is inferred from the extension alone.",
+      "expected_output": "Name the evidence used to classify the header and the C/C++ compilation checks run.",
+      "files": []
+    },
+    {
+      "id": "eval-overflow-before-allocation",
+      "prompt": "Allocate count * sizeof(struct item) bytes where count is parsed from an untrusted packet.",
+      "expected_decision": "Validate count and multiplication before evaluating a wrapping size expression, then preserve the API's failure convention.",
+      "expected_result": "Oversized input is rejected without undersized allocation, out-of-bounds writes, or leaked partial state.",
+      "expected_output": "State the size bound, error path, ownership cleanup, and boundary/sanitizer tests used.",
+      "files": [
+        "evals/files/packet_items.c"
+      ]
+    },
+    {
+      "id": "eval-partial-cleanup",
+      "prompt": "A constructor acquires a file, allocates two buffers, and initializes a mutex; each step can fail.",
+      "expected_decision": "Track successful acquisition explicitly and use a single clear cleanup path, including goto cleanup if that best matches the codebase.",
+      "expected_result": "Every partial-failure path releases exactly the resources it owns in a valid order and leaves outputs in their documented state.",
+      "expected_output": "Describe ownership at each acquisition point and report injected-failure coverage.",
+      "files": []
+    },
+    {
+      "id": "eval-public-abi-layout",
+      "prompt": "Add a field to a public struct allocated by clients of an existing shared C library.",
+      "expected_decision": "Treat size, alignment, allocation ownership, and binary consumers as ABI constraints; choose a compatibility-preserving extension or explicitly version the ABI.",
+      "expected_result": "Existing binary consumers do not silently allocate the wrong size or observe incompatible layout.",
+      "expected_output": "Name the ABI strategy and checks across supported compilers, library variants, and consumers.",
+      "files": []
+    },
+    {
+      "id": "eval-sanitizer-not-proof",
+      "prompt": "AddressSanitizer and UndefinedBehaviorSanitizer pass for a pointer-heavy parser on one host.",
+      "expected_decision": "Use the runs as evidence while still reviewing bounds, lifetime, integer, aliasing, concurrency, and target assumptions.",
+      "expected_result": "The completion claim is scoped to exercised configurations and names untested compilers, inputs, or undefined-behavior classes.",
+      "expected_output": "Report tool/configuration coverage accurately and do not claim that clean dynamic analysis proves portable correctness.",
+      "files": []
+    },
+    {
+      "id": "eval-worker-shutdown-race",
+      "prompt": "A C pthread worker pool reads a shared bounded queue, polls a volatile stop flag, and can still access the queue after shutdown frees it.",
+      "expected_decision": "Define one synchronization contract for queue state and stopping, wake blocked workers, stop admission, and join every started worker before destroying shared state; handle partial startup and worker failure through the repository's error convention.",
+      "expected_result": "No ordinary-memory race or teardown use-after-free remains, blocked workers can exit, queued-work policy is explicit, and every successful acquisition has one shutdown owner.",
+      "expected_output": "State the queue and object-lifetime invariants, shutdown order, failure propagation, and deterministic coordination or supported ThreadSanitizer evidence used; do not present volatile as synchronization.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "skill_name": "rust-development",
+  "comment": "Routing probes for ordinary Rust work, focused specialists, and adjacent development workflows.",
+  "queries": [
+    {
+      "id": "implicit-borrowed-parser",
+      "should_trigger": true,
+      "query": "Fix the lifetime error in src/parser.rs without cloning every token, and keep the public parser API stable."
+    },
+    {
+      "id": "implicit-cargo-feature",
+      "should_trigger": true,
+      "query": "Add an optional serde feature to this Cargo workspace without changing the default build or MSRV."
+    },
+    {
+      "id": "explicit-rust-development",
+      "should_trigger": true,
+      "query": "Use $rust-development to review this Result-based Rust API and implement the correction."
+    },
+    {
+      "id": "composition-panic-audit",
+      "should_trigger": true,
+      "expected_skills": ["rust-development", "rust-panic-audit"],
+      "excluded_skills": [],
+      "query": "Audit the entire Rust repository for every unwrap, expect, indexing panic, and poisoned-lock panic, then produce a report only."
+    },
+    {
+      "id": "negative-trunk-policy",
+      "should_trigger": false,
+      "query": "Design a trunk-based branching and release policy for our Rust repository; no Rust code or Cargo files will change."
+    },
+    {
+      "id": "negative-test-strategy",
+      "should_trigger": false,
+      "query": "Design a language-neutral red-green-refactor test workflow; do not inspect or change Rust code or tooling."
+    },
+    {
+      "id": "composition-async-rust",
+      "should_trigger": true,
+      "expected_skills": ["rust-development", "async-rust"],
+      "excluded_skills": ["unsafe-rust", "rust-panic-audit"],
+      "query": "Fix a Tokio task that leaks work after request cancellation and preserve the crate's existing error API."
+    },
+    {
+      "id": "implicit-sync-rust-concurrency",
+      "should_trigger": true,
+      "expected_skills": ["rust-development"],
+      "excluded_skills": ["async-rust", "unsafe-rust", "rust-panic-audit"],
+      "query": "Fix a synchronous Rust std::thread worker pool built entirely on the standard library: its bounded channel and Arc<Mutex<State>> shutdown can deadlock, worker failures disappear, and every worker must be joined."
+    }
+  ]
+}

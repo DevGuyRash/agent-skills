@@ -1,0 +1,38 @@
+{
+  "skill_name": "test-driven-development",
+  "comment": "Boundary probes for test-first behavior delivery versus diagnosis, refactoring, and test maintenance.",
+  "queries": [
+    {
+      "id": "explicit-tdd",
+      "should_trigger": true,
+      "query": "Use $test-driven-development to add configurable retry limits, starting with a test that proves the behavior is missing."
+    },
+    {
+      "id": "implicit-new-behavior",
+      "should_trigger": true,
+      "query": "Add case-insensitive username lookup. First create an automated check that fails for mixed-case input, then implement it."
+    },
+    {
+      "id": "implicit-known-bug",
+      "should_trigger": true,
+      "query": "We know blank usernames are accepted because validation trims too late. Capture that expected rejection in a failing regression test before fixing it."
+    },
+    {
+      "id": "negative-unknown-cause",
+      "should_trigger": false,
+      "query": "The integration suite hangs intermittently in CI and nobody knows why. Diagnose the cause."
+    },
+    {
+      "id": "negative-pure-refactor",
+      "should_trigger": false,
+      "query": "Split this parser into smaller modules without changing its CLI output, exit codes, or errors."
+    },
+    {
+      "id": "ambiguous-composition",
+      "should_trigger": true,
+      "expected_skills": ["test-driven-development", "refactoring"],
+      "excluded_skills": ["systematic-debugging"],
+      "query": "A payment test exposes a known rounding bug. Add the regression expectation before the fix, then extract the calculation helper without changing any other behavior."
+    }
+  ]
+}

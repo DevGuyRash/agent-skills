@@ -1,0 +1,38 @@
+{
+  "skill_name": "async-rust",
+  "comment": "Routing probes for asynchronous Rust lifecycle work versus ordinary Rust and synchronous concurrency.",
+  "queries": [
+    {
+      "id": "implicit-cancellation",
+      "should_trigger": true,
+      "query": "This Tokio select branch drops an in-progress framed read and occasionally desynchronizes the connection. Fix it."
+    },
+    {
+      "id": "implicit-send-bound",
+      "should_trigger": true,
+      "query": "A future passed to spawn is not Send because a guard remains live across await; preserve the intended synchronization."
+    },
+    {
+      "id": "explicit-async-rust",
+      "should_trigger": true,
+      "query": "Use $async-rust to add bounded concurrency and graceful shutdown to this Rust worker."
+    },
+    {
+      "id": "negative-ordinary-rust",
+      "should_trigger": false,
+      "query": "Implement Display and FromStr for this synchronous Rust identifier type."
+    },
+    {
+      "id": "negative-native-thread",
+      "should_trigger": false,
+      "query": "Fix a deadlock between two std::thread workers that never use futures, await, or an async runtime."
+    },
+    {
+      "id": "composition-unsafe-async",
+      "should_trigger": true,
+      "expected_skills": ["rust-development", "async-rust", "unsafe-rust"],
+      "excluded_skills": ["rust-panic-audit"],
+      "query": "Repair an async Rust wrapper whose foreign callback can outlive the canceled future and writes through a raw context pointer."
+    }
+  ]
+}

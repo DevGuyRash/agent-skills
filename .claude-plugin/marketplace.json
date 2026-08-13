@@ -42,12 +42,6 @@
       "version": "5.2.0"
     },
     {
-      "name": "gitops-workflow",
-      "source": "./plugins/gitops-workflow",
-      "description": "End-to-end GitOps workflow governance and automation covering branching, Conventional Commits, PR lifecycle, CI gating, and release management",
-      "version": "2.0.0"
-    },
-    {
       "name": "goalspec",
       "source": "./plugins/goalspec",
       "description": "Compile messy intent and project context into bounded, verifiable goal contracts.",
@@ -66,10 +60,10 @@
       "version": "2.6.0"
     },
     {
-      "name": "rust-development",
-      "source": "./plugins/rust-development",
-      "description": "Idiomatic, production-grade Rust development",
-      "version": "2.2.0"
+      "name": "software-development",
+      "source": "./plugins/software-development",
+      "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
+      "version": "1.0.0"
     },
     {
       "name": "skill-auditor",

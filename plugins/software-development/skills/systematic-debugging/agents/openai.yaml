@@ -1,0 +1,6 @@
+interface:
+  display_name: "Systematic Debugging"
+  short_description: "Diagnose failures with causal evidence"
+  default_prompt: "Use $systematic-debugging to isolate this failure's cause before making a durable repair."
+policy:
+  allow_implicit_invocation: true

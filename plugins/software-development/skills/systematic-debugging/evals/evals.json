@@ -1,0 +1,23 @@
+{
+  "skill_name": "systematic-debugging",
+  "evals": [
+    {
+      "id": "eval-active-corruption",
+      "prompt": "Production is actively corrupting a small subset of new records and the cause is unknown. Diagnose and fix it.",
+      "expected_output": "Prioritize an authorized containment that stops additional corruption while preserving evidence, keep mitigation distinct from diagnosis, localize the first bad state transition, test discriminating hypotheses, and claim repair only after the production-relevant invariant is verified.",
+      "files": []
+    },
+    {
+      "id": "eval-flaky-test",
+      "prompt": "A parallel test fails roughly one in fifty runs. Two speculative timing sleeps have already been added without resolving it.",
+      "expected_output": "Remove or isolate unsupported fixes, preserve a stable failure signature, investigate ordering or shared-state hypotheses with bounded repetition and observable synchronization, retain negative results, and avoid treating an arbitrary attempt count as architectural proof.",
+      "files": []
+    },
+    {
+      "id": "eval-not-reproducible",
+      "prompt": "A customer reported one crash, but no dump is available and the current code cannot reproduce it.",
+      "expected_output": "Do not guess or claim root cause; summarize known observations and competing explanations, propose bounded privacy-safe evidence for the next occurrence, state any reversible mitigation separately, and report the diagnosis as narrowed or unverified.",
+      "files": []
+    }
+  ]
+}

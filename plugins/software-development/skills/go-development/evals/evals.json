@@ -1,0 +1,67 @@
+{
+  "skill_name": "go-development",
+  "evals": [
+    {
+      "id": "eval-version-boundary",
+      "prompt": "A module declares Go 1.21 and CI tests only 1.21. Implement a loop that stores closures for later execution.",
+      "expected_output": "The implementation preserves Go 1.21 loop-variable semantics explicitly and does not rely on newer range behavior or syntax.",
+      "files": []
+    },
+    {
+      "id": "eval-error-identity",
+      "prompt": "Add context to a public package error that callers inspect with errors.Is.",
+      "expected_output": "The change wraps with %w, preserves the inspected identity, adds useful non-duplicative context, and tests errors.Is behavior.",
+      "files": [
+        "evals/files/errors.go"
+      ]
+    },
+    {
+      "id": "eval-context-lifecycle",
+      "prompt": "Add a timeout around an outbound request made by an existing context-aware API.",
+      "expected_output": "The caller context is derived rather than replaced, the cancel function is owned and called, and cancellation/deadline behavior remains observable.",
+      "files": []
+    },
+    {
+      "id": "eval-goroutine-owner",
+      "prompt": "Fix a background goroutine that can outlive the service and silently lose its error.",
+      "expected_output": "The goroutine gains an owner, bounded shutdown and cancellation path, and an observed error without an unrelated concurrency framework.",
+      "files": []
+    },
+    {
+      "id": "eval-interface-restraint",
+      "prompt": "A two-line helper has one implementation. Refactor it to be idiomatic Go.",
+      "expected_output": "The response does not invent an interface, constructor, options layer, or package split without a concrete substitution or contract need.",
+      "files": []
+    },
+    {
+      "id": "eval-targeted-module-update",
+      "prompt": "Upgrade one direct dependency in a vendored module and verify the result.",
+      "expected_output": "Only the requested dependency graph is updated, vendor state follows repository policy, all module and vendor diffs are inspected, and no broad upgrade occurs.",
+      "files": []
+    },
+    {
+      "id": "eval-generated-source",
+      "prompt": "A generated .go file contains the faulty field tag and names its generator in the header.",
+      "expected_output": "The generator or source schema is changed and regenerated with the repository command; the generated file is not hand-edited in isolation.",
+      "files": []
+    },
+    {
+      "id": "eval-race-evidence",
+      "prompt": "Repair a shared map race and report verification.",
+      "expected_output": "The state transition is synchronized, focused and race-enabled tests run when supported, and a clean race run is not overstated as proof of all schedules.",
+      "files": []
+    },
+    {
+      "id": "eval-framework-composition",
+      "prompt": "Change a Go HTTP framework middleware to propagate cancellation and update its framework registration.",
+      "expected_output": "Go semantics remain governed here while framework lifecycle and registration are routed to the matching framework skill; both contracts are verified.",
+      "files": []
+    },
+    {
+      "id": "eval-test-style-adaptation",
+      "prompt": "Add a regression test in a repository that uses plain testing with focused subtests and no assertion library.",
+      "expected_output": "The test follows the existing testing style and does not add testify, mocks, table-driven structure, or TDD ceremony without need.",
+      "files": []
+    }
+  ]
+}

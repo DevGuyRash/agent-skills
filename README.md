@@ -36,15 +36,16 @@ Current local plugins:
 - `plugins/espanso-dynamic-forms/`
 - `plugins/excel-foundry/`
 - `plugins/friction-diagnostics/`
-- `plugins/gitops-workflow/`
 - `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and
   bundles the agnostic `$authoring-goals` skill payload.
 - `plugins/linux-desktop-control/` is Codex-only because it orchestrates
   host-provided Linux desktop-control capabilities.
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
-- `plugins/rust-development/`
 - `plugins/skill-auditor/`
+- `plugins/software-development/` replaces `rust-development` and
+  `gitops-workflow` with a shared development catalog for both Codex and
+  Claude Code.
 
 ## Plugin Packages
 
@@ -229,7 +230,7 @@ where it is published.
 Filter the dynamic plugin list with repeatable CSV/glob flags:
 
 ```bash
-scripts/install-all --exclude 'rust*,gitops-workflow'
+scripts/install-all --exclude 'software-development'
 scripts/install-all --include 'goalspec,project-harness' --exclude 'project-*'
 ```
 
@@ -247,10 +248,27 @@ scripts/install-all --claude-only
 The `just` recipe forwards the same flags:
 
 ```bash
-just install-all --exclude 'rust*,gitops-workflow'
+just install-all --exclude 'software-development'
 ```
 
 Use `scripts/install-all --help` for source, scope, host, filter, and dry-run options.
+
+### `software-development` migration
+
+The `software-development` plugin replaces both `rust-development` and
+`gitops-workflow`. Remove the legacy plugin identities before installing the
+new catalog, then start a fresh task or restart the host so discovery reloads
+against the new skill set:
+
+```bash
+codex plugin remove rust-development@agent-tooling
+codex plugin remove gitops-workflow@agent-tooling
+codex plugin add software-development@agent-tooling
+
+claude plugin remove rust-development@agent-tooling
+claude plugin remove gitops-workflow@agent-tooling
+claude plugin install software-development@agent-tooling
+```
 
 ### Contributor hook setup
 
