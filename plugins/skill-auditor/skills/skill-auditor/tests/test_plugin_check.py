@@ -110,9 +110,8 @@ class ErrorTests(unittest.TestCase):
         self.assertIn("missing_codex_manifest", {e["code"] for e in data["errors"]})
 
     def test_a_missing_claude_manifest_fails(self) -> None:
-        # The sibling of the codex case. Both host manifests are required, so
-        # testing only one leaves the other free to regress unnoticed — which is
-        # the live state of linux-desktop-control.
+        # The sibling of the Codex case. Both host manifests are required, so
+        # testing only one leaves the other free to regress unnoticed.
         with tempfile.TemporaryDirectory() as tmp:
             plugin = make_plugin(tmp)
             (plugin / ".claude-plugin/plugin.json").unlink()

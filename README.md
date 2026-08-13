@@ -28,9 +28,6 @@ the capable host.
 
 Current local plugins:
 
-- `plugins/claude-linux-computer-use/` is Claude-only; it carries the Claude
-  half of the Linux desktop work that `plugins/linux-desktop-control/` carries
-  for Codex.
 - `plugins/code-review/`
 - `plugins/docker-architect/`
 - `plugins/espanso-dynamic-forms/`
@@ -38,8 +35,6 @@ Current local plugins:
 - `plugins/friction-diagnostics/`
 - `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and
   bundles the agnostic `$authoring-goals` skill payload.
-- `plugins/linux-desktop-control/` is Codex-only because it orchestrates
-  host-provided Linux desktop-control capabilities.
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
 - `plugins/skill-auditor/`
@@ -48,21 +43,6 @@ Current local plugins:
   Claude Code.
 
 ## Plugin Packages
-
-### `claude-linux-computer-use`
-
-Operational doctrine for Claude driving desktop applications on a Linux host,
-written from field sessions rather than from a capability matrix: app process
-lifecycle and single-instance races, companion CLI/IPC and eval channels, what
-synthetic input hides that real input does not, condition-based waiting, and
-hygiene on a machine shared with other agents and a human.
-
-It pairs with a desktop-control integration and supplies none of the
-mechanics itself. `plugins/linux-desktop-control/` is the Codex-side
-counterpart; the two are separate packages because a plugin publishes its
-whole skill tree to whichever host installs it.
-
-Path: `plugins/claude-linux-computer-use/skills/claude-linux-computer-use/`
 
 ### `code-review`
 
@@ -87,18 +67,6 @@ Deterministic Docker architecture skill spanning both Compose/Swarm deployment d
 - Cached deterministic render/check workflow for reproducible outputs
 
 Path: `plugins/docker-architect/skills/docker-architect/`
-
-### `linux-desktop-control`
-
-Capability-driven Codex instructions specifically for the Linux computer-use
-integration provided by
-[`codex-desktop-linux`](https://github.com/ilysenko/codex-desktop-linux). The
-plugin teaches channel discovery, safe native-UI targeting, partial-failure
-recovery, and independent outcome verification; the linked project supplies
-the native desktop-control mechanics. This plugin is specific to that
-integration and is not a compatibility claim for other computer-use backends.
-
-Path: `plugins/linux-desktop-control/skills/linux-desktop-control/`
 
 ## Plugin portability converter
 

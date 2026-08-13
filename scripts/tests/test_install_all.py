@@ -240,52 +240,6 @@ class InstallAllTests(unittest.TestCase):
         self.assertIn("--include pattern(s) matched no Codex or Claude Code plugins: missing-plugin", proc.stderr)
         self.assertEqual([], calls)
 
-    def test_codex_only_plugin_skips_claude_marketplace_and_install(self) -> None:
-        calls = self.run_install_all("--include", "linux-desktop-control")
-
-        self.assertEqual(
-            [
-                {
-                    "command": "codex",
-                    "args": [
-                        "plugin",
-                        "marketplace",
-                        "add",
-                        "--ref",
-                        "main",
-                        "--sparse",
-                        ".agents/plugins",
-                        "--sparse",
-                        "plugins",
-                        "DevGuyRash/agent-tooling",
-                    ],
-                },
-                {
-                    "command": "codex",
-                    "args": ["plugin", "marketplace", "upgrade", "agent-tooling"],
-                },
-                {
-                    "command": "codex",
-                    "args": ["plugin", "add", "linux-desktop-control@agent-tooling"],
-                },
-            ],
-            calls,
-        )
-
-    def test_claude_only_rejects_codex_only_selector(self) -> None:
-        proc, calls = self.run_install_all_process(
-            "--claude-only",
-            "--include",
-            "linux-desktop-control",
-        )
-
-        self.assertNotEqual(0, proc.returncode)
-        self.assertIn(
-            "--include pattern(s) matched no Claude Code plugins: linux-desktop-control",
-            proc.stderr,
-        )
-        self.assertEqual([], calls)
-
     def test_synthetic_claude_only_plugin_skips_codex(self) -> None:
         proc, calls = self.run_install_all_with_catalogs(
             ["shared"],
@@ -315,19 +269,6 @@ class InstallAllTests(unittest.TestCase):
             ],
             [call["args"] for call in calls],
         )
-
-    def test_filters_may_empty_one_host_but_not_every_enabled_host(self) -> None:
-        proc, calls = self.run_install_all_process(
-            "--include",
-            "linux-desktop-control",
-            "--exclude",
-            "linux-desktop-control",
-        )
-
-        self.assertNotEqual(0, proc.returncode)
-        self.assertIn("plugin filters selected no plugins for enabled hosts", proc.stderr)
-        self.assertEqual([], calls)
-
 
 if __name__ == "__main__":
     unittest.main()

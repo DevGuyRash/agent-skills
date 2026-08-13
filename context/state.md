@@ -11,7 +11,6 @@ Plugin errors nobody has fixed. `just audit-plugins --errors-only` is the live l
 
 - Some `excel-foundry` launchers still lack the executable bit.
 - `goalspec` and `playwright-testing` catalog versions disagree with their manifests; goalspec's catalog description still describes the pre-decision-funnel design.
-- `linux-desktop-control` has no Claude manifest, and its two host manifests disagree on description.
 - No LICENSE file sits behind the MIT declaration every manifest carries.
 
 CI audits only the plugins a change touches, so these block nobody until someone edits the plugin that owns them.

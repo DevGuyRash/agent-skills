@@ -1,4 +1,0 @@
-interface:
-  display_name: "Linux Desktop Control"
-  short_description: "Control and verify Linux desktop UI outcomes safely"
-  default_prompt: "Use $linux-desktop-control to inspect the Linux desktop, select operational control channels, perform the requested interaction, and verify the visible outcome."
