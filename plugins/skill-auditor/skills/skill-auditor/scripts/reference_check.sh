@@ -14,7 +14,7 @@ Errors are broken for every target: a link pointing at a file that does not
 exist. There is no skill for which that is fine, so it fails.
 
 Observations are facts whose significance depends on the target — an unlinked
-file, a nested reference, a missing path prefix. Each carries the rule it bears
+file, a nested reference, or an oversized reference. Each carries the rule it bears
 on so the reader can decide. They never fail.
 
 Exit: 0 no errors, 1 errors found, 2 the arguments or the target were unusable.
@@ -176,14 +176,6 @@ $rel_path"
                 "SKILL.md links this path; no file exists there"
         fi
 
-        case "$raw_link" in
-            '<skills-file-root>'/*) ;;
-            *)
-                observe "bare_reference_path" "$raw_link" \
-                    "the link omits the <skills-file-root> prefix" \
-                    "repo-overlay"
-                ;;
-        esac
     done <<EOF
 $RAW_LINKS
 EOF

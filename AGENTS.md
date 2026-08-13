@@ -64,15 +64,10 @@ from agents.**
 
 ## Skill authoring: `<skills-file-root>`
 
-When writing or editing a skill, use `<skills-file-root>` as the path prefix for all references to files within the skill directory (scripts, references, assets). It resolves to the directory containing the skill's `SKILL.md`.
-
-## GitOps Workflow drift control
-
-WHEN you edit files under `plugins/gitops-workflow/skills/gitops-workflow/` AND the change affects top-level commands, aliases, routing modes, or help discovery THEN you SHALL update the same change in `plugins/gitops-workflow/skills/gitops-workflow/scripts/gitops-help.sh`, `plugins/gitops-workflow/skills/gitops-workflow/SKILL.md`, `plugins/gitops-workflow/skills/gitops-workflow/references/SCRIPT_ROUTING.md`, and the targeted tests.
-
-WHEN command discovery is needed for `plugins/gitops-workflow/skills/gitops-workflow/` THEN you SHALL treat `plugins/gitops-workflow/skills/gitops-workflow/scripts/gitops-help.sh --json` as the canonical agent-facing discovery surface.
-
-You SHALL NOT add another manually maintained command catalog or alias inventory for `plugins/gitops-workflow/skills/gitops-workflow/` unless runtime behavior requires it.
+When writing or editing a skill, use either relative paths or
+`<skills-file-root>` for references to files within the same skill directory
+(scripts, references, assets). `<skills-file-root>` resolves to the directory
+containing the skill's `SKILL.md`.
 
 ## Plugin installation and portability
 
@@ -114,10 +109,10 @@ Every skill's `SKILL.md` starts with YAML frontmatter. The `name` and
 
 ### Name field
 
-The `name` field is the **display name** shown to users in skill listings
-and selection UIs. It is title-cased with spaces. The **directory name**
-(the folder containing `SKILL.md`) is the invocation slug — that's what
-users type after `/` to trigger the skill.
+For new skills in this repo, the `name` field MUST be the lowercase invocation
+slug and MUST exactly match the directory name that contains `SKILL.md`.
+Legacy skills not explicitly included in a naming migration may keep older
+title-cased frontmatter during maintenance; do not mechanically migrate them.
 
 Directory naming rules (the slug):
 
@@ -126,19 +121,20 @@ Directory naming rules (the slug):
 - Must not start or end with `-`
 - Must not contain consecutive hyphens (`--`)
 
-The `name` field is the title-cased equivalent of the directory slug:
+The body H1 (`# ...`) and `agents/openai.yaml` display name are the human-facing,
+title-cased equivalents of the slug:
 
-| Directory (slug)        | `name:` (display)         |
-| ----------------------- | ------------------------- |
-| `code-review`           | `Code Review`             |
-| `rust-development`      | `Rust Development`        |
-| `docker-architect`      | `Docker Architect`        |
-| `espanso-dynamic-forms` | `Espanso Dynamic Forms`   |
-| `gitops-workflow`       | `GitOps Workflow`         |
-| `friction-diagnostics`  | `Friction Diagnostics`    |
+| Directory / `name:` slug | H1 / display name         |
+| ------------------------ | ------------------------- |
+| `code-review`            | `Code Review`             |
+| `rust-development`       | `Rust Development`        |
+| `docker-architect`       | `Docker Architect`        |
+| `espanso-dynamic-forms`  | `Espanso Dynamic Forms`   |
+| `software-development`   | `Software Development`    |
+| `friction-diagnostics`   | `Friction Diagnostics`    |
 
-The H1 heading in the SKILL.md body (`# ...`) should match the `name`
-field exactly.
+The H1 heading in the `SKILL.md` body (`# ...`) and the OpenAI display metadata
+should match each other exactly.
 
 ### Description field
 
@@ -148,8 +144,10 @@ skill — agents see descriptions for all available skills at startup and
 match against the user's request.
 
 **Hard constraint:** max **1024 characters**. Skills that exceed this limit
-fail to load entirely — no warning, no truncation, just a silent skip.
-Measure your description after editing:
+fail to load entirely — no warning, no truncation, just a silent skip. New
+skills in this repo SHOULD stay compact enough to preserve aggregate startup
+budget, even when the host shortens visible descriptions. Measure your
+description after editing:
 
 ```bash
 python3 -c "
@@ -161,19 +159,12 @@ with open('SKILL.md') as f:
 "
 ```
 
-#### Two-part structure (required pattern)
+#### Description structure
 
-Every description follows two parts:
-
-1. **Lead sentence** — a capability statement describing what the skill
-   does (not "Use this skill when..."). This gives the agent a quick
-   "what does this do" signal.
-2. **Numbered trigger list** — `"Use when the task involves: (1)... (2)...
-   (N) Any task involving X."` Each numbered item is a discrete,
-   keyword-rich scenario the agent can scan and match against.
-
-Optionally end with a short negative trigger ("Do not use for X") if the
-skill has common false-positive triggers that need guarding against.
+Descriptions should front-load the capability, then include the strongest
+positive triggers and the most important sibling exclusions. Numbered trigger
+lists are optional. Use the smallest wording that still makes routing clear
+and preserves signal when a host shortens visible descriptions.
 
 #### Mandatory trigger variant
 
@@ -183,8 +174,7 @@ opt-in language ("Use when the task involves…") that lets the agent decide
 whether to bother. For mandatory skills, replace that with imperative
 language that removes agent discretion.
 
-The mandatory pattern has four parts that work together — removing any
-one weakens the trigger enough for agents to skip it:
+The mandatory pattern usually combines these parts:
 
 1. **Imperative opener** — lead with `REQUIRED` plus the activation
    condition. This is the strongest signal an agent parses from a
@@ -192,10 +182,8 @@ one weakens the trigger enough for agents to skip it:
 2. **Prohibition** — immediately follow with a `do not <verb> without this
    skill active` clause. This closes the escape route where the agent
    decides it can handle the task itself.
-3. **Keyword trigger list** — `Covers: (1)... (2)...` enumerates scope
-   with the same numbered items as the standard pattern, but under
-   mandatory framing reads as "all of these are covered" rather than
-   "pick one to opt in."
+3. **Keyword trigger span** — `Covers: ...` or an equivalent compact scope
+   summary that names the bounded mandatory surface.
 4. **Closing command** — end the description with a direct imperative that
    restates the trigger (`Do not skip this skill.` or
    `If the task involves X, use this skill.`). Agents that skim the middle
@@ -250,8 +238,8 @@ description: >-
 ```
 
 Why this works: the lead sentence tells the agent what the skill produces.
-Each numbered item is a concrete scenario with keywords an agent can match
-against a user's request. The catch-all `(5)` covers edge cases.
+The trigger phrases give concrete routing evidence an agent can match against
+a user's request without wasting description budget.
 
 #### Bad examples
 
@@ -787,4 +775,3 @@ Rules:
 
 5. **No eval on user input.** Scripts SHALL NOT use `eval` on user-provided
    input (command injection risk).
-

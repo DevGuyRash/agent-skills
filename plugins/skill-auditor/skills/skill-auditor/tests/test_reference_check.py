@@ -30,7 +30,7 @@ def make_skill(
     *,
     slug: str = "demo-skill",
     name: str = "Demo Skill",
-    description: str = "Check demo skills and explain findings. Use when the task involves: (1) Auditing demo skills, (2) Reviewing demo packaging.",
+    description: str = "Check demo skills and explain findings for maintainers updating metadata and packaging boundaries.",
     body: str = "\n# Demo Skill\n",
     scripts: dict[str, str] | None = None,
     extra_files: dict[str, str] | None = None,
@@ -98,7 +98,7 @@ class ObservationTests(unittest.TestCase):
     """Each fact's significance depends on the target, so each must be reported
     without failing the run."""
 
-    def test_bare_reference_path_is_observed(self) -> None:
+    def test_relative_reference_path_is_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = make_skill(
                 tmp,
@@ -110,10 +110,9 @@ class ObservationTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(data["error_count"], 0)
-        codes = {o["code"] for o in data["observations"]}
-        self.assertEqual(codes, {"bare_reference_path"})
+        self.assertEqual(data["observations"], [])
 
-    def test_prefixed_reference_path_has_no_bare_path_finding(self) -> None:
+    def test_prefixed_reference_path_is_accepted(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = make_skill(
                 tmp,
@@ -124,7 +123,7 @@ class ObservationTests(unittest.TestCase):
             completed, data = run_reference_check(skill_dir)
 
         self.assertEqual(completed.returncode, 0)
-        self.assertNotIn("bare_reference_path", {o["code"] for o in data["observations"]})
+        self.assertEqual(data["observations"], [])
 
     def test_flags_unlinked_active_reference(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -380,7 +379,7 @@ class TaxonomySortTests(unittest.TestCase):
     def test_observation_codes_match_the_governing_sort(self) -> None:
         self.assertEqual(
             self._codes("observe"),
-            {"bare_reference_path", "unlinked_reference", "nested_reference_link", "reference_too_long"},
+            {"unlinked_reference", "nested_reference_link", "reference_too_long"},
         )
 
 

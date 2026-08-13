@@ -31,7 +31,7 @@ def make_skill(
     *,
     slug: str = "demo-skill",
     name: str = "Demo Skill",
-    description: str = "Check demo skills and explain findings. Use when the task involves: (1) Auditing demo skills, (2) Reviewing demo packaging.",
+    description: str = "Check demo skills and explain findings for maintainers updating metadata and packaging boundaries.",
     body: str = "\n# Demo Skill\n",
     scripts: dict[str, str] | None = None,
     extra_files: dict[str, str] | None = None,
@@ -134,8 +134,8 @@ class ErrorTests(unittest.TestCase):
 
 
 class ParsingTests(unittest.TestCase):
-    """extract_description must fold every YAML block-scalar style the house
-    convention uses, or a well-formed description would misreport as missing."""
+    """extract_description must fold every YAML block-scalar style the repo
+    uses, or a well-formed description would misreport as missing."""
 
     def test_inline_description_is_read_correctly(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -239,7 +239,9 @@ class ObservationTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(data["error_count"], 0)
-        self.assertIn("name_not_title_case", {o["code"] for o in data["observations"]})
+        codes = {o["code"] for o in data["observations"]}
+        self.assertIn("name_not_title_case", codes)
+        self.assertIn("name_slug_mismatch", codes)
 
     def test_name_slug_mismatch_is_observed_alone(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -286,7 +288,7 @@ class ObservationTests(unittest.TestCase):
         codes = {o["code"] for o in data["observations"]}
         self.assertEqual(codes, {"description_length"})
 
-    def test_missing_trigger_list_is_observed(self) -> None:
+    def test_simple_description_has_no_trigger_list_requirement(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = make_skill(
                 tmp, description="A simple skill that does things for people every day."
@@ -296,25 +298,27 @@ class ObservationTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(data["error_count"], 0)
-        codes = {o["code"] for o in data["observations"]}
-        self.assertEqual(codes, {"description_no_trigger_list"})
+        self.assertNotIn("description_no_trigger_list", {o["code"] for o in data["observations"]})
 
-    def test_numbered_trigger_list_has_no_finding(self) -> None:
+    def test_slug_frontmatter_with_title_cased_h1_is_clean(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            skill_dir = make_skill(tmp)
+            skill_dir = make_skill(
+                tmp,
+                name="demo-skill",
+                body="\n# Demo Skill\n",
+            )
 
             completed, data = run_frontmatter_check(skill_dir)
 
         self.assertEqual(completed.returncode, 0)
-        self.assertNotIn("description_no_trigger_list", {o["code"] for o in data["observations"]})
+        self.assertEqual(data["error_count"], 0)
+        self.assertEqual(data["observations"], [])
 
 
 class DeletedHeuristicRegressionTests(unittest.TestCase):
     """description_too_vague, description_brief, and description_trigger_weak
     were word-count and prefix guesses wearing an exit code, deleted on purpose.
-    A fixture built to trip them must never resurrect them -- even though the
-    description still legitimately lacks a trigger list, which is a different,
-    surviving check (description_no_trigger_list) and is not what this guards."""
+    A fixture built to trip them must never resurrect them."""
 
     DELETED_CODES = {"description_too_vague", "description_brief", "description_trigger_weak"}
 
@@ -477,7 +481,6 @@ class TaxonomySortTests(unittest.TestCase):
                 "name_slug_mismatch",
                 "h1_name_mismatch",
                 "description_length",
-                "description_no_trigger_list",
             },
         )
 
