@@ -300,6 +300,189 @@ class PluginPortTests(unittest.TestCase):
         validation = plugin_port.validate_plugin(out, "claude", external=False)
         self.assertTrue(validation.validation_summary["internal"]["passed"])
 
+    def test_conversion_excludes_only_generated_junk_from_output_and_inventory(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        excluded_files = {
+            Path(".DS_Store"),
+            Path("assets/Thumbs.db"),
+            Path("scripts/cache.pyc"),
+            Path("scripts/cache.pyo"),
+            Path("scripts/cache.pyd"),
+            Path("lib/__pycache__/keep.py"),
+        }
+        ordinary = {
+            Path("assets/thumbs.db"),
+            Path("cache-target/keep.py"),
+            Path("scripts/cache.pyc.txt"),
+            Path("scripts/ordinary.pyc/keep.txt"),
+            Path("scripts/worker.py"),
+        }
+        for relative in excluded_files | ordinary:
+            write(source / relative, f"fixture for {relative.as_posix()}\n")
+        linked_cache = source / "scripts" / "__pycache__"
+        linked_cache.symlink_to(Path("../cache-target"), target_is_directory=True)
+        excluded = excluded_files | {Path("scripts/__pycache__")}
+
+        source_inventory = set(plugin_port.rel_files(source))
+        self.assertTrue({path.as_posix() for path in ordinary} <= source_inventory)
+        self.assertTrue({path.as_posix() for path in excluded}.isdisjoint(source_inventory))
+
+        report = plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        for relative in excluded:
+            self.assertFalse((out / relative).exists())
+        self.assertFalse((out / "scripts" / "__pycache__").exists())
+        for relative in ordinary:
+            self.assertTrue((out / relative).is_file())
+        copied = set(report.files_copied)
+        self.assertTrue({path.as_posix() for path in ordinary} <= copied)
+        self.assertTrue({path.as_posix() for path in excluded}.isdisjoint(copied))
+
+    def test_conversion_preserves_safe_in_tree_symlinks(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        write(source / "assets" / "payload.txt", "payload\n")
+        (source / "assets" / "payload-link.txt").symlink_to(Path("payload.txt"))
+        (source / "asset-link").symlink_to(Path("assets"), target_is_directory=True)
+
+        report = plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        copied_link = out / "assets" / "payload-link.txt"
+        self.assertTrue(copied_link.is_symlink())
+        self.assertEqual(Path("payload.txt"), copied_link.readlink())
+        self.assertEqual("payload\n", copied_link.read_text(encoding="utf-8"))
+        copied_directory_link = out / "asset-link"
+        self.assertTrue(copied_directory_link.is_symlink())
+        self.assertEqual(Path("assets"), copied_directory_link.readlink())
+        self.assertEqual("payload\n", (copied_directory_link / "payload.txt").read_text(encoding="utf-8"))
+        self.assertIn("asset-link", report.files_copied)
+        self.assertIn("assets/payload-link.txt", report.files_copied)
+
+    def test_conversion_rejects_outbound_file_symlink_before_copy(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        outside = self.root / "outside.txt"
+        write(outside, "secret\n")
+        (source / "assets").mkdir()
+        (source / "assets" / "leak.txt").symlink_to(outside)
+
+        with self.assertRaisesRegex(plugin_port.PluginPortError, "resolves outside the plugin root"):
+            plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        self.assertFalse(out.exists())
+
+    def test_conversion_rejects_outbound_directory_and_pycache_symlinks(self) -> None:
+        for link_name in ("vendor", "__pycache__"):
+            with self.subTest(link_name=link_name):
+                case_root = self.root / link_name
+                source = case_root / "goalspec"
+                out = case_root / "out"
+                outside = case_root / "outside"
+                self.write_codex_plugin(source)
+                write(outside / "secret.txt", "secret\n")
+                scripts = source / "scripts"
+                scripts.mkdir()
+                (scripts / link_name).symlink_to(outside, target_is_directory=True)
+
+                with self.assertRaisesRegex(plugin_port.PluginPortError, "resolves outside the plugin root"):
+                    plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+                self.assertFalse(out.exists())
+
+    def test_conversion_rejects_broken_and_looping_symlinks_clearly(self) -> None:
+        for case_name, expected in (("broken", "is broken"), ("loop", "symlink loop")):
+            with self.subTest(case_name=case_name):
+                case_root = self.root / case_name
+                source = case_root / "goalspec"
+                self.write_codex_plugin(source)
+                if case_name == "broken":
+                    (source / "broken-link").symlink_to(Path("missing-target"))
+                else:
+                    (source / "loop-a").symlink_to(Path("loop-b"))
+                    (source / "loop-b").symlink_to(Path("loop-a"))
+
+                with self.assertRaisesRegex(plugin_port.PluginPortError, expected):
+                    plugin_port.convert_plugin(
+                        source,
+                        "claude",
+                        case_root / "out",
+                        mode="strict",
+                        overwrite=False,
+                    )
+
+    def test_validation_rejects_outbound_symlink_with_validation_exit_code(self) -> None:
+        source = self.root / "goalspec"
+        self.write_codex_plugin(source)
+        outside = self.root / "outside.txt"
+        write(outside, "secret\n")
+        (source / "leak.txt").symlink_to(outside)
+
+        with self.assertRaisesRegex(plugin_port.PluginPortError, "resolves outside the plugin root") as caught:
+            plugin_port.validate_plugin(source, "codex", external=False)
+
+        self.assertEqual(plugin_port.EXIT_VALIDATION_FAILED, caught.exception.exit_code)
+
+    def test_report_includes_only_real_skill_script_directories_as_active(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        write(source / "skills" / "authoring-goals" / "scripts" / "run.sh", "#!/bin/sh\n")
+        write(
+            source / "skills" / "z-last" / "SKILL.md",
+            "---\nname: z-last\ndescription: Last skill.\n---\n\nRun the last skill.\n",
+        )
+        write(source / "skills" / "z-last" / "scripts" / "run.py", "print('run')\n")
+        write(source / "skills" / "authoring-goals" / "evals" / "scripts" / "fixture.py", "pass\n")
+        write(source / "skills" / "not-a-skill" / "scripts" / "fixture.py", "pass\n")
+        write(source / "evals" / "scripts" / "fixture.py", "pass\n")
+
+        report = plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        skill_scripts = [
+            item
+            for item in report.executable_surfaces
+            if item["path"].startswith("skills/") and item["path"].endswith("/scripts")
+        ]
+        self.assertEqual(
+            ["skills/authoring-goals/scripts", "skills/z-last/scripts"],
+            [item["path"] for item in skill_scripts],
+        )
+        self.assertTrue(all(item["kind"] == "scripts" for item in skill_scripts))
+        self.assertTrue(all(item["active_in_target"] for item in skill_scripts))
+
+    def test_report_includes_only_executable_skill_dist_payloads(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        binary = source / "skills" / "authoring-goals" / "dist" / "linux-x86_64" / "goal-tool"
+        write(binary, "packaged executable\n")
+        binary.chmod(0o755)
+        write(
+            source / "skills" / "authoring-goals" / "dist" / "linux-x86_64" / "README.txt",
+            "packaged data\n",
+        )
+        unrelated = source / "skills" / "not-a-skill" / "dist" / "linux-x86_64" / "fixture"
+        write(unrelated, "not a skill payload\n")
+        unrelated.chmod(0o755)
+
+        report = plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        dist_surfaces = [
+            item
+            for item in report.executable_surfaces
+            if "/dist/" in item["path"]
+        ]
+        self.assertEqual(
+            ["skills/authoring-goals/dist/linux-x86_64/goal-tool"],
+            [item["path"] for item in dist_surfaces],
+        )
+        self.assertTrue(all(item["kind"] == "binary" for item in dist_surfaces))
+        self.assertTrue(all(item["active_in_target"] for item in dist_surfaces))
+
     def test_claude_plugin_best_effort_converts_to_codex_and_reports_unsupported(self) -> None:
         source = self.root / "kitchen"
         out = self.root / "codex-out"

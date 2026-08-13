@@ -9,16 +9,18 @@ loss or preserved-only component in .plugin-portability/report.json.
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlparse
 
 try:
@@ -35,6 +37,9 @@ PORTABILITY_DIR = Path(".plugin-portability")
 REPORT_NAME = "report.json"
 REPORT_SCHEMA_VERSION = "1.0"
 SKILL_ENTRYPOINT_NAMES = ("SKILL.md", "skill.md")
+GENERATED_JUNK_DIRECTORY_NAMES = frozenset({"__pycache__"})
+GENERATED_JUNK_FILE_NAMES = frozenset({".DS_Store", "Thumbs.db"})
+GENERATED_JUNK_FILE_SUFFIXES = frozenset({".pyc", ".pyo", ".pyd"})
 
 EXIT_USER_ERROR = 2
 EXIT_VALIDATION_FAILED = 3
@@ -418,9 +423,77 @@ def normalize_mcp_config(data: dict[str, Any], *, target: str) -> dict[str, Any]
     return {"mcpServers": normalized}
 
 
+def is_generated_junk(path: Path, root: Path) -> bool:
+    relative = path.relative_to(root)
+    if relative.name in GENERATED_JUNK_DIRECTORY_NAMES:
+        return True
+    if any(part in GENERATED_JUNK_DIRECTORY_NAMES for part in relative.parent.parts):
+        return True
+    is_directory = not path.is_symlink() and path.is_dir()
+    if is_directory:
+        return False
+    return (
+        relative.name in GENERATED_JUNK_FILE_NAMES
+        or relative.suffix in GENERATED_JUNK_FILE_SUFFIXES
+    )
+
+
+def copytree_generated_junk_ignore(source_root: Path) -> Callable[[str, list[str]], list[str]]:
+    def ignore(directory: str, names: list[str]) -> list[str]:
+        parent = Path(directory)
+        return [name for name in names if is_generated_junk(parent / name, source_root)]
+
+    return ignore
+
+
+def validate_symlink_tree(root: Path, *, exit_code: int = EXIT_USER_ERROR) -> None:
+    walk_error: OSError | None = None
+
+    def remember_walk_error(exc: OSError) -> None:
+        nonlocal walk_error
+        if walk_error is None:
+            walk_error = exc
+
+    for directory, directory_names, file_names in os.walk(
+        root,
+        topdown=True,
+        onerror=remember_walk_error,
+        followlinks=False,
+    ):
+        for name in sorted((*directory_names, *file_names)):
+            link = Path(directory) / name
+            if not link.is_symlink():
+                continue
+            relative = link.relative_to(root).as_posix()
+            try:
+                target = link.resolve(strict=True)
+            except FileNotFoundError:
+                die(
+                    f"{root}: symlink '{relative}' is broken because its target does not exist",
+                    exit_code=exit_code,
+                )
+            except RuntimeError:
+                die(f"{root}: symlink '{relative}' contains a symlink loop", exit_code=exit_code)
+            except OSError as exc:
+                if exc.errno == errno.ELOOP:
+                    die(f"{root}: symlink '{relative}' contains a symlink loop", exit_code=exit_code)
+                die(f"{root}: symlink '{relative}' cannot be resolved: {exc}", exit_code=exit_code)
+            try:
+                target.relative_to(root)
+            except ValueError:
+                die(
+                    f"{root}: symlink '{relative}' resolves outside the plugin root to {target}",
+                    exit_code=exit_code,
+                )
+    if walk_error is not None:
+        die(f"{root}: cannot inspect the complete plugin tree: {walk_error}", exit_code=exit_code)
+
+
 def rel_files(root: Path) -> list[str]:
     files: list[str] = []
     for path in sorted(root.rglob("*")):
+        if is_generated_junk(path, root):
+            continue
         if path.is_file() or path.is_symlink():
             files.append(path.relative_to(root).as_posix())
     return files
@@ -445,6 +518,22 @@ def add_surface(surfaces: list[dict[str, Any]], kind: str, path: Path, root: Pat
     }
     if item not in surfaces:
         surfaces.append(item)
+
+
+def add_executable_payloads(
+    surfaces: list[dict[str, Any]],
+    directory: Path,
+    root: Path,
+    reason: str,
+) -> None:
+    if not directory.is_dir():
+        return
+    for path in sorted(directory.rglob("*")):
+        if is_generated_junk(path, root) or not path.is_file():
+            continue
+        if not path.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+            continue
+        add_surface(surfaces, "binary", path, root, reason, active=True)
 
 
 def collect_executable_surfaces(root: Path, target: str) -> list[dict[str, Any]]:
@@ -497,6 +586,25 @@ def collect_executable_surfaces(root: Path, target: str) -> list[dict[str, Any]]
         "Copied scripts may be invoked by hooks, commands, or MCP servers",
         active=True,
     )
+    skills_dir = root / "skills"
+    if skills_dir.is_dir():
+        for skill_dir in sorted(skills_dir.iterdir(), key=lambda path: path.name):
+            if not skill_dir.is_dir() or skill_entrypoint_path(skill_dir) is None:
+                continue
+            add_surface(
+                surfaces,
+                "scripts",
+                skill_dir / "scripts",
+                root,
+                "Skill-local scripts may be invoked while the skill is active",
+                active=True,
+            )
+            add_executable_payloads(
+                surfaces,
+                skill_dir / "dist",
+                root,
+                "Skill-local packaged binaries may be invoked by skill launchers",
+            )
     add_surface(
         surfaces,
         "settings",
@@ -624,10 +732,16 @@ def component_inventory(root: Path) -> dict[str, list[str]]:
     return {key: values for key, values in components.items() if values}
 
 
-def detect_plugin(root: Path, *, explicit_host: str | None = None) -> PluginPackage:
+def detect_plugin(
+    root: Path,
+    *,
+    explicit_host: str | None = None,
+    symlink_error_code: int = EXIT_USER_ERROR,
+) -> PluginPackage:
     root = root.resolve()
     if not root.exists() or not root.is_dir():
         die(f"{root}: plugin path must be an existing directory")
+    validate_symlink_tree(root, exit_code=symlink_error_code)
     codex_manifest = load_json(root / CODEX_MANIFEST) if (root / CODEX_MANIFEST).exists() else None
     claude_manifest = load_json(root / CLAUDE_MANIFEST) if (root / CLAUDE_MANIFEST).exists() else None
     components = component_inventory(root)
@@ -673,6 +787,7 @@ def prepare_output(source: Path, output: Path, *, overwrite: bool) -> None:
     output = output.resolve()
     if output == source or source in output.parents:
         die("output path must not be the source path or inside the source tree")
+    validate_symlink_tree(source)
     if output.exists():
         if not overwrite:
             die(f"{output}: output already exists; pass --overwrite to replace it")
@@ -681,7 +796,12 @@ def prepare_output(source: Path, output: Path, *, overwrite: bool) -> None:
         else:
             output.unlink()
     output.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(source, output, symlinks=True)
+    shutil.copytree(
+        source,
+        output,
+        symlinks=True,
+        ignore=copytree_generated_junk_ignore(source),
+    )
 
 
 def read_skill_description(
@@ -1761,6 +1881,7 @@ def validate_plugin(path: Path, host: str, *, external: bool = True, require_ext
         "internal": {"available": True, "passed": False},
         "external": {"requested": external, "required": require_external, "available": False, "passed": None},
     }
+    detect_plugin(path, explicit_host=host, symlink_error_code=EXIT_VALIDATION_FAILED)
     warnings = internal_validate(path, host)
     report.validation_summary["internal"]["passed"] = True
     for warning in warnings:
