@@ -122,7 +122,7 @@ printf 'Test 2: session_ref env probe ... '
 
 assert_not_contains '"session_ref":' "$DEFAULT_EVENTS"
 
-FRICTION_SESSION_REF=sess-abc123 "$ROOT/scripts/report-friction.sh" \
+without_session_env env FRICTION_SESSION_REF=sess-abc123 "$ROOT/scripts/report-friction.sh" \
   --actual-outcome "zsh: read-only variable: status" \
   --expected-outcome "Assigning to a shell variable named status would work like any other name." \
   --reading "I picked 'status' as a scratch variable while composing a probe under zsh. The assignment failed because zsh reserves status as a read-only parameter mirroring the last exit code, which I only learned from the rejection message." \
