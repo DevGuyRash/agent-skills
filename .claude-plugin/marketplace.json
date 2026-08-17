@@ -63,7 +63,7 @@
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
       "description": "Audit existing skills and plugins with concrete evidence",
-      "version": "3.2.0"
+      "version": "3.3.0"
     },
     {
       "name": "split-testing",

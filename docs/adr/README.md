@@ -35,3 +35,4 @@ reusable across targets.
 | [0021](0021-preserve-authority-across-runtime-identity.md) | Preserve authority when distinct logical roles resolve to the same runtime object |
 | [0022](0022-ground-generated-benchmarks-in-outcome-evidence.md) | Do not prescribe benchmark seeds without demonstrated behavioral gain |
 | [0023](0023-narrow-assurance-when-coverage-does-not-improve.md) | Narrow assurance claims when repeated interventions do not improve coverage |
+| [0024](0024-compensate-observed-blind-spots-with-boundary-evidence.md) | Compensate a repeated model blind spot with observable boundary evidence |

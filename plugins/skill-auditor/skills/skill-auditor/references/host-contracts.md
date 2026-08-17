@@ -39,13 +39,14 @@ may expose a narrower or different representation while the loader accepts a leg
 that source conflict and test the real consumer instead of turning one layer's shape into a rejection
 claim.
 
-Current Codex compatibility note, checked 2026-08-16: the rolling [raw manifest
-parser](https://github.com/openai/codex/blob/main/codex-rs/core-plugins/src/manifest.rs) accepts either
-a string or a list for `interface.defaultPrompt`. A normalized list type, current array-shaped
-example, or publication form therefore does not establish raw ingestion rejection. Recheck the raw
-parser at the intended host revision before relying on this note. This compensation remains because
-separate held-out audits repeatedly promoted the normalized representation into a false release
-blocker; remove or revise it when the raw consumer contract changes or the failure no longer recurs.
+Current Codex compatibility note, checked 2026-08-17 at [revision
+`c6058cc`](https://github.com/openai/codex/blob/c6058ccaa91ab17159cf805bf4d6d4edd87fe5fc/codex-rs/core-plugins/src/manifest.rs#L482-L536):
+the raw manifest parser accepts either a string or a list for `interface.defaultPrompt`. A normalized
+list type, current array-shaped example, or publication form therefore does not establish raw
+ingestion rejection. Recheck the rolling parser at the intended host revision before relying on this
+note. This compensation remains because separate held-out audits repeatedly promoted the normalized
+representation into a false release blocker; remove or revise it when the raw consumer contract
+changes or the failure no longer recurs.
 
 A host-facing manifest or metadata object is one adopted interface boundary. Reconcile its
 consequential declarations against the governing contract before claiming that boundary ready;

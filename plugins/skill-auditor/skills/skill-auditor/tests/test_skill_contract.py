@@ -24,6 +24,7 @@ EXPECTED_DEFAULT_PROMPT = "Use $skill-auditor to audit this skill or plugin."
 EXPECTED_CATEGORY = "Developer Tools"
 EXPECTED_REFERENCES = {
     "references/context-and-source-evidence.md",
+    "references/executable-evidence.md",
     "references/host-contracts.md",
     "references/instruction-design.md",
     "references/open-standard.md",
@@ -74,7 +75,7 @@ class SkillContractTests(unittest.TestCase):
         )
         for manifest in (claude, codex):
             self.assertEqual(manifest["description"], EXPECTED_DESCRIPTION)
-            self.assertEqual(manifest["version"], "3.2.0")
+            self.assertEqual(manifest["version"], "3.3.0")
             self.assertEqual(manifest["license"], "MIT")
         self.assertEqual(codex["interface"]["longDescription"], EXPECTED_DESCRIPTION)
         self.assertEqual(
@@ -95,7 +96,7 @@ class SkillContractTests(unittest.TestCase):
         self.assertEqual(codex_catalog["description"], EXPECTED_SHORT_DESCRIPTION)
         self.assertEqual(codex_catalog["category"], EXPECTED_CATEGORY)
         self.assertEqual(claude_catalog["description"], EXPECTED_SHORT_DESCRIPTION)
-        self.assertEqual(claude_catalog["version"], "3.2.0")
+        self.assertEqual(claude_catalog["version"], "3.3.0")
 
     def test_every_reference_is_directly_routed_from_skill_md(self) -> None:
         content = SKILL_MD.read_text(encoding="utf-8")

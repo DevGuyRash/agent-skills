@@ -12,6 +12,12 @@ establish end-to-end correctness. Treatment executors receive the target while c
 required dependencies, model, authority, task inputs, and collection boundary remain common. Confirm
 target loading, preserve every attempt, and keep each plugin skill's conclusion distinct.
 
+When the host can auto-discover another installed or cached skill with the same identity or purpose,
+a prompt-assigned source path is not exposure proof. Isolate the competing copy or retain host trace
+and source identity showing which instructions were actually loaded. Retired output forms, rules, or
+tool behavior from another version contaminate the condition even when the executor was told not to
+use them; exclude an ambiguous or mixed-source run rather than attributing it to the candidate.
+
 Treat the deployed input to each agent as the actual condition. Shared prompt material that states a
 desired answer, repeats treatment logic, reveals a suspected defect, or supplies evaluator-only facts
 can erase or replace the contrast even when condition labels differ. Prompt purity is a causal
