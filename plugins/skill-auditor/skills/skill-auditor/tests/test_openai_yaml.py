@@ -23,12 +23,23 @@ class OpenAiYamlTests(unittest.TestCase):
         self.assertEqual(read_interface_value("display_name"), "Skill Auditor")
         self.assertEqual(
             read_interface_value("short_description"),
-            "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
+            "Audit existing skills and plugins with concrete evidence",
         )
         self.assertEqual(
             read_interface_value("default_prompt"),
-            "Use $skill-auditor to audit a plugin or skill's packaging, trigger behavior, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief with concrete changes and checks.",
+            "Use $skill-auditor to audit this skill or plugin.",
         )
+
+    def test_openai_interface_constraints(self) -> None:
+        short_description = read_interface_value("short_description")
+        default_prompt = read_interface_value("default_prompt")
+
+        self.assertGreaterEqual(len(short_description), 25)
+        self.assertLessEqual(len(short_description), 64)
+        self.assertIn("$skill-auditor", default_prompt)
+        # Codex 0.147 ignores plugin defaultPrompt values above this runtime
+        # boundary. Relax only after a live supported runtime accepts more.
+        self.assertLessEqual(len(default_prompt), 128)
 
     def test_openai_yaml_uses_interface_root_only(self) -> None:
         content = OPENAI_YAML.read_text(encoding="utf-8")

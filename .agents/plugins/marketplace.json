@@ -122,8 +122,21 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Development",
-      "description": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop"
+      "category": "Developer Tools",
+      "description": "Audit existing skills and plugins with concrete evidence"
+    },
+    {
+      "name": "split-testing",
+      "source": {
+        "source": "local",
+        "path": "./plugins/split-testing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Testing",
+      "description": "Run flexible blind comparisons across alternatives"
     }
   ]
 }

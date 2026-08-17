@@ -1,7 +1,7 @@
 {
   "name": "skill-auditor",
-  "version": "3.1.0",
-  "description": "Audit a plugin or skill for packaging fit, trigger reliability, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill or plugin for quality or correctness, (2) Health-checking trigger reliability, install drift, or context efficiency, (3) Evaluating whether a capability belongs as a skill, hook, subagent, command, tool, MCP server, or ambient guidance, (4) Reviewing packaging, manifests, marketplace entries, or routing between skills inside a plugin, (5) Judging whether instructions bind outcomes or pave pathways, or (6) Any task requiring structured skill or plugin evaluation with concrete improvement checks. Do not use for authoring a new skill from scratch (that is skill-creator) or for reviewing source code changes (that is code-review).",
+  "version": "3.2.0",
+  "description": "Audit an existing skill or plugin for material evidence about target authority, executable behavior, host contracts, instruction design, and task value. Use for evidence-driven quality reviews, self-audits, release-risk investigation, or suspected packaging, routing, source, context, verification, or task-value drift. Do not use to author a new skill or review ordinary source-code changes.",
   "author": {
     "name": "Agent Tooling Contributors"
   },
@@ -17,13 +17,14 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Skill Auditor",
-    "shortDescription": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
-    "longDescription": "Audit a plugin or skill for packaging fit, trigger reliability, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief. Use when the task involves: (1) Auditing or self-auditing a skill or plugin for quality or correctness, (2) Health-checking trigger reliability, install drift, or context efficiency, (3) Evaluating whether a capability belongs as a skill, hook, subagent, command, tool, MCP server, or ambient guidance, (4) Reviewing packaging, manifests, marketplace entries, or routing between skills inside a plugin, (5) Judging whether instructions bind outcomes or pave pathways, or (6) Any task requiring structured skill or plugin evaluation with concrete improvement checks. Do not use for authoring a new skill from scratch (that is skill-creator) or for reviewing source code changes (that is code-review).",
+    "shortDescription": "Audit existing skills and plugins with concrete evidence",
+    "longDescription": "Audit an existing skill or plugin for material evidence about target authority, executable behavior, host contracts, instruction design, and task value. Use for evidence-driven quality reviews, self-audits, release-risk investigation, or suspected packaging, routing, source, context, verification, or task-value drift. Do not use to author a new skill or review ordinary source-code changes.",
     "developerName": "Agent Tooling Contributors",
-    "category": "Development",
+    "category": "Developer Tools",
     "capabilities": [
-      "Read"
+      "Read",
+      "Write"
     ],
-    "defaultPrompt": "Use $skill-auditor to audit a plugin or skill's packaging, trigger behavior, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief with concrete changes and checks."
+    "defaultPrompt": "Use $skill-auditor to audit this skill or plugin."
   }
 }

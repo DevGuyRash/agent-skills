@@ -1,169 +1,63 @@
-# Open Standard
+# Open Agent Skills Contract
 
-Portable checks. These hold for any skill on any host and are stated in full here, because this
-reference travels to machines that have no repository conventions to consult.
+Use this reference only for portable Agent Skills claims. Do not promote host behavior, repository
+preference, or general engineering advice into the open standard.
 
-House conventions layer on top of these and live in the repository overlay.
+`SKILL.md` syntax alone does not assert conformance to this specification. A custom package may use
+similar files under a different local contract, and a host described as “Codex-style,”
+“Claude-compatible,” or similar does not inherit an official host or portable requirement by name.
+Establish that the target claims the standard or is actually consumed through that contract before
+classifying a mismatch as a conformance defect. Where the target's intended consumer is unsettled,
+report the compatibility risk and the observation that would resolve it.
 
-## Identify what you are auditing first
+## Current specification
 
-The same product philosophy applies across hosts; the details do not. Applying a host's conventions
-to a target that never adopted them manufactures defects.
+The canonical rolling [Agent Skills specification](https://agentskills.io/specification) owns the
+current portable format. Open it when a changed rule could affect a material finding. A current-policy
+audit may cite that rolling source while retaining the exact consulted revision in temporary evidence
+when reproducibility matters.
 
-| Profile | Cues | What changes |
-| --- | --- | --- |
-| `open-standard` | Relative paths, one-hop references, portable frontmatter | These checks alone |
-| `claude-skill` | Claude-specific packaging or invocation guidance | Expect Claude host assumptions |
-| `codex-skill` | `.agents/skills`, `$skill-name`, `agents/openai.yaml`, `AGENTS.md` layering | Expect layered repo guidance and Codex discovery |
-| `copilot-skill` | Prompt files, always-on instructions, Copilot agent packaging | Expect host-specific discovery |
-| `internal-house-style` | Organization-specific policy, wrappers, or naming | Local overlays, never universal requirements |
-| `auto` | Mixed or incomplete evidence | Infer carefully and report the uncertainty |
+A portable skill is a directory containing `SKILL.md`. That file contains YAML frontmatter followed
+by Markdown instructions. The specification requires `name` and `description`; it also defines a
+small set of optional fields. A host or repository may support more, but that support is not portable
+unless the specification adopts it.
 
-You SHALL infer the profile from file locations, frontmatter, examples, and ambient repository
-guidance.
-WHEN the evidence mixes hosts THEN you SHALL report `auto` rather than assert false certainty.
-WHEN a rule is house style rather than a portable requirement THEN you SHALL label the finding as
-profile-specific.
+The `name` is the invocation slug. It is 1–64 lowercase ASCII letters, digits, or single hyphens; it
+does not begin or end with a hyphen, contain consecutive hyphens, or differ from the parent skill
+directory name. Human-facing title casing belongs in the body or host metadata.
 
-WHEN the target is a plugin or skill in this repository THEN you SHALL additionally apply the
-repository overlay, which `SKILL.md` routes you to.
+The `description` is nonempty, no longer than 1024 characters, and communicates both what the skill
+does and when it applies. Its semantic routing quality requires behavioral evidence; the format
+constraint alone does not establish that the host will retrieve it correctly.
 
-You SHALL NOT present house rules as universal defects. WHEN relative paths and one-hop references
-satisfy this standard THEN you SHALL treat them as correct regardless of what a stricter local
-convention would require.
+Bundled resource references resolve relative to the skill root. Machine-specific absolute paths are
+not portable. Optional `scripts/`, `references/`, and `assets/` directories have no portable quality
+meaning merely because they are present or absent.
 
-## Metadata
+The structural helpers can report required-field, slug, path, line-ending, shebang, executable-bit,
+and broken-reference facts. Interpret permissive-host behavior as a portability question rather than
+silently rewriting the portable contract.
 
-The `name` and `description` are the retrieval surface. Everything else in the file is invisible
-until they match.
+A host validator can lag the rolling specification or deliberately implement a narrower subset.
+When a current portable field is rejected by a claimed host, preserve both facts: it is not a
+portable-format defect, but it may still be a real host-compatibility blocker. Verify the installed
+validator rather than assuming a clean or failed third-party check defines the standard.
 
-- `description` states what the skill does and when to use it. A description giving only one of the
-  two cannot be matched against a user's request.
-- The description carries discriminating terms, not an exhaustive case list.
-- Long descriptions risk a silent load failure on some hosts. Where a host documents a limit, treat
-  it as hard: an over-length description does not degrade, it disappears.
-- A skill with predictable false positives ends its description with an explicit negative trigger.
+## Recommendations and host contracts
 
-The directory name is the invocation slug, and the standard constrains its shape: lowercase
-alphanumeric characters and single hyphens, no leading or trailing hyphen, no consecutive hyphens,
-and at most 64 characters. A slug outside that shape may still resolve on a permissive host, so what
-you are judging is portability rather than breakage — a skill that will only ever run on one host has
-a legitimate reason to differ, and one meant to travel does not.
+The current [Agent Skills best practices](https://agentskills.io/skill-creation/best-practices) and
+[evaluation guidance](https://agentskills.io/skill-creation/evaluating-skills) recommend concise
+instructions, progressive disclosure, real execution, fresh contexts, and comparisons against a
+baseline. These are evidence-backed authoring recommendations, not additional frontmatter
+requirements.
 
-How the `name` field relates to the slug is not settled by this standard. Hosts and repositories
-differ, so treat any rule about title-casing or deriving one from the other as house convention.
+[OpenAI skill guidance](https://learn.chatgpt.com/docs/build-skills) and [Anthropic skill
+guidance](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) describe
+their own loading, discovery, packaging, and execution surfaces. Apply a host rule only when the
+target claims that host or the user asks about it. Apply repository conventions only through the
+repository overlay.
 
-Script coverage: `<skills-file-root>/scripts/frontmatter_check.sh`.
-
-## Progressive disclosure
-
-- Level 0 — metadata for retrieval
-- Level 1 — a short `SKILL.md` that routes
-- Level 2 — one reference at a time, loaded on a stated condition
-- Level 3 — scripts and assets on demand
-
-`SKILL.md` answers what the skill is, what workflow the agent is in, and what to read next, then
-stops. Detailed procedures, full rubrics, and extended specifications belong in references.
-
-Each fact lives in exactly one place. A rule stated in both `SKILL.md` and a reference will drift,
-and the drift is silent because neither copy knows about the other.
-
-A reference that exists but that `SKILL.md` never links is shipped weight nobody loads: it inflates
-what the skill ships without ever reaching the agent's context, and because nothing points at it,
-nothing forces it to stay current as the rest of the skill changes around it.
-
-References do not point to other references. A reader who must open a second file to understand the
-first has lost the budget the layering was meant to save.
-
-Script coverage: `<skills-file-root>/scripts/reference_check.sh` for link integrity, orphaned
-references, and nesting.
-
-## File hygiene
-
-All shipped text files use LF line endings. Shell scripts carry the executable bit and a valid
-shebang. A script without either fails at the moment the agent needs it, with an error that describes
-the symptom rather than the cause.
-
-The one legitimate exception is a fixture whose entire purpose is exercising CRLF-detection logic
-itself — a test input deliberately carrying CRLF so the check that flags CRLF has something real to
-catch. That CRLF is the thing under test, not an accident, and flagging it as a hygiene defect would
-be flagging the test for doing its job.
-
-CRLF inside an executable script does not get this exception: it is a hard error regardless of what
-the file is for. The carriage return lands inside the interpreter path, so `#!/usr/bin/env sh`
-resolves as a missing binary and the shebang fails before the script's own logic — including any CRLF
-check it might perform — ever runs.
-
-Script coverage: `<skills-file-root>/scripts/script_sanity.sh`.
-
-## Names that cross a boundary
-
-Every name in documentation — roles, phases, modes, parameter values — is the exact string the CLI or
-API accepts. One canonical form appears everywhere: docs, `--help`, error messages, and outputs.
-
-WHEN a CLI accepts named values THEN it offers a way to list them.
-WHEN documentation uses a friendly name differing from the accepted value THEN it includes the
-mapping.
-
-## Error messages
-
-Errors are for the agent that must recover from them, not the human reading a log.
-
-- No stack traces in normal errors.
-- One to three lines; detail behind a verbosity flag.
-- An error for an unrecognized value names the valid alternatives.
-- A consistent shape, so the agent can parse what to do next.
-
-## Output size
-
-- Output is compact by default; verbosity is requested.
-- Commands with unbounded output offer filtering or pagination.
-- Metadata and content are separately requestable.
-
-Script output enters the agent's context; script source does not. A command that dumps everything
-spends the budget the skill's layering was designed to protect.
-
-## Cold start
-
-The skill is usable on first run without installing a toolchain, compiling source, or downloading
-large dependencies.
-
-WHEN compiled tools are included THEN a prebuilt binary ships and the wrapper prefers it over
-building.
-WHEN runtime dependencies are required THEN they are documented and their absence produces an
-actionable error rather than a crash.
-
-## Idempotency
-
-Identical re-runs on unchanged input produce identical output. Non-deterministic values are avoided
-in default output or deterministically seeded.
-
-Scripts creating temporary files remove them on EXIT, INT, and TERM. A skill documenting "create X"
-is safe to re-run when X exists.
-
-Script coverage: `<skills-file-root>/scripts/script_sanity.sh` reports a missing trap handler wherever a
-script creates temporary files.
-
-## Error recovery
-
-WHEN a workflow has three or more steps THEN each step's success or failure is independently
-detectable.
-WHEN a step fails THEN the skill says whether to retry, restart, or abort.
-
-A script exiting zero after a significant sub-task failed silently is worse than one that fails
-loudly, because the agent proceeds on a false premise. Partial output from a failed run does not
-corrupt a re-run or mix old and new results.
-
-## Credential safety
-
-- No credentials committed, echoed, logged, or printed in normal or error output.
-- Error messages do not include command lines carrying credential flags or headers.
-- Shell tracing is disabled around credential handling.
-- No `eval` on user-provided input.
-
-Script coverage: `<skills-file-root>/scripts/script_sanity.sh` scans for secret-pattern filenames.
-
-## Composition
-
-WHEN a skill consumes another skill's output THEN the integration point is tested end to end: run the
-producer, run the consumer against its real output, confirm no manual step was required in between.
+Broad preferences about report shape, error wording, cold-start time, idempotency, reference depth,
+TOCs, script style, or evaluation count are not portable specification failures unless a cited
+contract actually owns them. They may still be material design or host findings when target evidence
+shows a consequence.

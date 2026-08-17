@@ -9,16 +9,15 @@ Usage: audit-plugins.sh [--errors-only] [plugin-name ...]
 Gather what the skill-auditor's scripts can observe about every plugin, or the
 named ones, and print it for a reader to judge.
 
-The scripts report two kinds of thing. Errors are facts with no legitimate
-reading — a link pointing at nothing, a required file absent, two manifests of
-the same plugin disagreeing, a credential-shaped filename. There is no plugin
-for which those are fine, so they set the exit status.
+The scripts report two kinds of thing. Errors are structural failures such as
+a link pointing at nothing, a required file absent, or two manifests of the
+same plugin disagreeing. They set the exit status but do not establish an
+overall quality verdict.
 
 Everything else is an observation: a fact whose significance depends on the
-target, carrying the reference that owns the rule. Lengths, naming, idiom, and
-house conventions live here. They are printed and never fail, because whether
-one is a defect depends on the target's age, profile, and intent, and no script
-can see those.
+target, carrying the reference that owns the rule. They are printed and never
+fail, because whether one is a defect depends on target intent and authority,
+which no structural reporter can decide.
 
   --errors-only   omit observations; print only what is broken
 
@@ -28,7 +27,7 @@ EOF
 
 REPO_ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 AUDITOR="$REPO_ROOT/plugins/skill-auditor/skills/skill-auditor/scripts"
-SKILL_SCRIPTS="frontmatter_check reference_check script_sanity instruction_shape"
+SKILL_SCRIPTS="frontmatter_check reference_check script_sanity"
 ERRORS_ONLY=0
 TARGETS=""
 ERROR_TOTAL=0

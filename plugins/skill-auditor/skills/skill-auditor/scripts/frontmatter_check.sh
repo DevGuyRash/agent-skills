@@ -14,9 +14,9 @@ Errors are broken for every target: absent frontmatter, a missing name, a
 missing or empty description. A skill with no description has no retrieval
 surface and can never be matched, on any host.
 
-Observations are facts whose significance depends on the target — slug shape,
-legacy title-casing patterns, and description length against the documented
-limit. Each carries the rule it bears on. They never fail.
+Observations are portable frontmatter facts whose significance depends on the
+target — slug shape, name/directory mismatch, and description length against
+the documented limit. Each carries the rule it bears on. They never fail.
 
 Description quality is not assessed. A word count cannot tell whether a
 description discriminates, so judging that is left to the reader.
@@ -189,8 +189,10 @@ esac
 
 # Not findings about the target: the script could not run.
 [ -d "$SKILL_DIR" ] || fail_usage "skill directory not found: $SKILL_DIR"
+RESOLVED_SKILL_DIR=$(unset CDPATH; cd -- "$SKILL_DIR" 2>/dev/null && pwd -L) || \
+    fail_usage "skill directory could not be resolved: $SKILL_DIR"
 
-SKILL_FILE="$SKILL_DIR/SKILL.md"
+SKILL_FILE="$RESOLVED_SKILL_DIR/SKILL.md"
 [ -f "$SKILL_FILE" ] || fail_usage "SKILL.md not found in $SKILL_DIR"
 
 if ! FRONTMATTER=$(load_frontmatter "$SKILL_FILE"); then
@@ -206,10 +208,10 @@ NAME_VALUE=$(printf '%s\n' "$FRONTMATTER" | sed -n 's/^name:[[:space:]]*//p' | h
 if [ -z "$NAME_VALUE" ]; then
     error "name_missing" "frontmatter" "no name field; the skill has no display identity"
 else
-    DIR_NAME=$(basename "$SKILL_DIR")
+    DIR_NAME=$(basename "$RESOLVED_SKILL_DIR")
 
-    # Naming is house convention. A skill authored to the live slug standard,
-    # or predating this one, can carry any of these on purpose.
+    # These are deterministic observations. The auditor decides whether the
+    # target adopted the portable standard or a host/profile exception.
     if ! printf '%s' "$DIR_NAME" | grep -Eq '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'; then
         observe "slug_format" "$DIR_NAME" \
             "the directory slug is not lowercase alphanumeric with single hyphens" \
@@ -227,36 +229,10 @@ else
             "open-standard"
     fi
 
-    # The live repository rule allows slug frontmatter for newly authored or
-    # deliberately migrated skills. The older title-cased display-name pattern
-    # remains a legitimate legacy shape, so these observations apply only when
-    # the target is not already using slug-as-name.
     if [ "$NAME_VALUE" != "$DIR_NAME" ]; then
-        if ! printf '%s' "$NAME_VALUE" | grep -Eq '^[A-Z][A-Za-z0-9]*([ ][A-Z][A-Za-z0-9]*)*$'; then
-            observe "name_not_title_case" "$NAME_VALUE" \
-                "the name field is neither a portable slug nor title-cased display text" \
-                "repo-overlay"
-        fi
-
-        # Body only. Scanning the whole file would let a "# comment" inside the
-        # frontmatter win over the real H1.
-        H1_VALUE=$(awk '
-            NR == 1 && $0 == "---" { in_fm = 1; next }
-            in_fm && $0 == "---" { in_fm = 0; next }
-            !in_fm && /^# / { sub(/^# */, ""); print; exit }
-        ' "$SKILL_FILE" 2>/dev/null || true)
-        if [ -n "$H1_VALUE" ] && [ "$H1_VALUE" != "$NAME_VALUE" ]; then
-            observe "h1_name_mismatch" "$H1_VALUE" \
-                "the body's H1 differs from the frontmatter display name \"$NAME_VALUE\"" \
-                "repo-overlay"
-        fi
-
-        EXPECTED_NAME=$(printf '%s' "$DIR_NAME" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-        if [ "$NAME_VALUE" != "$EXPECTED_NAME" ]; then
-            observe "name_slug_mismatch" "$NAME_VALUE" \
-                "the name is not the repository's legacy title-cased form of the slug \"$DIR_NAME\" (expected \"$EXPECTED_NAME\")" \
-                "repo-overlay"
-        fi
+        observe "name_directory_mismatch" "$NAME_VALUE" \
+            "the name field does not match the parent skill directory \"$DIR_NAME\"" \
+            "open-standard"
     fi
 fi
 

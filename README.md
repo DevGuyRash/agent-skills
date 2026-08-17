@@ -26,6 +26,10 @@ The catalogs are independent. Most plugins support both hosts; a plugin that
 depends on a host-native runtime or instruction surface is published only for
 the capable host.
 
+Reusable instruction and evaluation decisions, their outcome evidence, and reopening conditions
+are indexed in [`docs/adr/`](docs/adr/README.md). The ADRs record rationale; `AGENTS.md`, target
+contracts, host schemas, and maker requirements remain authoritative.
+
 Current local plugins:
 
 - `plugins/code-review/`
@@ -38,6 +42,7 @@ Current local plugins:
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
 - `plugins/skill-auditor/`
+- `plugins/split-testing/`
 - `plugins/software-development/` replaces `rust-development` and
   `gitops-workflow` with a shared development catalog for both Codex and
   Claude Code.

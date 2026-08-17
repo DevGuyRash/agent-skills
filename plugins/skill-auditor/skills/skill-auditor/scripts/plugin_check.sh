@@ -5,34 +5,30 @@ set -eu
 FORMAT=text
 MARKETPLACE=""
 INSTALLED=""
+INSTALL_UNCHECKED=0
 
 usage() {
     cat <<'EOF'
 Usage: plugin_check.sh <plugin-directory> [--marketplace <file>] [--installed <dir>] [--format json]
 
-Check the package surfaces no single SKILL.md can see, in two kinds:
-  - both host manifests present, and agreeing on version and description
-  - manifest description matching a single bundled skill
-  - declared capabilities covering what the skills actually do
+Report deterministic package facts no single SKILL.md can see:
+  - which host manifests and bundled skills are present
+  - shared-field differences between available host manifests
+  - differences between a one-skill package description and skill description
   - a declared license having a LICENSE file behind it
-  - reciprocal negative-trigger edges between sibling skills
   - catalog version parity            (needs --marketplace, else auto-discovered)
-  - installed-vs-repository drift     (needs --installed, else auto-discovered)
+  - installed skill-tree drift        (use --installed for the observed active version;
+                                        auto-discovery runs only when unambiguous)
 
-Errors are broken for every target: a missing host manifest, no bundled
-skills, manifests or catalog entries disagreeing on version or description,
-or a catalog entry published over untracked content. There is no plugin for
-which these are fine.
-
-Observations are facts whose significance depends on the target — installed
-vs. repository drift, a declared license with no LICENSE file in reach, an
-asymmetric routing edge between sibling skills, an unpublished plugin, a
-catalog entry with no version to compare. Each carries the rule it bears on
-so the reader can decide. They never fail.
+Package shape and shared-field differences are observations, not policy
+verdicts: a target may intentionally support one host, expose no skills, or
+publish host-specific metadata. Each observation needs target and host
+interpretation. The script fails only when its arguments or target are
+unusable; it does not decide whether a plugin is good or release-ready.
 
 Surfaces that cannot be located are reported as unchecked, never as passing.
 
-Exit: 0 no errors, 1 errors found, 2 the arguments or the target were unusable.
+Exit: 0 report produced, 2 the arguments or the target were unusable.
 EOF
 }
 
@@ -44,24 +40,6 @@ fail_usage() {
     echo "error: $1" >&2
     [ -z "${2-}" ] || echo "hint: $2" >&2
     exit 2
-}
-
-# An error is a fact with no legitimate reading: broken for every target, on
-# every host, at any age. Only these may fail.
-error() {
-    code="$1"
-    subject="$2"
-    fact="$3"
-
-    if [ "$ERR_COUNT" -gt 0 ]; then
-        ERR_JSON="$ERR_JSON,"
-    fi
-    ERR_JSON="$ERR_JSON{\"code\":\"$(json_escape "$code")\",\"subject\":\"$(json_escape "$subject")\",\"fact\":\"$(json_escape "$fact")\"}"
-    ERR_COUNT=$((ERR_COUNT + 1))
-
-    TEXT_ERRORS="$TEXT_ERRORS
-ERROR $code: $subject
-  $fact"
 }
 
 # An observation is a fact plus, where one exists, the documented rule it bears
@@ -151,9 +129,7 @@ print_text() {
     if [ -n "$UNCHECKED" ]; then echo "unchecked=$UNCHECKED"; fi
     echo "errors=$ERR_COUNT"
     echo "observations=$OBS_COUNT"
-    [ "$ERR_COUNT" -eq 0 ] || printf '%s\n' "$TEXT_ERRORS"
     [ "$OBS_COUNT" -eq 0 ] || printf '%s\n' "$TEXT_OBS"
-    [ "$ERR_COUNT" -eq 0 ] || exit 1
     exit 0
 }
 
@@ -169,11 +145,9 @@ print_json() {
     printf '"observation_count":%s,' "$OBS_COUNT"
     printf '"observations":[%s]' "$OBS_JSON"
     printf '}\n'
-    [ "$ERR_COUNT" -eq 0 ] || exit 1
     exit 0
 }
 
-TEXT_ERRORS=""
 ERR_JSON=""
 ERR_COUNT=0
 TEXT_OBS=""
@@ -216,31 +190,49 @@ CODEX_MANIFEST="$PLUGIN_DIR/.codex-plugin/plugin.json"
 
 # --- manifests present -----------------------------------------------------
 
-[ -f "$CLAUDE_MANIFEST" ] || error "missing_claude_manifest" ".claude-plugin/plugin.json" \
-    "the file does not exist; Claude Code has no manifest to load for this plugin"
-[ -f "$CODEX_MANIFEST" ] || error "missing_codex_manifest" ".codex-plugin/plugin.json" \
-    "the file does not exist; Codex has no manifest to load for this plugin"
+CLAUDE_VERSION=""; CLAUDE_DESC=""; CLAUDE_LICENSE=""
+CODEX_VERSION=""; CODEX_DESC=""; CODEX_LICENSE=""
 
-if [ ! -f "$CLAUDE_MANIFEST" ] || [ ! -f "$CODEX_MANIFEST" ]; then
-    case "$FORMAT" in json) print_json ;; text) print_text ;; esac
+if [ -f "$CLAUDE_MANIFEST" ]; then
+    CLAUDE_VERSION=$(json_field version "$CLAUDE_MANIFEST")
+    CLAUDE_DESC=$(json_field description "$CLAUDE_MANIFEST")
+    CLAUDE_LICENSE=$(json_field license "$CLAUDE_MANIFEST")
+else
+    observe "missing_claude_manifest" ".claude-plugin/plugin.json" \
+        "the file does not exist; this package exposes no Claude manifest at that path" \
+        "plugin-fit"
+    append_unchecked "claude-manifest-fields"
 fi
 
-CLAUDE_VERSION=$(json_field version "$CLAUDE_MANIFEST")
-CODEX_VERSION=$(json_field version "$CODEX_MANIFEST")
-CLAUDE_DESC=$(json_field description "$CLAUDE_MANIFEST")
-CODEX_DESC=$(json_field description "$CODEX_MANIFEST")
-CLAUDE_LICENSE=$(json_field license "$CLAUDE_MANIFEST")
+if [ -f "$CODEX_MANIFEST" ]; then
+    CODEX_VERSION=$(json_field version "$CODEX_MANIFEST")
+    CODEX_DESC=$(json_field description "$CODEX_MANIFEST")
+    CODEX_LICENSE=$(json_field license "$CODEX_MANIFEST")
+else
+    observe "missing_codex_manifest" ".codex-plugin/plugin.json" \
+        "the file does not exist; this package exposes no Codex manifest at that path" \
+        "plugin-fit"
+    append_unchecked "codex-manifest-fields"
+fi
 
 if [ -n "$CLAUDE_VERSION" ] && [ -n "$CODEX_VERSION" ] && [ "$CLAUDE_VERSION" != "$CODEX_VERSION" ]; then
-    error "manifest_version_mismatch" "version" \
-        "claude manifest says $CLAUDE_VERSION, codex manifest says $CODEX_VERSION"
+    observe "manifest_version_difference" "version" \
+        "claude manifest says $CLAUDE_VERSION, codex manifest says $CODEX_VERSION" \
+        "plugin-fit"
 fi
 
 if [ -n "$CLAUDE_DESC" ] && [ -n "$CODEX_DESC" ]; then
     if [ "$(normalize "$CLAUDE_DESC")" != "$(normalize "$CODEX_DESC")" ]; then
-        error "manifest_description_mismatch" "description" \
-            "claude and codex manifests disagree on description text"
+        observe "manifest_description_difference" "description" \
+            "claude and codex manifests expose different description text" \
+            "plugin-fit"
     fi
+fi
+
+if [ -n "$CLAUDE_LICENSE" ] && [ -n "$CODEX_LICENSE" ] && [ "$CLAUDE_LICENSE" != "$CODEX_LICENSE" ]; then
+    observe "manifest_license_difference" "license" \
+        "claude manifest says $CLAUDE_LICENSE, codex manifest says $CODEX_LICENSE" \
+        "plugin-fit"
 fi
 
 # --- bundled skills --------------------------------------------------------
@@ -255,16 +247,12 @@ if [ -n "$SKILL_FILES" ]; then
 fi
 
 if [ "$SKILL_COUNT" -eq 0 ]; then
-    error "no_skills" "skills" "the plugin bundles no skills"
-    case "$FORMAT" in json) print_json ;; text) print_text ;; esac
+    observe "no_skills" "skills" "no SKILL.md was found under the package skills directory" \
+        "plugin-fit"
 fi
 
-# Fold every bundled skill's description once, up front. yaml_description
-# parses a whole YAML frontmatter block; the routing-edge check below compares
-# every skill against every other and the installed-drift check reads it
-# again, so computing it inline at each of those call sites would fork that
-# parse O(S^2) times over the same S files. A slug/description lookup, read
-# instead of re-parsed, is where this script's time went before.
+# Fold every bundled skill's description once. The single-skill manifest
+# comparison and installed-drift check can then reuse the same parsed facts.
 DESC_LOOKUP="${TMPDIR:-/tmp}/plugincheck_desc.$$"
 trap 'rm -f "$DESC_LOOKUP"' EXIT INT TERM
 : >"$DESC_LOOKUP"
@@ -283,8 +271,16 @@ if [ "$SKILL_COUNT" -eq 1 ]; then
     skill_desc=$(desc_for_slug "$only_slug")
     if [ -n "$skill_desc" ] && [ -n "$CLAUDE_DESC" ]; then
         if [ "$(normalize "$skill_desc")" != "$(normalize "$CLAUDE_DESC")" ]; then
-            error "skill_description_mismatch" "$only_slug" \
-                "the manifest description differs from this skill's frontmatter description"
+            observe "skill_description_difference" "$only_slug" \
+                "the Claude package description differs from this skill's frontmatter description" \
+                "plugin-fit"
+        fi
+    fi
+    if [ -n "$skill_desc" ] && [ -n "$CODEX_DESC" ]; then
+        if [ "$(normalize "$skill_desc")" != "$(normalize "$CODEX_DESC")" ]; then
+            observe "skill_description_difference" "$only_slug" \
+                "the Codex package description differs from this skill's frontmatter description" \
+                "plugin-fit"
         fi
     fi
 fi
@@ -297,7 +293,9 @@ fi
 
 # --- license ---------------------------------------------------------------
 
-if [ -n "$CLAUDE_LICENSE" ]; then
+DECLARED_LICENSE="$CLAUDE_LICENSE"
+[ -n "$DECLARED_LICENSE" ] || DECLARED_LICENSE="$CODEX_LICENSE"
+if [ -n "$DECLARED_LICENSE" ]; then
     license_found=no
     probe="$PLUGIN_DIR"
     depth=0
@@ -311,40 +309,10 @@ if [ -n "$CLAUDE_LICENSE" ]; then
         depth=$((depth + 1))
     done
     if [ "$license_found" = no ]; then
-        observe "license_without_file" "$CLAUDE_LICENSE" \
+        observe "license_without_file" "$DECLARED_LICENSE" \
             "the manifest declares this license but no LICENSE file was found above the plugin" \
             "repo-overlay"
     fi
-fi
-
-# --- reciprocal negative-trigger edges -------------------------------------
-
-if [ "$SKILL_COUNT" -gt 1 ]; then
-    while IFS= read -r sf_a; do
-        [ -n "$sf_a" ] || continue
-        slug_a=$(basename "$(dirname "$sf_a")")
-        desc_a=$(desc_for_slug "$slug_a")
-        while IFS= read -r sf_b; do
-            [ -n "$sf_b" ] || continue
-            slug_b=$(basename "$(dirname "$sf_b")")
-            [ "$slug_a" != "$slug_b" ] || continue
-            case "$desc_a" in
-                *"$slug_b"*)
-                    desc_b=$(desc_for_slug "$slug_b")
-                    case "$desc_b" in
-                        *"$slug_a"*) ;;
-                        *) observe "one_way_routing_edge" "$slug_a" \
-                               "routes to $slug_b, but $slug_b never names $slug_a back" \
-                               "repo-overlay" ;;
-                    esac
-                    ;;
-            esac
-        done <<EOF
-$SKILL_FILES
-EOF
-    done <<EOF
-$SKILL_FILES
-EOF
 fi
 
 # --- catalog parity --------------------------------------------------------
@@ -381,13 +349,15 @@ if [ -n "$MARKETPLACE" ] && [ -f "$MARKETPLACE" ]; then
     if ! grep -q "\"$PLUGIN_NAME\"" "$MARKETPLACE" 2>/dev/null; then
         observe "not_published" "$PLUGIN_NAME" "no entry in $MARKETPLACE" "repo-overlay"
     else
-        # A catalog entry pointing at untracked content installs from a path
-        # that exists only on the maintainer's machine.
+        # Tracking is a useful fact, but a local or generated catalog can
+        # intentionally point at untracked content. The agent judges whether
+        # that contradicts the package's publication claim.
         if command -v git >/dev/null 2>&1 &&
            git -C "$PLUGIN_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             if [ -z "$(git -C "$PLUGIN_DIR" ls-files . 2>/dev/null | head -1)" ]; then
-                error "published_but_untracked" "$PLUGIN_NAME" \
-                    "the catalog entry exists but no file under the plugin directory is tracked by git"
+                observe "published_but_untracked" "$PLUGIN_NAME" \
+                    "the catalog entry exists but no file under the plugin directory is tracked by git" \
+                    "repo-overlay"
             fi
         else
             append_unchecked "tracking"
@@ -400,43 +370,90 @@ if [ -n "$MARKETPLACE" ] && [ -f "$MARKETPLACE" ]; then
                 "catalog entry declares no version to compare against" \
                 "repo-overlay"
         elif [ -n "$CLAUDE_VERSION" ] && [ "$catalog_version" != "$CLAUDE_VERSION" ]; then
-            error "catalog_version_mismatch" "version" \
-                "catalog says $catalog_version, manifest says $CLAUDE_VERSION"
+            observe "catalog_version_difference" "version" \
+                "catalog says $catalog_version, Claude manifest says $CLAUDE_VERSION" \
+                "repo-overlay"
         fi
     fi
 else
     append_unchecked "catalog"
 fi
 
-# --- installed drift -------------------------------------------------------
+# --- installed skill-tree drift -------------------------------------------
+
+# Emit a deterministic description of the skill subtree. Content, topology,
+# and whether regular files are executable are facts the installed runtime can
+# observe. Host package surfaces outside the skill tree remain explicitly
+# unchecked rather than being inferred from matching frontmatter.
+tree_facts() {
+    base="$1"
+    find "$base" -mindepth 1 -print 2>/dev/null | LC_ALL=C sort | while IFS= read -r item; do
+        rel=${item#"$base"/}
+        if [ -d "$item" ] && [ ! -L "$item" ]; then
+            printf 'D\t%s\n' "$rel"
+        elif [ -f "$item" ] && [ ! -L "$item" ]; then
+            if [ -x "$item" ]; then executable=x; else executable=-; fi
+            set -- $(cksum "$item")
+            printf 'F\t%s\t%s\t%s\t%s\n' "$rel" "$executable" "$1" "$2"
+        elif [ -L "$item" ]; then
+            printf 'L\t%s\n' "$rel"
+        else
+            printf 'O\t%s\n' "$rel"
+        fi
+    done
+}
 
 if [ -z "$INSTALLED" ]; then
+    installed_candidates=""
     for base in "$HOME/.claude/plugins/cache" "$HOME/.codex/plugins/cache"; do
         [ -d "$base" ] || continue
-        found=$(find "$base" -mindepth 2 -maxdepth 3 -type d -name "$PLUGIN_NAME" 2>/dev/null | head -1 || true)
-        if [ -n "$found" ]; then INSTALLED="$found"; break; fi
+        found=$(find "$base" -mindepth 2 -maxdepth 3 -type d -name "$PLUGIN_NAME" 2>/dev/null || true)
+        [ -z "$found" ] || installed_candidates="$installed_candidates
+$found"
     done
+    installed_candidates=$(printf '%s\n' "$installed_candidates" | sed '/^$/d' | sort -u)
+    candidate_count=$(printf '%s\n' "$installed_candidates" | sed '/^$/d' | wc -l | tr -d ' ')
+    if [ "$candidate_count" -eq 1 ]; then
+        INSTALLED="$installed_candidates"
+    elif [ "$candidate_count" -gt 1 ]; then
+        append_unchecked "install-multiple-host-caches-use---installed"
+        INSTALL_UNCHECKED=1
+    fi
 fi
 
 if [ -n "$INSTALLED" ] && [ -d "$INSTALLED" ]; then
     while IFS= read -r sf; do
         [ -n "$sf" ] || continue
         slug=$(basename "$(dirname "$sf")")
-        installed_skill=$(find "$INSTALLED" -type f -path "*/$slug/SKILL.md" 2>/dev/null | head -1 || true)
-        if [ -n "$installed_skill" ]; then
-            repo_desc=$(normalize "$(desc_for_slug "$slug")")
-            inst_desc=$(normalize "$(yaml_description "$installed_skill")")
-            if [ -n "$repo_desc" ] && [ -n "$inst_desc" ] && [ "$repo_desc" != "$inst_desc" ]; then
+        installed_skills=$(find "$INSTALLED" -type f -path "*/$slug/SKILL.md" 2>/dev/null | sort -u || true)
+        installed_count=$(printf '%s\n' "$installed_skills" | sed '/^$/d' | wc -l | tr -d ' ')
+        if [ "$installed_count" -gt 1 ]; then
+            append_unchecked "install-$slug-multiple-copies-use---installed"
+            continue
+        fi
+        if [ "$installed_count" -eq 1 ]; then
+            installed_skill="$installed_skills"
+            repo_skill_dir=$(dirname "$sf")
+            installed_skill_dir=$(dirname "$installed_skill")
+            repo_tree="${TMPDIR:-/tmp}/plugincheck_repo_tree.$$.txt"
+            installed_tree="${TMPDIR:-/tmp}/plugincheck_installed_tree.$$.txt"
+            tree_facts "$repo_skill_dir" >"$repo_tree"
+            tree_facts "$installed_skill_dir" >"$installed_tree"
+            if ! cmp -s "$repo_tree" "$installed_tree"; then
                 observe "install_drift" "$slug" \
-                    "installed description differs from the repository; retrieval matches the installed text" \
-                    "open-standard"
+                    "the installed skill tree differs from the repository in content, topology, or executable-file availability" \
+                    "plugin-fit"
             fi
+            rm -f "$repo_tree" "$installed_tree"
+        else
+            append_unchecked "install-$slug-not-found"
         fi
     done <<EOF
 $SKILL_FILES
 EOF
+    append_unchecked "install-package-surfaces-outside-skills"
 else
-    append_unchecked "install"
+    [ "$INSTALL_UNCHECKED" -eq 1 ] || append_unchecked "install"
 fi
 
 case "$FORMAT" in

@@ -1,0 +1,28 @@
+{
+  "name": "split-testing",
+  "version": "1.0.0",
+  "description": "Design and run blinded comparative tests of any alternatives with variable conditions, runs, rounds, models, agents, and reviewers, including when a decision has no ready-made test tasks. Use for split testing, A/B or multi-way comparisons, repeated trials, blind evaluation, or evidence that one option performs better than another.",
+  "author": {
+    "name": "Agent Tooling Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "blind-evaluation",
+    "comparative-testing",
+    "experiments",
+    "split-testing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Split Testing",
+    "shortDescription": "Run flexible blind comparisons across alternatives",
+    "longDescription": "Design and run blinded comparative tests of any alternatives with variable conditions, runs, rounds, models, agents, and reviewers, including when a decision has no ready-made test tasks. Use for split testing, A/B or multi-way comparisons, repeated trials, blind evaluation, or evidence that one option performs better than another.",
+    "developerName": "Agent Tooling Contributors",
+    "category": "Testing",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": "Use $split-testing to compare these alternatives with blinded evidence."
+  }
+}

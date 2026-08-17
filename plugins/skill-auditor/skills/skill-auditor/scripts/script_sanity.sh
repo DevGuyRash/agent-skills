@@ -8,19 +8,17 @@ usage() {
     cat <<'EOF'
 Usage: script_sanity.sh <skill-directory> [--format json]
 
-Report what is true of a skill's files, in two kinds. Most checks cover only
-the top-level scripts in scripts/; the secret-file scan covers the whole
-skill directory, since a credential can be committed anywhere in it.
+Report executable and line-ending facts for a skill's files.
 
-Errors are broken for every target: a launcher without its executable bit, a
-script with no shebang, CRLF in a script whose shebang the shell must read, a
-filename matching a credential-naming pattern anywhere in the skill. A
-carriage return after `#!/usr/bin/env sh` makes the interpreter unfindable, and
-a committed credential file is unsafe, on every target.
+Errors are direct-execution failures: an executable text file with no shebang,
+or CRLF in an executable whose shebang the operating system must read. A
+carriage return after `#!/usr/bin/env sh` makes the interpreter unfindable.
 
-Observations are facts whose significance depends on the target, each carrying
-the rule it bears on — including a script that creates temporary files but has
-no trap to remove them. They never fail.
+Non-executable shell files and CRLF in non-executable text are observations.
+Whether a shell file is sourced, passed to an interpreter, or intended as a
+launcher belongs to the target instructions and repository contract. This
+script does not infer that responsibility, cleanup, credentials, or semantic
+policy from filenames or keyword patterns.
 
 Exit: 0 no errors, 1 errors found, 2 the arguments or the target were unusable.
 EOF
@@ -66,14 +64,6 @@ has_crlf() {
 is_text_like_file() {
     [ -s "$1" ] || return 0
     LC_ALL=C grep -Iq . "$1"
-}
-
-requires_launcher_contract() {
-    case "$1" in
-        *.sh) return 0 ;;
-        *.*) return 1 ;;
-        *) return 0 ;;
-    esac
 }
 
 print_text() {
@@ -129,25 +119,9 @@ esac
 
 [ -d "$SKILL_DIR" ] || fail_usage "skill directory not found: $SKILL_DIR"
 
-# Whole-directory scan, not scripts/-only: a committed credential is broken
-# for every target regardless of which subdirectory it lands in. One find
-# pass lists every match; no per-file subprocess is spawned for it.
 CRLF_FILE="${TMPDIR:-/tmp}/scriptsanity_crlf.$$"
 trap 'rm -f "$CRLF_FILE"' EXIT INT TERM
 SCRIPTS_DIR="$SKILL_DIR/scripts"
-
-SECRET_FILES=$(find "$SKILL_DIR" -type f \( -name '.env' -o -name '.env.*' -o -name 'credentials.*' -o -name '*secret*' -o -name '*token*' \) \
-    -not -path '*/.git/*' -not -path '*/__pycache__/*' -not -path '*/.pytest_cache/*' \
-    -not -name '*.py' -not -name '*.sh' -not -name '*.md' | sort)
-if [ -n "$SECRET_FILES" ]; then
-    while IFS= read -r secret_file; do
-        [ -n "$secret_file" ] || continue
-        error "secret_pattern_file" "${secret_file#"$SKILL_DIR"/}" \
-            "the filename matches a credential-naming pattern (.env, credentials.*, *secret*, *token*), which risks a committed credential"
-    done <<EOF
-$SECRET_FILES
-EOF
-fi
 
 # CRLF anywhere in the skill's text files, in one pass. Runs before the
 # scripts/ early-return: a skill with no scripts/ still has references and a
@@ -173,7 +147,7 @@ while IFS= read -r crlf_file; do
     else
         observe "crlf" "${crlf_file#"$SKILL_DIR"/}" \
             "the file uses CRLF line endings" \
-            "open-standard"
+            "repo-overlay"
     fi
 done <"$CRLF_FILE"
 
@@ -181,8 +155,6 @@ if [ ! -d "$SCRIPTS_DIR" ]; then
     case "$FORMAT" in json) print_json ;; text) print_text ;; esac
 fi
 
-# Recursive on purpose: a helper under scripts/lib/ that the launcher sources
-# is as unrunnable without its executable bit or shebang as the launcher is.
 TOP_LEVEL_SCRIPTS=$(find "$SCRIPTS_DIR" -type f \
     -not -path '*/__pycache__/*' -not -path '*/.pytest_cache/*' | sort)
 if [ -n "$TOP_LEVEL_SCRIPTS" ]; then
@@ -199,50 +171,33 @@ if [ -n "$TOP_LEVEL_SCRIPTS" ]; then
         executable=false
         [ ! -x "$script_file" ] || executable=true
         shebang=$(head -1 "$script_file" 2>/dev/null || true)
-        launcher=false
-        ! requires_launcher_contract "$script_name" || launcher=true
 
         # A carriage return lands inside the interpreter path, so the shell
-        # cannot find it. Broken for every target that runs the script.
+        # cannot find it when the file is directly executed. Otherwise retain
+        # the line-ending fact without guessing how the target consumes it.
         if has_crlf "$script_file"; then
-            if [ "$launcher" = true ] || [ "$executable" = true ]; then
+            if [ "$executable" = true ]; then
                 error "crlf_in_executable" "$script_rel" \
                     "the script uses CRLF; the carriage return becomes part of the interpreter path and the shebang fails"
             else
                 observe "crlf" "$script_rel" \
                     "the file uses CRLF line endings" \
-                    "open-standard"
+                    "repo-overlay"
             fi
         fi
 
-        if [ "$launcher" = true ]; then
-            if [ "$executable" != true ]; then
-                error "not_executable" "$script_rel" \
-                    "a launcher without its executable bit cannot be invoked"
-            fi
+        if [ "$executable" = true ]; then
             case "$shebang" in
                 '#!'*) ;;
                 *) error "missing_shebang" "$script_rel" \
-                       "a launcher with no shebang has no interpreter to run under" ;;
+                       "the file is executable but has no interpreter shebang" ;;
             esac
-        elif [ "$executable" = true ]; then
-            case "$shebang" in
-                '#!'*) ;;
-                *) error "missing_shebang" "$script_rel" \
-                       "the file is executable but has no shebang" ;;
+        else
+            case "$script_name" in
+                *.sh) observe "not_executable" "$script_rel" \
+                          "the shell file has no executable bit; inspect whether the target sources it, invokes an interpreter, or expects direct execution" \
+                          "repo-overlay" ;;
             esac
-        fi
-
-        # Cleanup handler, but only where there is something to clean up. A
-        # script that creates no temporary file has nothing to remove, so
-        # demanding a trap of every script reports noise on most of them and
-        # trains the reader to ignore the one case that matters.
-        if [ "$launcher" = true ] && grep -qE 'mktemp|\$\$|TMPDIR|/tmp/' "$script_file" 2>/dev/null; then
-            if ! grep -q 'trap ' "$script_file" 2>/dev/null; then
-                observe "script_no_trap" "$script_rel" \
-                    "the script creates temporary files but has no trap handler" \
-                    "open-standard"
-            fi
         fi
     done <<EOF
 $TOP_LEVEL_SCRIPTS

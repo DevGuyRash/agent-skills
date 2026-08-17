@@ -35,6 +35,7 @@ test:
   python3 -m unittest discover -s plugins/excel-foundry/skills/excel-foundry/tests -p 'test_*.py'
   PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/software-development/tests -p 'test_*.py'
   PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/skill-auditor/skills/skill-auditor/tests -p 'test_*.py'
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/split-testing/skills/split-testing/tests -p 'test_*.py'
   bash plugins/friction-diagnostics/skills/friction-diagnostics/tests/smoke-posix.sh
 
 # Run the friction-diagnostics plugin smoke suite (POSIX)

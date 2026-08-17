@@ -62,8 +62,14 @@
     {
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
-      "description": "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop",
-      "version": "3.1.0"
+      "description": "Audit existing skills and plugins with concrete evidence",
+      "version": "3.2.0"
+    },
+    {
+      "name": "split-testing",
+      "source": "./plugins/split-testing",
+      "description": "Run flexible blind comparisons across alternatives",
+      "version": "1.0.0"
     }
   ]
 }

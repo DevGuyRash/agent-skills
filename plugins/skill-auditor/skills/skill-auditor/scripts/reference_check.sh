@@ -13,9 +13,9 @@ Report what is true of a skill's references, in two kinds.
 Errors are broken for every target: a link pointing at a file that does not
 exist. There is no skill for which that is fine, so it fails.
 
-Observations are facts whose significance depends on the target — an unlinked
-file, a nested reference, or an oversized reference. Each carries the rule it bears
-on so the reader can decide. They never fail.
+Observations are reference-graph facts whose significance depends on the target
+— an unlinked file or a reference that points to another reference. They never
+fail.
 
 Exit: 0 no errors, 1 errors found, 2 the arguments or the target were unusable.
 EOF
@@ -164,6 +164,14 @@ if [ -n "$RAW_LINKS" ]; then
         [ -n "$raw_link" ] || continue
         rel_path=$(normalize_link "$raw_link")
 
+        case "$raw_link" in
+            '<skills-file-root>'/*)
+                observe "nonportable_reference_prefix" "$raw_link" \
+                    "the path uses a host placeholder instead of a skill-root-relative resource path" \
+                    "open-standard"
+                ;;
+        esac
+
         if [ -n "$NORMALIZED_LINKS" ]; then
             NORMALIZED_LINKS="$NORMALIZED_LINKS
 $rel_path"
@@ -214,7 +222,7 @@ EOF
         [ -n "$rel_ref" ] || continue
         observe "unlinked_reference" "$rel_ref" \
             "the file exists but no path in SKILL.md points at it" \
-            "open-standard"
+            "SKILL.md"
     done <"$WORK_FILE"
 
     find "$REFERENCE_DIR" -type f -name '*.md' \
@@ -224,18 +232,7 @@ EOF
         [ -n "$ref_file" ] || continue
         observe "nested_reference_link" "${ref_file#"$SKILL_DIR"/}" \
             "this reference links another reference" \
-            "open-standard"
-    done <"$WORK_FILE"
-
-    find "$REFERENCE_DIR" -type f -name '*.md' -exec wc -l {} + 2>/dev/null \
-        | awk -v limit=300 '$1 > limit && $2 != "total" { print $1 " " $2 }' >"$WORK_FILE" || true
-    while IFS= read -r line; do
-        [ -n "$line" ] || continue
-        ref_lines=${line%% *}
-        ref_file=${line#* }
-        observe "reference_too_long" "${ref_file#"$SKILL_DIR"/}" \
-            "the reference is $ref_lines lines, past the 300-line guideline" \
-            "repo-overlay"
+            "SKILL.md"
     done <"$WORK_FILE"
 fi
 

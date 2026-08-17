@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Auditor"
-  short_description: "Audit a plugin or skill's packaging, triggers, workflow, instruction design, and verification loop"
-  default_prompt: "Use $skill-auditor to audit a plugin or skill's packaging, trigger behavior, task leverage, context design, verification loop, and instruction design, then return a concise Improvement Brief with concrete changes and checks."
+  short_description: "Audit existing skills and plugins with concrete evidence"
+  default_prompt: "Use $skill-auditor to audit this skill or plugin."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Split Testing"
+  short_description: "Run flexible blind comparisons across alternatives"
+  default_prompt: "Use $split-testing to compare these alternatives with blinded evidence."
