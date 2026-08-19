@@ -100,8 +100,11 @@ Compatibility contract:
   plugin validation rejects plugin-root context files.
 - Strict rejection surfaces: unsupported hook events, async command hooks,
   handler-level hook filters, non-command hook handlers, invalid JSON/YAML,
-  non-local marketplace entries, and marketplace paths that escape the
-  marketplace root.
+  non-local marketplace entries, marketplace paths that escape the
+  marketplace root, and MCP runtime paths that escape the plugin root.
+- Roundtrips use strict mode by default and internally validate the converted
+  second-hop plugin. Codex external validation resolves its bundled validator
+  below `CODEX_HOME` when that environment variable is set.
 - Best-effort behavior: the source tree is still copied, but semantic loss is
   recorded in `unsupported`, `preserved_only`, and `executable_surfaces`.
   Invalid skill, command, or agent frontmatter is repaired with generated target
@@ -184,7 +187,7 @@ nobody else's work.
 
 ### Install all plugins
 
-Run this from a clone when you want this repo's plugin catalogs available in the supported CLIs:
+Run this from a clone when you want this repo's plugin catalogs available in the supported CLIs. This is a developer bootstrap helper for `agent-tooling`; a separate configuration repository should own durable workstation selection and pruning.
 
 ```bash
 scripts/install-all
@@ -225,6 +228,9 @@ just install-all --exclude 'software-development'
 ```
 
 Use `scripts/install-all --help` for source, scope, host, filter, and dry-run options.
+`--replace-marketplace` first checks whether the named marketplace exists,
+skips an already-absent registration, and limits Claude removal to the selected
+`--claude-scope`. The script does not replace or unset `CODEX_HOME`.
 
 ### `software-development` migration
 

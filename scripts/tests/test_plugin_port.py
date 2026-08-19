@@ -4,6 +4,7 @@ import importlib.util
 import contextlib
 import io
 import json
+import os
 import sys
 import tempfile
 import textwrap
@@ -285,6 +286,69 @@ class PluginPortTests(unittest.TestCase):
         self.assertEqual(report.status, "success")
         self.assertEqual(report.support_level, "supported-with-preserved-surfaces")
         self.assertTrue(any(item["kind"] == "apps" for item in report.executable_surfaces))
+
+    def test_mcp_runtime_path_escape_is_rejected(self) -> None:
+        source = self.root / "goalspec"
+        self.write_codex_plugin(source)
+        mcp = read_json(source / ".mcp.json")
+        mcp["mcpServers"]["goal-tools"]["args"] = ["../outside.mjs"]
+        write(source / ".mcp.json", json.dumps(mcp, indent=2) + "\n")
+
+        with self.assertRaisesRegex(plugin_port.PluginPortError, "path escapes the plugin root"):
+            plugin_port.convert_plugin(
+                source,
+                "claude",
+                self.root / "out",
+                mode="strict",
+                overwrite=False,
+            )
+
+    def test_codex_external_validator_respects_codex_home(self) -> None:
+        codex_home = self.root / "codex-home"
+        validator = (
+            codex_home / "skills" / ".system" / "plugin-creator" / "scripts" / "validate_plugin.py"
+        )
+        write(validator, "raise SystemExit(0)\n")
+
+        previous = os.environ.get("CODEX_HOME")
+        os.environ["CODEX_HOME"] = str(codex_home)
+        try:
+            result = plugin_port.run_external_validator(self.root, "codex")
+        finally:
+            if previous is None:
+                os.environ.pop("CODEX_HOME", None)
+            else:
+                os.environ["CODEX_HOME"] = previous
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(str(validator), result["command"][1])
+
+    def test_roundtrip_defaults_to_strict_and_validates_second_hop(self) -> None:
+        source = self.root / "goalspec"
+        self.write_codex_plugin(source)
+        args = plugin_port.build_parser().parse_args(
+            ["roundtrip", str(source), "--to", "claude", "--tmp", str(self.root / "rt")]
+        )
+        self.assertEqual("strict", args.mode)
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            code = plugin_port.main(
+                [
+                    "roundtrip",
+                    str(source),
+                    "--to",
+                    "claude",
+                    "--tmp",
+                    str(self.root / "rt"),
+                    "--summary",
+                    "json",
+                ]
+            )
+        self.assertEqual(0, code)
+        payload = json.loads(stdout.getvalue())
+        self.assertTrue(payload["second_validation"]["validation_summary"]["internal"]["passed"])
 
     def test_codex_to_claude_quarantines_root_claude_md(self) -> None:
         source = self.root / "goalspec"

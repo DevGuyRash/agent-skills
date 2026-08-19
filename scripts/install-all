@@ -106,6 +106,19 @@ remove_marketplace_if_requested() {
 
   [ "$replace_marketplace" = "1" ] || return 0
 
+  if [ "$dry_run" != "1" ]; then
+    if marketplace_exists "$host"; then
+      :
+    else
+      marketplace_status=$?
+      if [ "$marketplace_status" -eq 1 ]; then
+        log "$host marketplace $marketplace_name is already absent; skipping removal"
+        return 0
+      fi
+      die "unable to interpret $host marketplace state before replacement"
+    fi
+  fi
+
   case "$host" in
     codex)
       log "removing Codex marketplace $marketplace_name before re-adding it"
@@ -113,12 +126,44 @@ remove_marketplace_if_requested() {
       ;;
     claude)
       log "removing Claude Code marketplace $marketplace_name before re-adding it"
-      run claude plugin marketplace remove "$marketplace_name"
+      run claude plugin marketplace remove --scope "$claude_scope" "$marketplace_name"
       ;;
     *)
       die "unsupported marketplace host: $host"
       ;;
   esac
+}
+
+marketplace_exists() {
+  host="$1"
+  case "$host" in
+    codex)
+      marketplace_json="$(codex plugin marketplace list --json)" \
+        || die "unable to list Codex marketplaces before replacement"
+      ;;
+    claude)
+      marketplace_json="$(claude plugin marketplace list --json)" \
+        || die "unable to list Claude Code marketplaces before replacement"
+      ;;
+    *)
+      die "unsupported marketplace host: $host"
+      ;;
+  esac
+
+  printf '%s' "$marketplace_json" | python3 -c '
+import json
+import sys
+
+name = sys.argv[1]
+try:
+    payload = json.load(sys.stdin)
+except (OSError, ValueError, TypeError):
+    raise SystemExit(2)
+items = payload.get("marketplaces", []) if isinstance(payload, dict) else payload
+if not isinstance(items, list):
+    raise SystemExit(2)
+raise SystemExit(0 if any(isinstance(item, dict) and item.get("name") == name for item in items) else 1)
+' "$marketplace_name"
 }
 
 refresh_marketplace_if_remote() {
@@ -210,6 +255,10 @@ done
 
 [ "$codex_enabled" = "1" ] || [ "$claude_enabled" = "1" ] || die "nothing to install: both Codex and Claude Code are disabled"
 command -v python3 >/dev/null 2>&1 || die "missing required command: python3"
+case "$claude_scope" in
+  user|project|local) ;;
+  *) die "--claude-scope must be user, project, or local" ;;
+esac
 
 manifest_output="$(
   python3 - "$repo_root" "$include_filters" "$exclude_filters" "$codex_enabled" "$claude_enabled" <<'PY'

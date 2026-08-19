@@ -71,7 +71,7 @@ containing the skill's `SKILL.md`.
 
 ## Plugin installation and portability
 
-Installing plugins into the local CLIs goes through `scripts/install-all` (or `just install-all`): it adds the agent-tooling marketplace to each enabled host and installs matching plugins from that host's catalog (`--include`/`--exclude` CSV globs, `--codex-only`/`--claude-only`, `--dry-run`). Host catalogs MAY differ; WHEN filters select no plugin for one enabled host but do select a plugin for another THEN you SHALL skip marketplace and install changes for the empty host. The registered marketplaces track GitHub `DevGuyRash/agent-tooling@main`, so a local change reaches the installed caches only after it is pushed; sessions opened before an install keep running the previously cached plugin version.
+Installing plugins into the local CLIs goes through `scripts/install-all` (or `just install-all`): it is the developer bootstrap helper for this repository's marketplace, not a workstation desired-state authority. It adds the agent-tooling marketplace to each enabled host and installs matching plugins from that host's catalog (`--include`/`--exclude` CSV globs, `--codex-only`/`--claude-only`, `--dry-run`). Host catalogs MAY differ; WHEN filters select no plugin for one enabled host but do select a plugin for another THEN you SHALL skip marketplace and install changes for the empty host. The registered marketplaces track GitHub `DevGuyRash/agent-tooling@main`, so a local change reaches the installed caches only after it is pushed; sessions opened before an install keep running the previously cached plugin version. Codex subprocesses inherit `CODEX_HOME`; Claude replacement removes only the selected `--claude-scope` declaration.
 
 `--source` persists as the marketplace's durable source, not a one-off: the CLIs register whatever you pass forever, until replaced. `--source <local path>` is the testing affordance for unpushed changes — it leaves both CLIs on a non-canonical `directory` marketplace that must later be reconciled to GitHub. WHEN installing for anything but testing local unpushed changes THEN you SHALL omit `--source` (it defaults to the canonical GitHub `DevGuyRash/agent-tooling`). WHEN a local-source marketplace is already registered and you need to restore GitHub THEN you SHALL run `install-all --replace-marketplace` (no `--source`) — a plain re-run is a near-no-op because the marketplace already exists.
 
@@ -98,7 +98,7 @@ just test-plugin-port
 just test-plugin-port-live
 ```
 
-IF any roundtrip, validation, or test step fails THEN you SHALL fix the plugin (or the converter) and re-verify before the push. You SHALL NOT commit the conversion artifacts — they are scratch output and stay under `.local/tmp/`.
+Roundtrips default to strict conversion and validate the actual second-hop plugin before succeeding. IF any roundtrip, validation, or test step fails THEN you SHALL fix the plugin (or the converter) and re-verify before the push. You SHALL NOT commit the conversion artifacts — they are scratch output and stay under `.local/tmp/`.
 
 ---
 

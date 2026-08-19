@@ -363,6 +363,44 @@ def is_relative_file_ref(value: str) -> bool:
     return value.startswith("./") or value.startswith("../")
 
 
+def mcp_path_escapes_plugin(value: str) -> bool:
+    normalized = value.replace("\\", "/")
+    root_prefixes = (
+        "${PLUGIN_ROOT}/",
+        "$PLUGIN_ROOT/",
+        "${CLAUDE_PLUGIN_ROOT}/",
+        "$CLAUDE_PLUGIN_ROOT/",
+    )
+    candidate: str | None = None
+    if normalized in {"..", "."} or normalized.startswith(("./", "../")):
+        candidate = normalized
+    else:
+        for prefix in root_prefixes:
+            if normalized.startswith(prefix):
+                candidate = normalized[len(prefix) :]
+                break
+    if candidate is None:
+        return False
+    return ".." in PurePosixPath(candidate).parts
+
+
+def validate_mcp_runtime_paths(servers: dict[str, Any]) -> None:
+    for server_name, server in servers.items():
+        if not isinstance(server, dict):
+            continue
+        values: list[str] = []
+        for field_name in ("cwd", "command"):
+            value = server.get(field_name)
+            if isinstance(value, str):
+                values.append(value)
+        args = server.get("args")
+        if isinstance(args, list):
+            values.extend(value for value in args if isinstance(value, str))
+        for value in values:
+            if mcp_path_escapes_plugin(value):
+                die(f"MCP server {server_name!r} path escapes the plugin root")
+
+
 def claude_plugin_root_ref(value: str) -> str:
     if value.startswith("./"):
         return "${CLAUDE_PLUGIN_ROOT}/" + value[2:]
@@ -402,6 +440,7 @@ def normalize_mcp_config(data: dict[str, Any], *, target: str) -> dict[str, Any]
     else:
         ignored = {"metadata", "$schema"}
         servers = {key: value for key, value in data.items() if key not in ignored}
+    validate_mcp_runtime_paths(servers)
     replacements = (
         {
             "${CLAUDE_PLUGIN_ROOT}": "${PLUGIN_ROOT}",
@@ -1857,7 +1896,8 @@ def internal_validate(path: Path, host: str) -> list[str]:
 
 def run_external_validator(path: Path, host: str) -> dict[str, Any] | None:
     if host == "codex":
-        validator = Path.home() / ".codex/skills/.system/plugin-creator/scripts/validate_plugin.py"
+        codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).expanduser()
+        validator = codex_home / "skills/.system/plugin-creator/scripts/validate_plugin.py"
         if not validator.exists():
             return None
         cmd = ["python3", str(validator), str(path)]
@@ -1992,9 +2032,11 @@ def cmd_roundtrip(args: argparse.Namespace) -> int:
     second = Path(args.tmp).resolve() / f"{pkg.name}-{back_host}"
     first_report = convert_plugin(source, args.to, first, mode=args.mode, overwrite=True, explicit_host=args.from_host)
     second_report = convert_plugin(first, back_host, second, mode=args.mode, overwrite=True, explicit_host=args.to)
+    second_validation = validate_plugin(second, back_host, external=False)
     payload = {
         "first": first_report.as_dict(),
         "second": second_report.as_dict(),
+        "second_validation": second_validation.as_dict(),
         "roundtrip_root": str(second),
     }
     if args.summary == "full":
@@ -2005,6 +2047,7 @@ def cmd_roundtrip(args: argparse.Namespace) -> int:
                 {
                     "first": first_report.summary_dict(),
                     "second": second_report.summary_dict(),
+                    "second_validation": second_validation.summary_dict(),
                     "roundtrip_root": str(second),
                 },
                 indent=2,
@@ -2016,6 +2059,8 @@ def cmd_roundtrip(args: argparse.Namespace) -> int:
         print(report_summary_md(first_report))
         print("\n---\n")
         print(report_summary_md(second_report))
+        print("\n---\n")
+        print(report_summary_md(second_validation))
     else:
         die(f"unsupported summary format: {args.summary}")
     return 0
@@ -2064,7 +2109,7 @@ def build_parser() -> argparse.ArgumentParser:
     roundtrip_p.add_argument("path")
     roundtrip_p.add_argument("--to", choices=("codex", "claude"), required=True)
     roundtrip_p.add_argument("--tmp", required=True)
-    roundtrip_p.add_argument("--mode", choices=("strict", "best-effort"), default="best-effort")
+    roundtrip_p.add_argument("--mode", choices=("strict", "best-effort"), default="strict")
     roundtrip_p.add_argument("--from", dest="from_host", choices=("codex", "claude"))
     roundtrip_p.add_argument("--summary", choices=("full", "json", "md"), default="full")
     roundtrip_p.set_defaults(func=cmd_roundtrip)

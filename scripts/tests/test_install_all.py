@@ -28,6 +28,13 @@ def write_fake_cli(path: Path, command_name: str) -> None:
 
             with open(os.environ["AGENT_TOOLING_FAKE_CLI_LOG"], "a", encoding="utf-8") as handle:
                 handle.write(json.dumps({{"command": {command_name!r}, "args": sys.argv[1:]}}) + "\\n")
+            if sys.argv[1:] == ["plugin", "marketplace", "list", "--json"]:
+                configured = json.loads(os.environ.get("AGENT_TOOLING_FAKE_MARKETPLACES", "{{}}"))
+                names = configured.get({command_name!r}, [])
+                payload = [{{"name": name}} for name in names]
+                if {command_name!r} == "codex":
+                    payload = {{"marketplaces": payload}}
+                print(json.dumps(payload))
             """
         ),
         encoding="utf-8",
@@ -50,6 +57,7 @@ class InstallAllTests(unittest.TestCase):
         repo_root: Path,
         temp_root: Path,
         *args: str,
+        fake_marketplaces: dict[str, list[str]] | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         install_all = repo_root / "scripts" / "install-all"
         bin_dir = temp_root / "bin"
@@ -63,6 +71,7 @@ class InstallAllTests(unittest.TestCase):
             **os.environ,
             "PATH": f"{bin_dir}{os.pathsep}{path_value}",
             "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
+            "AGENT_TOOLING_FAKE_MARKETPLACES": json.dumps(fake_marketplaces or {}),
         }
         proc = subprocess.run(
             [str(install_all), *args],
@@ -76,10 +85,19 @@ class InstallAllTests(unittest.TestCase):
         )
         return proc, load_calls(log_path)
 
-    def run_install_all_process(self, *args: str) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
+    def run_install_all_process(
+        self,
+        *args: str,
+        fake_marketplaces: dict[str, list[str]] | None = None,
+    ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         with tempfile.TemporaryDirectory(prefix="install-all-test-") as tmp:
             tmp_path = Path(tmp)
-            return self._run_install_all_process(REPO_ROOT, tmp_path, *args)
+            return self._run_install_all_process(
+                REPO_ROOT,
+                tmp_path,
+                *args,
+                fake_marketplaces=fake_marketplaces,
+            )
 
     def run_install_all_with_catalogs(
         self,
@@ -158,20 +176,52 @@ class InstallAllTests(unittest.TestCase):
         self.assertEqual(1 + len(marketplace_plugin_selectors(CODEX_MARKETPLACE)), len(calls))
 
     def test_replace_marketplace_removes_existing_source_before_local_add(self) -> None:
-        calls = self.run_install_all("--source", str(REPO_ROOT), "--include", "goalspec", "--replace-marketplace")
+        proc, calls = self.run_install_all_process(
+            "--source",
+            str(REPO_ROOT),
+            "--include",
+            "goalspec",
+            "--replace-marketplace",
+            fake_marketplaces={"codex": ["agent-tooling"], "claude": ["agent-tooling"]},
+        )
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
 
         self.assertEqual(
             [
+                {"command": "codex", "args": ["plugin", "marketplace", "list", "--json"]},
                 {"command": "codex", "args": ["plugin", "marketplace", "remove", "agent-tooling"]},
                 {"command": "codex", "args": ["plugin", "marketplace", "add", str(REPO_ROOT)]},
                 {"command": "codex", "args": ["plugin", "add", "goalspec@agent-tooling"]},
-                {"command": "claude", "args": ["plugin", "marketplace", "remove", "agent-tooling"]},
+                {"command": "claude", "args": ["plugin", "marketplace", "list", "--json"]},
+                {"command": "claude", "args": ["plugin", "marketplace", "remove", "--scope", "user", "agent-tooling"]},
                 {"command": "claude", "args": ["plugin", "marketplace", "add", "--scope", "user", str(REPO_ROOT)]},
                 {"command": "claude", "args": ["plugin", "install", "--scope", "user", "goalspec@agent-tooling"]},
                 {"command": "claude", "args": ["plugin", "update", "--scope", "user", "goalspec@agent-tooling"]},
             ],
             calls,
         )
+
+    def test_replace_marketplace_skips_removal_when_already_absent(self) -> None:
+        proc, calls = self.run_install_all_process(
+            "--source",
+            str(REPO_ROOT),
+            "--include",
+            "goalspec",
+            "--replace-marketplace",
+        )
+
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+        self.assertFalse(
+            any(call["args"][:3] == ["plugin", "marketplace", "remove"] for call in calls)
+        )
+        self.assertIn("already absent; skipping removal", proc.stderr)
+
+    def test_rejects_invalid_claude_scope_before_cli_mutation(self) -> None:
+        proc, calls = self.run_install_all_process("--claude-scope", "workspace")
+
+        self.assertNotEqual(0, proc.returncode)
+        self.assertIn("--claude-scope must be user, project, or local", proc.stderr)
+        self.assertEqual([], calls)
 
     def test_claude_only_skips_codex(self) -> None:
         calls = self.run_install_all("--claude-only", "--include", "goalspec")
