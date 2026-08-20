@@ -134,13 +134,170 @@ Apply this precedence:
 - Recognize that sending can permanently retain the prompt and attachments.
 - Before sending, verify chat durability, Project association, model and reasoning or GPT
   selection, prompt, and attachments.
-- Send once. Wait until generation is visibly complete, even when reasoning takes many
-  minutes.
-- Do not treat partial streaming, a pause, or a browser timeout as a final answer.
-- Before retrying a stalled request, establish that the original generation will not
-  continue or duplicate.
-- Read the complete final response, including relevant collapsed or continued content.
-  Waiting without reading is incomplete.
+- Send once, then confirm one live-derived signal that this generation is active in the
+  same tab, chat, and turn. Do not resend merely because a wait ends.
+- Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use
+  separate tabs and preferably separate chats, or serialize the cycle. A shared worktree
+  does not establish browser ownership; never coordinate browser use through repository
+  files, temporary files, page globals, or shared locks.
+- Treat partial streaming and pauses as active work while the confirmed signal remains.
+  Treat failed or timed-out browser operations, ambiguous predicates, navigation, tab
+  closure, and execution-context loss as inconclusive rather than complete.
+
+### Choose a waiting path
+
+Prefer a native semantic conditional wait only when the current host and version have
+demonstrated that it honors the required condition and duration. Its completion signal
+must belong to the same tab, chat, turn, and generation; it must be impossible to satisfy
+while generation remains active; and it must mean settled completion. A documented timeout
+parameter or an active control becoming hidden does not prove those properties.
+
+The following is host-side JavaScript shape, not code for execution inside the page. Derive
+every locator and state from the current semantic or accessibility UI.
+
+```js
+async function waitWithVerifiedNativeLocator({
+  active,
+  activeState,
+  settledCompletion,
+  completionState,
+  readActive,
+  activeTimeoutMs,
+  completionTimeoutMs,
+}) {
+  try {
+    await active.waitFor({
+      state: activeState,
+      timeoutMs: activeTimeoutMs,
+    });
+
+    await settledCompletion.waitFor({
+      state: completionState,
+      timeoutMs: completionTimeoutMs,
+    });
+
+    const activeNow = await readActive();
+
+    return activeNow === false
+      ? { status: "complete" }
+      : { status: "inconclusive", reason: "postcondition_failed" };
+  } catch {
+    return { status: "inconclusive", reason: "native_wait_failed" };
+  }
+}
+```
+
+If native waiting is unavailable or ends prematurely, use the longest external host wait
+demonstrated to be reliable, then resume and perform exactly one immediate active-state
+check. Keep only `{ seenActive, settling }` in current task context. If the host supplies a
+continuation or wait handle, continue that handle instead of re-entering the model. Without
+one, sparse resumptions cannot be eliminated; keep them silent and minimal.
+
+The following is also host-side JavaScript shape, never page-executed code:
+
+```js
+const initialWaitState = Object.freeze({
+  seenActive: true,
+  settling: false,
+});
+
+async function nextSparseWaitStep(
+  state,
+  readActive,
+  { sparseSleepMs, settleSleepMs },
+) {
+  if (
+    !Number.isFinite(sparseSleepMs) ||
+    !Number.isFinite(settleSleepMs) ||
+    sparseSleepMs <= 0 ||
+    settleSleepMs <= 0
+  ) {
+    return {
+      status: "inconclusive",
+      reason: "invalid_wait_duration",
+      state,
+    };
+  }
+
+  let active;
+
+  try {
+    active = await readActive();
+  } catch {
+    return {
+      status: "inconclusive",
+      reason: "state_check_failed",
+      state,
+    };
+  }
+
+  if (active !== true && active !== false) {
+    return {
+      status: "inconclusive",
+      reason: "state_check_inconclusive",
+      state,
+    };
+  }
+
+  if (active) {
+    return {
+      status: "waiting",
+      state: { seenActive: true, settling: false },
+      sleepMs: sparseSleepMs,
+    };
+  }
+
+  if (!state.seenActive) {
+    return {
+      status: "inconclusive",
+      reason: "active_not_confirmed",
+      state,
+    };
+  }
+
+  if (!state.settling) {
+    return {
+      status: "waiting",
+      state: { seenActive: true, settling: true },
+      sleepMs: settleSleepMs,
+    };
+  }
+
+  return {
+    status: "complete",
+    state: { seenActive: true, settling: true },
+  };
+}
+```
+
+- Initialize `initialWaitState` only after positively confirming active generation.
+- Make `readActive()` return `true` or `false` only for an unambiguous inspection of the
+  same live signal in the same tab and chat; make ambiguity return another value or throw.
+- When a step returns `waiting`, invoke the external host wait for `sleepMs`. On resumption,
+  do not inspect or explain anything else; run the next step with the returned state.
+- Reset settling when activity reappears. Two absent endpoint samples separated by the
+  settle wait are the strongest fallback available from sparse sampling. If literal
+  continuous-absence proof is required, return inconclusive instead of claiming completion.
+- Do not impose a short overall deadline. Generations lasting 23 minutes or longer can be
+  ordinary active work. Continue bounded waits without narrating unchanged state.
+- The sparse host-side loop above is the only polling pattern permitted here. Never build
+  the wait inside page execution or replace that loop with in-page observers, timer
+  promises, polling, network requests, DOM mutation, clicks, event dispatch, or persisted
+  scripts.
+
+### Read the complete response
+
+- After settled completion, read the complete final response, including relevant collapsed
+  or continued content. Waiting without reading is incomplete.
+- Do not call a response or code block truncated merely because extracted DOM text ends
+  abruptly. If syntax ends mid-expression, rendered height conflicts with extracted text,
+  or a long region contains lazy or virtualized space, scroll through that region to
+  materialize it and reread overlapping chunks.
+- Continue until the relevant region has no unmaterialized content and no continuation
+  control remains. Deduplicate overlaps and verify expected beginnings and endings or
+  syntax before relying on consequential code.
+- Prefer scrolling and materialization over a copy control that could overwrite protected
+  clipboard state. Request continuation only after proving the content is genuinely absent.
 - Return the actual findings to the calling task. Preserve a useful durable chat and
   return its identity or URL when helpful.
 - Extract a temporary-chat result before leaving. Avoid abandoned drafts, pending uploads,

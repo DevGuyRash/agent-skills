@@ -75,7 +75,7 @@
       "name": "chatgpt-browser",
       "source": "./plugins/chatgpt-browser",
       "description": "Operate ChatGPT reliably through an authorized browser",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }
