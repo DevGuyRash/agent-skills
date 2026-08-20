@@ -1,0 +1,7 @@
+interface:
+  display_name: "ChatGPT Browser"
+  short_description: "Operate ChatGPT through an authorized browser"
+  default_prompt: "Use $chatgpt-browser to work in ChatGPT through an authorized interactive browser."
+
+policy:
+  allow_implicit_invocation: true

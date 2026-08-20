@@ -32,6 +32,9 @@ contracts, host schemas, and maker requirements remain authoritative.
 
 Current local plugins:
 
+- `plugins/chatgpt-browser/` provides portable ChatGPT conversation, context,
+  attachment, model-selection, and thread-hygiene guidance when an authorized
+  interactive-browser controller is available.
 - `plugins/code-review/`
 - `plugins/docker-architect/`
 - `plugins/espanso-dynamic-forms/`
