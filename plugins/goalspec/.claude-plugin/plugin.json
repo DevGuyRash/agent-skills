@@ -1,7 +1,7 @@
 {
   "name": "goalspec",
   "displayName": "GoalSpec",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Shape vague intent into clearer product direction with Option Maps, then produce Probe Packs and right-sized context/docs capture after convergence.",
   "author": {
     "name": "GoalSpec Contributors"

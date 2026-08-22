@@ -1,7 +1,7 @@
 {
   "name": "split-testing",
   "displayName": "Split Testing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Design and run blinded comparative tests of any alternatives with variable conditions, runs, rounds, models, agents, and reviewers, including when a decision has no ready-made test tasks. Use for split testing, A/B or multi-way comparisons, repeated trials, blind evaluation, or evidence that one option performs better than another.",
   "author": {
     "name": "Agent Tooling Contributors"

@@ -9,73 +9,73 @@
       "name": "code-review",
       "source": "./plugins/code-review",
       "description": "Recursive machine-first code review, application, and full-cycle convergence with mpcr",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "docker-architect",
       "source": "./plugins/docker-architect",
       "description": "Generate hardened Dockerfiles, Compose stacks, and container build pipelines",
-      "version": "2.0.0"
+      "version": "2.0.1"
     },
     {
       "name": "espanso-dynamic-forms",
       "source": "./plugins/espanso-dynamic-forms",
       "description": "Comprehensive dynamic form patterns for Espanso",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "name": "excel-foundry",
       "source": "./plugins/excel-foundry",
       "description": "Excel workbook capability router for package, desktop, cloud, automation, semantic-model, and manifest/artifact operations",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "friction-diagnostics",
       "source": "./plugins/friction-diagnostics",
       "description": "Log genuine surprises as structured friction records; mend and distill the accumulated corpus on request",
-      "version": "5.2.0"
+      "version": "5.2.1"
     },
     {
       "name": "goalspec",
       "source": "./plugins/goalspec",
       "description": "Compile messy intent and project context into bounded, verifiable goal contracts.",
-      "version": "1.8.1"
+      "version": "1.8.2"
     },
     {
       "name": "playwright-testing",
       "source": "./plugins/playwright-testing",
       "description": "Outcome-first, non-brittle e2e tests",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "project-harness",
       "source": "./plugins/project-harness",
       "description": "Detects repo languages, frameworks, task runners, distribution shape, and CI surface, then scaffolds or updates a repo-level harness: justfile, GitHub Actions CI/dist workflows, .gitignore/.gitattributes support files, and local state under .local/harness/",
-      "version": "2.6.0"
+      "version": "2.6.1"
     },
     {
       "name": "software-development",
       "source": "./plugins/software-development",
       "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
       "description": "Audit existing skills and plugins with concrete evidence",
-      "version": "3.3.0"
+      "version": "3.3.1"
     },
     {
       "name": "split-testing",
       "source": "./plugins/split-testing",
       "description": "Run flexible blind comparisons across alternatives",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "name": "chatgpt-browser",
       "source": "./plugins/chatgpt-browser",
       "description": "Operate ChatGPT reliably through an authorized browser",
-      "version": "1.0.3"
+      "version": "1.0.4"
     }
   ]
 }
