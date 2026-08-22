@@ -1,5 +1,5 @@
 ---
-name: Project Harness
+name: project-harness
 description: >-
   Detects repo languages, frameworks, task runners, distribution shape, and CI
   surface, then scaffolds or updates a repo-level harness: justfile, GitHub
@@ -15,7 +15,7 @@ description: >-
 license: MIT
 metadata:
   author: DevGuyRash
-  version: "2.6.0"
+  version: "2.6.2"
   category: development
 compatibility: >-
   Requires Python 3.11+ to run the bundled CLI. Optional: just, git, git-lfs,

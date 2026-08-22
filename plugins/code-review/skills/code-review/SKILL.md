@@ -1,5 +1,5 @@
 ---
-name: Code Review
+name: code-review
 description: >-
   Run recursive, machine-first code review, review application, and full-cycle
   convergence workflows with the `mpcr` CLI. Use when the task involves:

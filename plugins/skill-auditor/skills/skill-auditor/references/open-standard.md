@@ -12,7 +12,7 @@ A portable skill is a directory containing `SKILL.md`. That file contains YAML f
 
 The `name` is the invocation slug. It is 1–64 lowercase ASCII letters, digits, or single hyphens; it does not begin or end with a hyphen, contain consecutive hyphens, or differ from the parent skill directory name. Human-facing title casing belongs in the body or host metadata.
 
-The `description` is nonempty, no longer than 1024 characters, and communicates both what the skill does and when it applies. Its semantic routing quality requires behavioral evidence; the format constraint alone does not establish that the host will retrieve it correctly.
+The `description` is nonempty, no longer than 1024 characters, and communicates both what the skill does and when it applies. Its semantic routing quality requires behavioral evidence; the format constraint alone does not establish that the host will retrieve it correctly. When present, `compatibility` is a nonempty string no longer than 500 characters, and `metadata` is a mapping from string keys to string values.
 
 Bundled resource references resolve relative to the skill root. Machine-specific absolute paths are not portable. Optional `scripts/`, `references/`, and `assets/` directories have no portable quality meaning merely because they are present or absent.
 

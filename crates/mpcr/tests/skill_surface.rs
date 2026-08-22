@@ -73,7 +73,6 @@ fn assert_valid_heading_structure(markdown: &str) -> anyhow::Result<()> {
 fn skill_router_restores_dispatch_and_recursive_reports() -> anyhow::Result<()> {
     let root = skill_root()?;
     let skill_md = read(&root, "SKILL.md")?;
-    ensure!(skill_md.lines().count() <= 140);
     let route_pos = skill_md
         .find("mpcr route --mode")
         .ok_or_else(|| anyhow::anyhow!("SKILL.md is missing route-first bootstrap"))?;

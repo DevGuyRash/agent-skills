@@ -1,5 +1,5 @@
 ---
-name: Espanso Dynamic Forms
+name: espanso-dynamic-forms
 description: >-
   Build portable dynamic Espanso forms where a script or binary generates form
   layouts at runtime. Use when the task involves: (1) Creating or modifying
@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: DevGuyRash
-  version: "1.2.0"
+  version: "1.2.2"
   category: development
 ---
 

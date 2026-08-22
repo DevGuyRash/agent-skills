@@ -1,5 +1,5 @@
 ---
-name: Authoring Goals
+name: authoring-goals
 description: >-
   Shape vague intent into clearer product decisions before execution. Use when
   the task involves: (1) exploring ambiguous product, design, or implementation

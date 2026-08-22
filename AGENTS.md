@@ -2,7 +2,9 @@
 
 This file contains cross-cutting constraints that apply regardless of language or skill. Language/toolchain-specific workflows live in the corresponding plugin-local skill `SKILL.md` files under `plugins/<plugin-name>/skills/<skill-name>/`.
 
-Skills in this repo follow the [Open Agent Skills standard](https://agentskills.io/specification). Skills authored to this standard are portable across Claude, Codex, GitHub Copilot, Cursor, OpenCode, and 20+ other platforms without modification — so following the conventions here isn't just local hygiene, it's cross-platform compatibility.
+Skills in this repo follow the portable core defined by the [Open Agent Skills standard](https://agentskills.io/specification). Host-specific packaging, catalog visibility, shortening, omission, activation, and execution behavior remain governed by the exact supported host surface.
+
+For Agent Skill and plugin quality, apply the canonical repository authority in `plugins/skill-auditor/skills/skill-auditor/references/repo-overlay.md`; local contracts state only scope-specific commitments.
 
 ---
 
@@ -99,7 +101,7 @@ Every skill's `SKILL.md` starts with YAML frontmatter. The `name` and `descripti
 
 ### Name field
 
-For new skills in this repo, the `name` field MUST be the lowercase invocation slug and MUST exactly match the directory name that contains `SKILL.md`. Legacy skills not explicitly included in a naming migration may keep older title-cased frontmatter during maintenance; do not mechanically migrate them.
+The `name` field MUST be the lowercase invocation slug and MUST exactly match the directory name that contains `SKILL.md`.
 
 Directory naming rules (the slug):
 
@@ -123,9 +125,9 @@ The H1 heading in the `SKILL.md` body (`# ...`) and the OpenAI display metadata 
 
 ### Description field
 
-The description is the single most important line in a skill. It's the primary mechanism every platform uses to decide whether to activate the skill — agents see descriptions for all available skills at startup and match against the user's request.
+The description is the skill's portable retrieval surface: it states what the skill does and when it applies. Exact catalog exposure, shortening, omission, and activation behavior are host-specific.
 
-**Hard constraint:** max **1024 characters**. Skills that exceed this limit fail to load entirely — no warning, no truncation, just a silent skip. New skills in this repo SHOULD stay compact enough to preserve aggregate startup budget, even when the host shortens visible descriptions. Measure your description after editing:
+The portable format requires a non-empty description of at most **1024 parsed characters**. New skills in this repo SHOULD use the smallest description that still gives reliable routing evidence. Measure your description after editing:
 
 ```bash
 python3 -c "
@@ -201,7 +203,7 @@ Why this works: the lead sentence tells the agent what the skill produces. The t
 # Too vague — no trigger keywords, agent must guess
 description: Helps with Docker stuff.
 
-# Narrative prose — no scannable trigger points
+# Narrative prose — activation boundary is difficult to distinguish
 description: >-
   Use this skill when something you followed did not work as the
   available instructions implied it would. The core pattern is: you
@@ -215,23 +217,21 @@ description: >-
   read, what was tried, and what happened.
 ```
 
-The narrative example buries triggers in flowing sentences that are hard to decompose programmatically. The implementation example describes _how_ the skill works instead of _when_ to use it.
+The narrative example does not distinguish its activation boundary from nearby tasks. The implementation example describes _how_ the skill works instead of _when_ to use it.
 
 #### What NOT to put in the description
 
 - **Implementation details** (temp dirs, categorization axes, internal data structures) — these belong in the SKILL.md body.
-- **Narrative prose** explaining the conceptual pattern — use numbered triggers instead.
+- **Narrative prose** that obscures the activation boundary — use the clearest compact structure for the actual routing evidence.
 - **Long negative-trigger lists** — one short sentence at the end is enough; detailed "do not use" guidance belongs in the SKILL.md body.
 
-Test your description by imagining 5-10 realistic user prompts that should trigger the skill and 5-10 that shouldn't. If the description doesn't clearly distinguish them, rewrite it.
+Test the description with realistic positive, negative, and near-neighbor prompts. If the evidence does not show a reliable activation boundary, rewrite it.
 
 ---
 
 ## Skill authoring: file hygiene
 
 All text files shipped in a skill — scripts, source, configs, protocol data, references, templates — SHALL use LF (`\n`) line endings, never CRLF (`\r\n`).
-
-Markdown prose SHALL use one logical line per paragraph. Preserve line breaks only when they carry Markdown semantics, such as headings, lists, tables, blockquotes, code, frontmatter, or explicit hard breaks. The repository Prettier configuration enforces this without reformatting embedded code.
 
 CRLF in a shell script is a silent blocker: the shebang becomes `#!/usr/bin/env sh\r` and Linux resolves that as a missing binary. An agent encountering this wastes its entire turn on a confusing error. The same problem affects Python scripts, TOML configs loaded at runtime, and any file `cat`-piped into another command.
 
@@ -285,7 +285,7 @@ Rules:
 
    This turns a dead-end error into a self-correcting one.
 
-3. **Keep errors to 1-3 lines.** An error message beyond 3 lines is noise. If extra detail is needed, put it behind a `--verbose` flag.
+3. **Keep errors concise.** Put diagnostic detail that is not needed for recovery behind a `--verbose` flag.
 
 4. **Consistent format.** Errors from a skill's CLI should follow a uniform pattern so agents can parse them mechanically:
 
@@ -306,11 +306,11 @@ Skills follow a three-level progressive disclosure system. Each layer loads at a
 
 | Layer | Loaded when | Target size | Purpose |
 | --- | --- | --- | --- |
-| **Metadata** (name + description in frontmatter) | Always in context | ~100 words | Trigger detection — does this skill apply? |
-| **SKILL.md body** | When skill triggers | <500 lines | Routing: what workflow am I in? What do I read next? |
-| **Bundled resources** (`references/`, `scripts/`, `assets/`) | On demand, one at a time | Unlimited total; <300 lines per file ideal | Detail: full procedures, rubrics, templates, domain-specific guidance |
+| **Metadata** (name + description in frontmatter) | Always in context | Keep only retrieval evidence | Trigger detection — does this skill apply? |
+| **SKILL.md body** | When skill triggers | Keep the always-loaded route focused | Routing: what workflow am I in? What do I read next? |
+| **Bundled resources** (`references/`, `scripts/`, `assets/`) | On demand | Keep each resource focused on its loading condition | Detail: full procedures, rubrics, templates, domain-specific guidance |
 
-The critical principle: **the agent reads deeper only when needed.** SKILL.md tells the agent which reference file to read for its current situation. The agent loads that one file, follows its instructions, and never touches the other references.
+The critical principle: **the agent reads deeper only when needed.** SKILL.md tells the agent which reference or references the current decision requires, without loading unrelated material.
 
 ### SKILL.md is a router, not a manual
 
@@ -320,7 +320,7 @@ SKILL.md answers three questions and stops:
 2. "What workflow am I in?" (mode selection based on user input)
 3. "What do I read next?" (pointer to the right reference file or script)
 
-SKILL.md should NOT contain detailed procedures, full rubrics, or extended specifications. Those belong in `references/` files. When SKILL.md tries to be both router and manual, it bloats past 500 lines and the agent pays the full token cost every time, even when most of the content is irrelevant to the current task.
+SKILL.md should NOT contain detailed procedures, full rubrics, or extended specifications unless they are needed on every activation. Put conditional detail in `references/` files so the agent does not pay its context cost when it is irrelevant.
 
 ### Reference files are the primary disclosure mechanism
 
@@ -331,7 +331,7 @@ The `references/` directory is how most skills deliver just-in-time instructions
 ```markdown
 ## Reference index
 
-You SHALL load only the reference needed for the current task.
+You SHALL load only the references needed for the current task.
 
 | File                       | When to read                       |
 | -------------------------- | ---------------------------------- |
@@ -362,7 +362,7 @@ payload is already emitted by script output.
 Read: [references/clipboard-latency.md](references/clipboard-latency.md)
 ```
 
-All three patterns achieve the same goal: the agent loads one focused reference at a time instead of everything at once.
+All three patterns achieve the same goal: the agent loads only the focused references needed for the current decision instead of everything at once.
 
 ### CLI-served protocols (advanced pattern)
 
@@ -393,9 +393,7 @@ When in doubt, ask: "If I change this fact, how many files do I need to edit?" I
 
 SKILL.md can point to as many reference files as needed — that's the whole point of the reference index pattern. The constraint is on _nesting_: a reference file should not point to another reference file. If Reference A tells the agent to read Reference B, which tells it to read Reference C, the agent is in a context spiral — accumulating instructions without making progress. All references should be reachable directly from SKILL.md, not through other references. If a reference needs information from another file, inline it or restructure.
 
-For reference files over 300 lines, include a table of contents at the top so the agent can jump to the relevant section. In practice, the most effective reference files across existing skills are 50-150 lines — focused enough to load quickly, detailed enough to be self-contained for their topic.
-
-If a reference file exceeds 300 lines, consider splitting it into two files with separate conditional triggers from SKILL.md, so the agent only loads the half it needs.
+When a reference becomes difficult to navigate or contains independently triggered material, add navigation or split it into focused files with separate conditional triggers from SKILL.md.
 
 ### Measuring your context budget
 
@@ -404,18 +402,12 @@ Before shipping a skill, measure what the agent actually loads during a typical 
 ```bash
 # Measure every document in the skill
 find <skill-dir> -name '*.md' -exec wc -c {} + | sort -n
-# Estimate tokens: chars / 4
+# Report characters as a reproducible proxy when no governing tokenizer is named
 ```
 
 The key metric is **peak context** — the maximum number of skill-instruction tokens the agent holds at any single point during the workflow. This is NOT the sum of all files (the agent doesn't load them all at once); it's SKILL.md plus whichever reference file(s) the agent has loaded at the busiest point.
 
-Good targets:
-
-- SKILL.md alone: under ~4,000 tokens (~16,000 chars)
-- SKILL.md + one reference: under ~8,000 tokens
-- Peak context including all loaded references: under ~12,000 tokens
-
-These leave the majority of the agent's context window for the actual task: code, diffs, user instructions, and tool output.
+Treat measured characters, physical lines, estimated tokens, file counts, and peak loaded context as review signals. They justify a change only when the active loading path wastes material context or harms task value. An estimated token count is never a release gate unless the governing authority names the tokenizer or the host reports the exact count.
 
 ### CLI-served self-documentation
 
@@ -461,7 +453,7 @@ The dispatch prompt SHALL include an explicit output template — not prose desc
 
 ### Cross-role consistency
 
-When a skill has multiple dispatch roles, all roles SHALL share the same structural template (same sections in the same order) with domain-specific content swapped in. Roles with less than 60% of the median prompt depth are likely too shallow to produce useful output.
+When a skill has multiple dispatch roles, keep their interfaces consistent enough for the orchestrator to dispatch and synthesize them reliably. Judge role depth by whether it transfers the mission, boundaries, evidence, and output contract the role actually needs—not by relative prompt size.
 
 ---
 
@@ -477,13 +469,13 @@ Rules:
 
 3. **Separate metadata from content.** If a command returns both structural metadata (IDs, statuses) and large content (full report text), let the agent request them separately rather than dumping everything at once.
 
-4. **Measure your outputs.** Run every command your skill documents and measure the output size. If any single command produces more than 5,000 characters, consider whether the agent actually needs all of it, and add a compact mode if not.
+4. **Measure your outputs.** Run every command your skill documents and inspect whether the default output contains material the agent does not need. Add filtering or a compact mode when observed output wastes consequential context.
 
 ---
 
 ## Skill authoring: cold-start readiness
 
-A skill SHALL be usable without requiring the agent to install a toolchain, compile source code, or download large dependencies on first run. The first invocation should work in under 5 seconds.
+A skill SHALL be usable without requiring the agent to install a toolchain, compile source code, or download large dependencies on first run. Cold-start cost must be proportionate to the task and visible when it cannot be avoided.
 
 If a skill includes compiled tools (Rust binaries, Go binaries, etc.):
 
@@ -538,7 +530,7 @@ Multi-step workflows SHALL document recovery paths for mid-workflow failures. An
 
 Rules:
 
-1. **Per-step detectability.** WHEN a workflow has 3+ steps, THEN each step's success or failure SHALL be independently detectable (non-zero exit code, output marker, or state file).
+1. **Per-step detectability.** Each step whose failure would change the next safe action SHALL have independently detectable success or failure (non-zero exit code, output marker, or state file).
 
 2. **Recovery documentation.** WHEN a step fails, the skill SHALL document whether to retry that step, restart from the beginning, or abort.
 

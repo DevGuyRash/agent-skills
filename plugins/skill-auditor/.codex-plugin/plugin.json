@@ -1,6 +1,6 @@
 {
   "name": "skill-auditor",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Audit an existing skill or plugin for material evidence about target authority, executable behavior, host contracts, instruction design, and task value. Use for evidence-driven quality reviews, self-audits, release-risk investigation, or suspected packaging, routing, source, context, verification, or task-value drift. Do not use to author a new skill or review ordinary source-code changes.",
   "author": {
     "name": "Agent Tooling Contributors"

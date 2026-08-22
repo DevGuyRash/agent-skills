@@ -1,5 +1,5 @@
 ---
-name: Friction Diagnostics
+name: friction-diagnostics
 description: >-
   Log genuine surprise — reality diverged from what you predicted — as
   structured friction records with recurrence tracking. Use when: (1) A
@@ -18,7 +18,7 @@ description: >-
 compatibility: Designed for filesystem-capable coding agents on Linux. Deterministic helpers require POSIX sh. No network required.
 metadata:
   author: generated-template
-  version: "5.2.0"
+  version: "5.2.2"
   category: diagnostics
   tags: friction,logging,surprise,diagnostics
 ---

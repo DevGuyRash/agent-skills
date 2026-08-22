@@ -1,5 +1,5 @@
 ---
-name: Friction Mend
+name: friction-mend
 description: >-
   Batch-mend accumulated friction: cluster open events, root-cause them,
   fix the artifacts and instructions that misled, record resolutions, and
@@ -12,7 +12,7 @@ description: >-
 compatibility: Designed for filesystem-capable coding agents on Linux. Deterministic helpers require POSIX sh. No network required.
 metadata:
   author: generated-template
-  version: "5.2.0"
+  version: "5.2.2"
   category: diagnostics
   tags: friction,mending,distillation,resolution
 ---

@@ -94,9 +94,9 @@ def main() -> int:
     claude_manifest = json.loads(read(ROOT / ".claude-plugin" / "plugin.json"))
 
     assert_true(codex_manifest["name"] == "goalspec", "Codex manifest name")
-    assert_true(codex_manifest["version"] == "4.0.0", "Codex manifest version")
+    assert_true(codex_manifest["version"] == "4.0.2", "Codex manifest version")
     assert_true(codex_manifest["skills"] == "./skills/", "Codex skills path")
-    assert_true(claude_manifest["version"] == "4.0.0", "Claude manifest version")
+    assert_true(claude_manifest["version"] == "4.0.2", "Claude manifest version")
     assert_true("hooks" not in codex_manifest, "Codex manifest does not wire hooks")
 
     manifest_text = json.dumps(codex_manifest).lower() + json.dumps(claude_manifest).lower()
@@ -118,7 +118,7 @@ def main() -> int:
 
     skill_text = read(SKILL / "SKILL.md")
     meta = frontmatter(skill_text)
-    assert_true(meta.get("name") == "Authoring Goals", "skill display name")
+    assert_true(meta.get("name") == "authoring-goals", "portable skill name")
     description = meta.get("description", "")
     assert_true(0 < len(description) <= 1024, "skill description length")
     assert_true("Use when the task involves: (1)" in description, "description has numbered triggers")

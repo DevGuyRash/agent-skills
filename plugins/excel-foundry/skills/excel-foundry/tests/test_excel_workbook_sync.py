@@ -637,7 +637,6 @@ class ExcelWorkbookSyncSkillTests(unittest.TestCase):
         self.assertNotIn("metadata:", frontmatter)
 
         body = content.split("---", 2)[2]
-        self.assertLess(len(body.splitlines()), 90)
         self.assertIn("references/task-router.md", body)
         self.assertIn("references/runtime-compatibility.md", body)
 

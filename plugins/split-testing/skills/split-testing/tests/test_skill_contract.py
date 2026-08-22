@@ -80,7 +80,7 @@ class SkillContractTests(unittest.TestCase):
         )
         for manifest in (codex, claude):
             self.assertEqual(manifest["name"], "split-testing")
-            self.assertEqual(manifest["version"], "1.0.0")
+            self.assertEqual(manifest["version"], "1.0.1")
             self.assertEqual(manifest["description"], EXPECTED_DESCRIPTION)
             self.assertEqual(manifest["license"], "MIT")
         self.assertEqual(codex["interface"]["longDescription"], EXPECTED_DESCRIPTION)
@@ -105,7 +105,7 @@ class SkillContractTests(unittest.TestCase):
         self.assertEqual(codex_catalog["category"], EXPECTED_CATEGORY)
         self.assertNotIn("version", codex_catalog)
         self.assertEqual(claude_catalog["description"], EXPECTED_SHORT_DESCRIPTION)
-        self.assertEqual(claude_catalog["version"], "1.0.0")
+        self.assertEqual(claude_catalog["version"], "1.0.1")
 
         yaml_text = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")
         self.assertIn('display_name: "Split Testing"', yaml_text)

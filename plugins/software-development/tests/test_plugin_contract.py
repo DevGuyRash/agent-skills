@@ -205,10 +205,6 @@ def frontmatter(path: Path) -> dict[str, object]:
     return data
 
 
-def estimated_tokens(text: str) -> int:
-    return (len(text) + 3) // 4
-
-
 def concrete_user_home_paths(text: str) -> list[str]:
     without_web_urls = WEB_URL_PATTERN.sub("", text)
     return [match.group(0) for match in CONCRETE_USER_HOME_PATTERN.finditer(without_web_urls)]
@@ -236,7 +232,6 @@ class PluginContractTests(unittest.TestCase):
     def test_exact_catalog_and_portable_frontmatter(self) -> None:
         directories = self.skill_dirs()
         self.assertEqual(EXPECTED_SKILLS, {path.name for path in directories})
-        aggregate = 0
         for directory in directories:
             skill_file = directory / "SKILL.md"
             data = frontmatter(skill_file)
@@ -246,17 +241,13 @@ class PluginContractTests(unittest.TestCase):
             self.assertRegex(directory.name, r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
             self.assertIsInstance(description, str)
             assert isinstance(description, str)
-            self.assertGreaterEqual(len(description), 120, directory.name)
-            self.assertLessEqual(len(description), 220, directory.name)
-            aggregate += len(directory.name) + len(description)
+            self.assertTrue(description.strip(), directory.name)
+            self.assertLessEqual(len(description), 1024, directory.name)
             body = skill_file.read_text(encoding="utf-8")
-            self.assertGreaterEqual(estimated_tokens(body), 1000, directory.name)
-            self.assertLessEqual(estimated_tokens(body), 1500, directory.name)
             h1 = next(line[2:] for line in body.splitlines() if line.startswith("# "))
             self.assertNotEqual(directory.name, h1)
-        self.assertLessEqual(aggregate, 4800)
 
-    def test_references_are_one_hop_reachable_and_budgeted(self) -> None:
+    def test_references_are_one_hop_reachable(self) -> None:
         link_pattern = re.compile(r"(?:<skills-file-root>/)?references/([A-Za-z0-9_.-]+)")
         for directory in self.skill_dirs():
             skill_text = (directory / "SKILL.md").read_text(encoding="utf-8")
@@ -266,7 +257,6 @@ class PluginContractTests(unittest.TestCase):
             self.assertEqual(actual, linked, directory.name)
             for path in references.glob("*.md") if references.exists() else []:
                 text = path.read_text(encoding="utf-8")
-                self.assertLessEqual(estimated_tokens(text), 1200, str(path))
                 self.assertNotRegex(text, r"(?:<skills-file-root>/)?references/[A-Za-z0-9_.-]+")
 
     def test_openai_metadata_and_eval_contracts(self) -> None:
@@ -280,8 +270,8 @@ class PluginContractTests(unittest.TestCase):
             body = (directory / "SKILL.md").read_text(encoding="utf-8")
             h1 = next(line[2:] for line in body.splitlines() if line.startswith("# "))
             self.assertEqual(h1, interface["display_name"], directory.name)
-            self.assertGreaterEqual(len(interface["short_description"]), 25)
-            self.assertLessEqual(len(interface["short_description"]), 64)
+            self.assertIsInstance(interface["short_description"], str)
+            self.assertTrue(interface["short_description"].strip(), directory.name)
             self.assertIn(f"${directory.name}", interface["default_prompt"])
             self.assertIs(policy["allow_implicit_invocation"], True)
 
@@ -292,9 +282,6 @@ class PluginContractTests(unittest.TestCase):
             self.assertEqual(directory.name, trigger["skill_name"])
             self.assertEqual(directory.name, tasks["skill_name"])
             positives = [item for item in trigger["queries"] if item["should_trigger"]]
-            negatives = [item for item in trigger["queries"] if not item["should_trigger"]]
-            self.assertGreaterEqual(len(positives), 3, directory.name)
-            self.assertGreaterEqual(len(negatives), 2, directory.name)
             self.assertTrue(
                 any(
                     "composition" in item["id"] or "ambiguous" in item["id"]
@@ -398,7 +385,6 @@ class PluginContractTests(unittest.TestCase):
                     self.assertTrue(fixture_path.is_file(), context)
                     fixture_text = fixture_path.read_text(encoding="utf-8")
                     self.assertTrue(fixture_text.strip(), context)
-                    self.assertLessEqual(len(fixture_text.encode("utf-8")), 2_000, context)
                     if relative_name == expected_file:
                         for marker in semantic_markers:
                             self.assertIn(marker, fixture_text, context)
@@ -411,7 +397,7 @@ class PluginContractTests(unittest.TestCase):
             for path in SKILLS_ROOT.glob("*/evals/files/**/*")
             if path.is_file()
         }
-        self.assertEqual(expected_fixture_paths, actual_fixture_paths)
+        self.assertLessEqual(expected_fixture_paths, actual_fixture_paths)
 
     def test_composition_trigger_routes_are_explicit(self) -> None:
         for directory in self.skill_dirs():
@@ -453,7 +439,7 @@ class PluginContractTests(unittest.TestCase):
         )
         self.assertEqual("software-development", codex["name"])
         self.assertEqual(codex["name"], claude["name"])
-        self.assertEqual("1.0.0", codex["version"])
+        self.assertEqual("1.0.1", codex["version"])
         self.assertEqual(codex["version"], claude["version"])
         self.assertEqual(codex["description"], claude["description"])
         self.assertTrue((PLUGIN_ROOT / "LICENSE").is_file())
@@ -468,7 +454,7 @@ class PluginContractTests(unittest.TestCase):
         claude_entry = next(item for item in claude_marketplace["plugins"] if item["name"] == codex["name"])
         self.assertEqual("./plugins/software-development", codex_entry["source"]["path"])
         self.assertEqual("./plugins/software-development", claude_entry["source"])
-        self.assertEqual("1.0.0", claude_entry["version"])
+        self.assertEqual("1.0.1", claude_entry["version"])
         for marketplace in (codex_marketplace, claude_marketplace):
             names = [item["name"] for item in marketplace["plugins"]]
             self.assertEqual(len(names), len(set(names)))

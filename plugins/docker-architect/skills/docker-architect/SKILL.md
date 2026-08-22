@@ -1,5 +1,5 @@
 ---
-name: Docker Architect
+name: docker-architect
 description: >-
   Generate hardened, production-ready Docker architecture including Dockerfiles,
   Compose stacks, and Swarm deploy configs. Use when the task involves:
@@ -14,7 +14,7 @@ description: >-
 license: MIT
 metadata:
   author: agent-tooling
-  version: "2.0.0"
+  version: "2.0.2"
 compatibility: >-
   POSIX shell required. Optional: Rust/cargo (for deterministic tooling), docker,
   docker compose, jq, hadolint, trivy. Launchers at
