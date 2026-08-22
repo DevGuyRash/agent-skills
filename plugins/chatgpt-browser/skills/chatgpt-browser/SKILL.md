@@ -298,6 +298,10 @@ async function nextSparseWaitStep(
   syntax before relying on consequential code.
 - Prefer scrolling and materialization over a copy control that could overwrite protected
   clipboard state. Request continuation only after proving the content is genuinely absent.
+- Verify each requested artifact in the surface that carries its payload. A completed
+  response shell, label, control, or extracted text does not establish that a file, image,
+  diagram, citation, or app result is usable; if applicable processing or materialization
+  still leaves it unavailable, report inconclusive without assigning a cause.
 - Return the actual findings to the calling task. Preserve a useful durable chat and
   return its identity or URL when helpful.
 - Extract a temporary-chat result before leaving. Avoid abandoned drafts, pending uploads,
