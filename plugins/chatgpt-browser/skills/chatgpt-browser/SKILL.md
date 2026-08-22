@@ -302,3 +302,13 @@ async function nextSparseWaitStep(
   return its identity or URL when helpful.
 - Extract a temporary-chat result before leaving. Avoid abandoned drafts, pending uploads,
   and duplicate attachments.
+- Before creating a tab, inventory the host-owned identities of existing tabs. Track the
+  host-owned identity returned for each tab the invocation creates; active-tab position,
+  variable names, worktree identity, URLs, and page labels do not establish ownership.
+- After extracting a result and resolving its draft, uploads, attachments, dialogs, and
+  generation state, close only a tab whose tracked created identity still resolves
+  unambiguously. Closing it does not delete a durable chat; return the chat identity or URL
+  when that is the retained artifact.
+- Treat uncertain or rebound tab identity as pre-existing protected state and do not close
+  it. Keep a verified created tab open only when the user asked for the live page or
+  unresolved state requires a handoff, and make that disposition explicit.
