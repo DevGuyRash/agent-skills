@@ -42,9 +42,7 @@ Final review:
 
 A planned execution handoff is ready only when it includes probes. Durable docs without probes are not enough.
 
-WHEN a probe checks only "the command exits" but not the source-defined outcome THEN you SHALL strengthen the probe.
-WHEN a probe dictates implementation method without source support THEN you SHALL rewrite it as an observable outcome.
-WHEN a design decision is executor-owned THEN you SHALL name the freedom and the probes that bound it.
+WHEN a probe checks only "the command exits" but not the source-defined outcome THEN you SHALL strengthen the probe. WHEN a probe dictates implementation method without source support THEN you SHALL rewrite it as an observable outcome. WHEN a design decision is executor-owned THEN you SHALL name the freedom and the probes that bound it.
 
 ## Final Source-Review Checklist
 

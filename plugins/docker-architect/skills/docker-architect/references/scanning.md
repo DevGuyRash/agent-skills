@@ -1,7 +1,6 @@
 # Container Scanning Reference
 
-Post-generation scanning validates that emitted Dockerfiles and Compose files meet
-hardening invariants. Run these tools after every generation pass.
+Post-generation scanning validates that emitted Dockerfiles and Compose files meet hardening invariants. Run these tools after every generation pass.
 
 ---
 
@@ -41,13 +40,13 @@ hadolint -f json Dockerfile
 
 ### Key rules to watch
 
-| Rule   | Meaning                                    |
-|--------|--------------------------------------------|
-| DL3006 | Always tag the version in FROM             |
-| DL3007 | Using `latest` is not deterministic        |
-| DL3008 | Pin versions in `apt-get install`          |
-| DL3025 | Use JSON form for CMD/ENTRYPOINT           |
-| DL4006 | Set `SHELL` option `-o pipefail`           |
+| Rule   | Meaning                             |
+| ------ | ----------------------------------- |
+| DL3006 | Always tag the version in FROM      |
+| DL3007 | Using `latest` is not deterministic |
+| DL3008 | Pin versions in `apt-get install`   |
+| DL3025 | Use JSON form for CMD/ENTRYPOINT    |
+| DL4006 | Set `SHELL` option `-o pipefail`    |
 
 ---
 
@@ -92,8 +91,8 @@ trivy image -f json -o results.json myapp:latest
 trivy image --exit-code 1 --severity HIGH,CRITICAL myapp:latest
 ```
 
-For compose misconfiguration coverage, use Trivy `v0.51.0+` and align findings
-with the skill policy rule sets:
+For compose misconfiguration coverage, use Trivy `v0.51.0+` and align findings with the skill policy rule sets:
+
 - Compose restart hardening: `AC-CMP-RESTART` (`policy-compose-balanced.yaml`)
 - Swarm restart hardening: `AC-SWM-RESTART` (`policy-swarm-balanced.yaml`)
 
@@ -171,6 +170,4 @@ Run scanning stages in this order for fastest feedback:
 7. docker scout quickview myapp:ci              # supply chain overview (optional)
 ```
 
-**Rationale**: Static analysis (steps 1-4) runs before the build to catch issues early.
-Image scanning (steps 6-7) runs after the build since it requires a built image. This
-ordering minimizes wasted build time on files that would fail linting.
+**Rationale**: Static analysis (steps 1-4) runs before the build to catch issues early. Image scanning (steps 6-7) runs after the build since it requires a built image. This ordering minimizes wasted build time on files that would fail linting.

@@ -81,7 +81,7 @@ Observed host behavior (2026-07, Claude Code 2.1.x / Codex CLI 0.142):
 
 - **Claude Code**: the hook fires at session start and records carry the session UUID; transcripts live at `~/.claude/projects/<munged-cwd>/<session-id>.jsonl`. Propagation of env-file vars to subagents and resumed sessions is undocumented upstream — treat as best-effort.
 - **Codex**: no hook needed — the runtime natively exports `CODEX_THREAD_ID` (per-thread UUID), which the probe catches; records filed under `codex exec` carried correct per-thread refs, including under `--sandbox workspace-write` (filing mechanics fully functional in the sandbox).
-- **Codex nested under Claude** (companion wrappers): the wrapper injects `CLAUDE_CODE_SESSION_ID` (the *parent* Claude session) into the child environment. The probe deliberately does not read that variable — `CODEX_THREAD_ID` wins, so nested runs attribute to their own thread, not the parent session.
+- **Codex nested under Claude** (companion wrappers): the wrapper injects `CLAUDE_CODE_SESSION_ID` (the _parent_ Claude session) into the child environment. The probe deliberately does not read that variable — `CODEX_THREAD_ID` wins, so nested runs attribute to their own thread, not the parent session.
 - Host packaging difference worth knowing: Claude installs a version-keyed cache copy (content changes need a version bump to propagate), while Codex references the marketplace working tree live.
 
 ## Session summary

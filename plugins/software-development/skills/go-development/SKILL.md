@@ -47,8 +47,7 @@ Read one matching reference before implementation. Read a second only when the t
 ## Compose without absorbing sibling work
 
 - Add the framework-specific skill for framework APIs, lifecycle, configuration, or generated code.
-- Add `test-driven-development` for changed executable behavior or a known bug
-  whose prior behavior can be demonstrated by an automated test.
+- Add `test-driven-development` for changed executable behavior or a known bug whose prior behavior can be demonstrated by an automated test.
 - Add `systematic-debugging` for open-ended diagnosis, `refactoring` for structural redesign, or `performance-engineering` for measured optimization.
 - Add `trunk-based-development` for branching, integration, or delivery policy.
 - Do not turn those workflows into Go-specific mandates.

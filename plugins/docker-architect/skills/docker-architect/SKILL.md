@@ -62,60 +62,56 @@ The executor shall follow these rules for every output.
 
 - Ask the user at most **2 clarifying questions** before generating output.
 - When requirements are ambiguous, apply secure defaults and note assumptions inline.
-- Default workflow: if the user mentions "docker-compose" or "deploy", use Compose.
-  If the user mentions "Dockerfile" or "build", use Image. When both apply, emit both.
+- Default workflow: if the user mentions "docker-compose" or "deploy", use Compose. If the user mentions "Dockerfile" or "build", use Image. When both apply, emit both.
 
 ### 2. Dockerfile invariants
 
 Every generated Dockerfile shall satisfy:
 
-| #  | Rule ID            | Requirement |
-|----|--------------------|-------------|
-| 1  | AC-DF-MULTISTAGE   | Use multi-stage builds; isolate build deps from runtime. |
-| 2  | AC-DF-USER         | Final stage runs as non-root (`USER` instruction). |
-| 3  | (behavioral)       | Use minimal base images (`-slim`, `-alpine`, distroless). |
-| 4  | AC-DF-FROM-DIGEST  | Pin base images by digest in production (tag acceptable for templates). |
-| 5  | AC-DF-HEALTHCHECK  | Include `HEALTHCHECK` in final stage. |
-| 6  | AC-DF-OCI-LABELS   | Include OCI labels: `image.source`, `image.revision`, `image.licenses`. |
-| 7  | AC-DF-CACHE-MOUNTS | Use BuildKit `--mount=type=cache` for package managers. |
-| 8  | AC-DF-SUID-SGID    | Strip SUID/SGID bits in final stage (enforcing only). |
-| 9  | (behavioral)       | Never embed secrets in layers (use build secrets or runtime mounts). |
+| # | Rule ID | Requirement |
+| --- | --- | --- |
+| 1 | AC-DF-MULTISTAGE | Use multi-stage builds; isolate build deps from runtime. |
+| 2 | AC-DF-USER | Final stage runs as non-root (`USER` instruction). |
+| 3 | (behavioral) | Use minimal base images (`-slim`, `-alpine`, distroless). |
+| 4 | AC-DF-FROM-DIGEST | Pin base images by digest in production (tag acceptable for templates). |
+| 5 | AC-DF-HEALTHCHECK | Include `HEALTHCHECK` in final stage. |
+| 6 | AC-DF-OCI-LABELS | Include OCI labels: `image.source`, `image.revision`, `image.licenses`. |
+| 7 | AC-DF-CACHE-MOUNTS | Use BuildKit `--mount=type=cache` for package managers. |
+| 8 | AC-DF-SUID-SGID | Strip SUID/SGID bits in final stage (enforcing only). |
+| 9 | (behavioral) | Never embed secrets in layers (use build secrets or runtime mounts). |
 | 10 | AC-DF-DOCKERIGNORE | Emit a companion `.dockerignore` file. |
 | 11 | AC-DF-REPRODUCIBLE | Declare `ARG SOURCE_DATE_EPOCH` for reproducible builds. |
-| 12 | AC-DF-PACKAGE-MGR  | Final stage must not invoke runtime package managers (apt, apk, pip, etc.). |
-| 13 | (behavioral)       | Order layers: system deps → app deps (lockfiles) → source code. |
+| 12 | AC-DF-PACKAGE-MGR | Final stage must not invoke runtime package managers (apt, apk, pip, etc.). |
+| 13 | (behavioral) | Order layers: system deps → app deps (lockfiles) → source code. |
 
 ### 3. Compose / Swarm invariants
 
 Every generated compose or stack file shall satisfy:
 
-| #  | Rule ID            | Requirement |
-|----|--------------------|-------------|
-| 1  | AC-CMP-READONLY    | `read_only: true` — immutable root filesystem. |
-| 2  | AC-CMP-CAPDROP     | `cap_drop: [ALL]` — drop all capabilities. |
-| 3  | AC-CMP-NNP         | `security_opt: [no-new-privileges:true]`. |
-| 4  | AC-CMP-USER        | `user:` set to non-root UID:GID. |
-| 5  | AC-CMP-HEALTH      | `healthcheck:` with test, interval, timeout, retries. |
-| 6  | AC-CMP-RESOURCES   | Compose: `cpus`, `mem_limit`, `pids_limit`; Swarm: `deploy.resources.limits`. |
-| 7  | AC-CMP-SECRETS     | Route TOKEN/PASS/KEY values through `secrets:`, not `environment:`. |
-| 8  | AC-CMP-DIGEST / AC-SWM-DIGEST | Pin service images by digest for deterministic pulls. |
-| 9  | AC-CMP-RESTART     | `restart: unless-stopped` (Compose) or `deploy.restart_policy` (Swarm). |
-| 10 | AC-CMP-WRITABLE    | Explicit `tmpfs:` for writable paths under read-only root. |
-| 11 | AC-CMP-PERMS-INIT  | Init-permissions sidecar for non-root volume ownership (Compose only). |
-| 12 | (behavioral)       | Use YAML anchors (`x-defaults: &`) for shared hardening. |
-| 13 | (behavioral)       | Define explicit `networks:` (no default bridge). |
-| 14 | (behavioral)       | Use `depends_on: { svc: { condition: service_healthy } }`. |
-| 15 | (behavioral)       | Use `profiles:` only for optional services (debug, admin jobs), never for required `*-init-perms` sidecars. |
-| 16 | AC-SWM-RESTART     | Swarm: `deploy.restart_policy.condition: on-failure`. |
+| # | Rule ID | Requirement |
+| --- | --- | --- |
+| 1 | AC-CMP-READONLY | `read_only: true` — immutable root filesystem. |
+| 2 | AC-CMP-CAPDROP | `cap_drop: [ALL]` — drop all capabilities. |
+| 3 | AC-CMP-NNP | `security_opt: [no-new-privileges:true]`. |
+| 4 | AC-CMP-USER | `user:` set to non-root UID:GID. |
+| 5 | AC-CMP-HEALTH | `healthcheck:` with test, interval, timeout, retries. |
+| 6 | AC-CMP-RESOURCES | Compose: `cpus`, `mem_limit`, `pids_limit`; Swarm: `deploy.resources.limits`. |
+| 7 | AC-CMP-SECRETS | Route TOKEN/PASS/KEY values through `secrets:`, not `environment:`. |
+| 8 | AC-CMP-DIGEST / AC-SWM-DIGEST | Pin service images by digest for deterministic pulls. |
+| 9 | AC-CMP-RESTART | `restart: unless-stopped` (Compose) or `deploy.restart_policy` (Swarm). |
+| 10 | AC-CMP-WRITABLE | Explicit `tmpfs:` for writable paths under read-only root. |
+| 11 | AC-CMP-PERMS-INIT | Init-permissions sidecar for non-root volume ownership (Compose only). |
+| 12 | (behavioral) | Use YAML anchors (`x-defaults: &`) for shared hardening. |
+| 13 | (behavioral) | Define explicit `networks:` (no default bridge). |
+| 14 | (behavioral) | Use `depends_on: { svc: { condition: service_healthy } }`. |
+| 15 | (behavioral) | Use `profiles:` only for optional services (debug, admin jobs), never for required `*-init-perms` sidecars. |
+| 16 | AC-SWM-RESTART | Swarm: `deploy.restart_policy.condition: on-failure`. |
 
 Rows marked `(behavioral)` are enforced by LLM output review only and are not checked by `policy-check`.
 
 ### 3.1 Migration notes
 
-- **Behavior change:** `AC-CMP-PERMS-INIT` and `AC-CMP-RESTART` service
-  exemptions match only the canonical `<service>-init-perms` suffix. Generic
-  `init-*` service names are intentionally no longer exempt from `ensure_key`
-  checks.
+- **Behavior change:** `AC-CMP-PERMS-INIT` and `AC-CMP-RESTART` service exemptions match only the canonical `<service>-init-perms` suffix. Generic `init-*` service names are intentionally no longer exempt from `ensure_key` checks.
 
 ### 4. Response format
 
@@ -178,15 +174,13 @@ docker compose config -q
 trivy image --severity HIGH,CRITICAL <image>
 ```
 
-See `references/scanning.md` for full install instructions, CI pipeline ordering,
-and additional tools (docker scout, trivy config scanning).
+See `references/scanning.md` for full install instructions, CI pipeline ordering, and additional tools (docker scout, trivy config scanning).
 
 ---
 
 ## Fallback Behavior
 
-When the Rust tooling (`docker-architect-compose`, `docker-architect-image`) is
-unavailable (no cargo, no pre-built binary):
+When the Rust tooling (`docker-architect-compose`, `docker-architect-image`) is unavailable (no cargo, no pre-built binary):
 
 1. **Never refuse output.** Generate files directly from the invariants above.
 2. Use templates from `references/fallback-templates.md` as starting points.
@@ -194,8 +188,7 @@ unavailable (no cargo, no pre-built binary):
 4. Apply all Dockerfile and Compose invariants manually.
 5. Note in output that deterministic tooling validation was skipped.
 
-The fallback path produces the same hardened output — the Rust tooling adds
-deterministic metadata enrichment and policy enforcement, not the hardening itself.
+The fallback path produces the same hardened output — the Rust tooling adds deterministic metadata enrichment and policy enforcement, not the hardening itself.
 
 ---
 
@@ -272,7 +265,7 @@ DOCKER_ARCHITECT_ENABLE_VERIFY=1 <skills-file-root>/scripts/docker-architect-ci-
 ## References
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `references/fallback-templates.md` | Hardened Dockerfile + Compose templates |
 | `references/fallback-templates-swarm.md` | Hardened Swarm stack template |
 | `references/fallback-templates-bake.md` | docker-bake.hcl template (Image mode) |

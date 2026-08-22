@@ -47,8 +47,7 @@ Read one matching reference before implementation. Read a second only when the t
 ## Compose without absorbing sibling work
 
 - Add the framework-specific skill for Spring, Jakarta EE, Android, persistence, dependency-injection, or framework lifecycle semantics.
-- Add `test-driven-development` for changed executable behavior or a known bug
-  whose prior behavior can be demonstrated by an automated test.
+- Add `test-driven-development` for changed executable behavior or a known bug whose prior behavior can be demonstrated by an automated test.
 - Add `systematic-debugging`, `refactoring`, or `performance-engineering` for their respective cross-language workflows.
 - Add `trunk-based-development` for branch and integration policy.
 - Use the Kotlin skill as well when a mixed JVM API change crosses Java/Kotlin boundaries.

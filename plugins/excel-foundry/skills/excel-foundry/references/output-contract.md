@@ -1,7 +1,6 @@
 # Output Contract
 
-The generic Python CLI writes agent-readable bundles under the requested
-`--output-root`.
+The generic Python CLI writes agent-readable bundles under the requested `--output-root`.
 
 ## Pull Output
 
@@ -35,19 +34,11 @@ The generic Python CLI writes agent-readable bundles under the requested
 - `vba/vbaProject.bin` when present
 - `ooxml-parts/...`
 
-`normalized.json` is the agent-facing normalized view. It filters internal
-Excel-generated names such as `_xlfn.*`, `_xlpm.*`, and `_xlws.*`, and
-includes `nameDiagnostics.filteredInternalNames` so the removed names remain
-reviewable. Raw extracted names remain in `workbook_structure/names.json`.
+`normalized.json` is the agent-facing normalized view. It filters internal Excel-generated names such as `_xlfn.*`, `_xlpm.*`, and `_xlws.*`, and includes `nameDiagnostics.filteredInternalNames` so the removed names remain reviewable. Raw extracted names remain in `workbook_structure/names.json`.
 
-The generic Python CLI now defaults to concise stdout summaries. Use
-`--stdout full` when you need the full payload on stdout, or `--result-path`
-to persist the full JSON result separately while keeping stdout narrow.
+The generic Python CLI now defaults to concise stdout summaries. Use `--stdout full` when you need the full payload on stdout, or `--result-path` to persist the full JSON result separately while keeping stdout narrow.
 
-When one of the workbook-structure metadata surfaces is absent, `pull` or
-package `bootstrap` still
-writes the artifact with an empty payload instead of silently omitting the
-file.
+When one of the workbook-structure metadata surfaces is absent, `pull` or package `bootstrap` still writes the artifact with an empty payload instead of silently omitting the file.
 
 ## Compare Output
 
@@ -56,29 +47,18 @@ file.
 - `comparisonAvailable`
 - `comparisonStatus`
 - `raw`: direct OOXML versus COM comparison
-- `normalized`: the same comparison after filtering clearly internal
-  Excel-generated names and excluding live VBA accessibility/component counts
-  that OOXML cannot observe
+- `normalized`: the same comparison after filtering clearly internal Excel-generated names and excluding live VBA accessibility/component counts that OOXML cannot observe
 - `summary`, `mismatches`, and `match`: compatibility aliases for `raw`
 
-When COM extraction does not complete, `comparisonAvailable` is `false`,
-`comparisonStatus` reports the failure class, and `raw.match`,
-`normalized.match`, plus top-level `match` are `null`.
+When COM extraction does not complete, `comparisonAvailable` is `false`, `comparisonStatus` reports the failure class, and `raw.match`, `normalized.match`, plus top-level `match` are `null`.
 
-`comDiagnostics` preserves the COM-side failure context. For failed opens this
-includes requested and working workbook paths, package-readability context, and
-structured read-only open-attempt diagnostics when available.
+`comDiagnostics` preserves the COM-side failure context. For failed opens this includes requested and working workbook paths, package-readability context, and structured read-only open-attempt diagnostics when available.
 
-The `normalized` section also includes filtered-name diagnostics so the
-discarded names stay reviewable.
+The `normalized` section also includes filtered-name diagnostics so the discarded names stay reviewable.
 
-Live VBA accessibility and component counts remain under diagnostics in both
-sections. They stay parity-affecting in `raw`, but are excluded from
-`normalized` because OOXML only exposes package-level VBA state while COM
-exposes the live VBProject surface.
+Live VBA accessibility and component counts remain under diagnostics in both sections. They stay parity-affecting in `raw`, but are excluded from `normalized` because OOXML only exposes package-level VBA state while COM exposes the live VBProject surface.
 
-VBA binary hashes are reported under diagnostics. Missing COM-side hashes are
-diagnostics, not automatic parity failures.
+VBA binary hashes are reported under diagnostics. Missing COM-side hashes are diagnostics, not automatic parity failures.
 
 ## Manifest Query / Inspect / Bootstrap
 
@@ -90,44 +70,19 @@ Manifest-driven `query`, `inspect`, and `bootstrap` payloads include:
 - `unsupported`
 - `engineRoutes`
 - `capabilityLedger` when `workbook capabilities --deep` is requested
-- `documentationAnchors` inside ledger surfaces when
-  `workbook capabilities --deep --documentation` is requested
+- `documentationAnchors` inside ledger surfaces when `workbook capabilities --deep --documentation` is requested
 
-When the workbook is package-readable, query/bootstrap bundles can also include
-metadata for formulas, data-validation, workbook or worksheet protection,
-styles, themes, charts, pivots, Power Query, connections, and Data Model
-artifacts. Package plans use `engineRoutes` to distinguish package-safe writes
-from `partial-package-write` and `desktop-write` surfaces. Styles and themes
-are exact XML package part replacements, existing chart title and series
-reference edits are partial package writes, and rich chart authoring plus
-shapes, pictures, controls, and opaque analytics objects are routed to desktop
-Excel.
+When the workbook is package-readable, query/bootstrap bundles can also include metadata for formulas, data-validation, workbook or worksheet protection, styles, themes, charts, pivots, Power Query, connections, and Data Model artifacts. Package plans use `engineRoutes` to distinguish package-safe writes from `partial-package-write` and `desktop-write` surfaces. Styles and themes are exact XML package part replacements, existing chart title and series reference edits are partial package writes, and rich chart authoring plus shapes, pictures, controls, and opaque analytics objects are routed to desktop Excel.
 
-The deep capability ledger is the generic max-write contract. It is derived
-from `references/excel-capability-matrix.json`, the canonical cross-backend
-taxonomy. Each surface has `readLane`, `writeLane`, `route`, `verify`, `risk`,
-`supportLevel`, `operations`, `hostRequirements`, `secretPolicy`,
-`destructiveRisk`, `closureReason`, `canReadHere`, `canWriteHere`, and
-`canPreserveHere` so agents can select the strongest safe write path without
-hard-coded workbook assumptions.
+The deep capability ledger is the generic max-write contract. It is derived from `references/excel-capability-matrix.json`, the canonical cross-backend taxonomy. Each surface has `readLane`, `writeLane`, `route`, `verify`, `risk`, `supportLevel`, `operations`, `hostRequirements`, `secretPolicy`, `destructiveRisk`, `closureReason`, `canReadHere`, `canWriteHere`, and `canPreserveHere` so agents can select the strongest safe write path without hard-coded workbook assumptions.
 
-When `--documentation` is present, each ledger surface also includes the
-matrix `documentationAnchors`. Anchors name the official Microsoft or local
-Excel Foundry document, the route it supports, and whether it proves mutation,
-readback, inventory, preservation, or a limitation. These anchors explain why
-a closed surface may still be `preserve-only` or host-limited rather than
-package-supported.
+When `--documentation` is present, each ledger surface also includes the matrix `documentationAnchors`. Anchors name the official Microsoft or local Excel Foundry document, the route it supports, and whether it proves mutation, readback, inventory, preservation, or a limitation. These anchors explain why a closed surface may still be `preserve-only` or host-limited rather than package-supported.
 
-The matrix also defines environment compatibility fields for `package`,
-`desktop`, `graph`, `officeScript`, and `tomFabric`. These fields state the
-current support state for each backend/environment even when the overall
-surface is `host-limited`; callers should combine those fields with
-`hostRequirements` before deciding whether to execute, plan, or preserve.
+The matrix also defines environment compatibility fields for `package`, `desktop`, `graph`, `officeScript`, and `tomFabric`. These fields state the current support state for each backend/environment even when the overall surface is `host-limited`; callers should combine those fields with `hostRequirements` before deciding whether to execute, plan, or preserve.
 
 ## Cloud Command Output
 
-Graph, Fabric, Power BI, and semantic artifact commands return the standard
-operation envelope:
+Graph, Fabric, Power BI, and semantic artifact commands return the standard operation envelope:
 
 - `backend`
 - `operation`
@@ -140,12 +95,9 @@ operation envelope:
 - `limitations`
 - `secretHandling`
 
-When `--dry-run` or `--what-if` is supplied, cloud commands return `status:
-dry-run`, `changed: false`, and a redacted `request` object containing the
-planned method, URL, headers, and body. Runtime bearer tokens are never emitted.
+When `--dry-run` or `--what-if` is supplied, cloud commands return `status: dry-run`, `changed: false`, and a redacted `request` object containing the planned method, URL, headers, and body. Runtime bearer tokens are never emitted.
 
-Semantic definition export writes decoded `InlineBase64` definition parts under
-the requested output directory and reports the written files in `exportedFiles`.
+Semantic definition export writes decoded `InlineBase64` definition parts under the requested output directory and reports the written files in `exportedFiles`.
 
 ## Audit Output
 
@@ -167,15 +119,8 @@ the requested output directory and reports the written files in `exportedFiles`.
 - `matrix-summary.json`
 - `matrix-summary.md`
 
-The markdown matrix summary reports mutation delta as `changed`,
-`unchanged`, `skipped`, `timed_out`, or a subprocess status instead of a
-pass/fail label.
+The markdown matrix summary reports mutation delta as `changed`, `unchanged`, `skipped`, `timed_out`, or a subprocess status instead of a pass/fail label.
 
-The markdown matrix summary also reports baseline and post-mutation comparison
-status strings alongside raw and normalized compare cells. Raw and normalized
-compare cells render as `pass`, `fail`, or `n/a`.
+The markdown matrix summary also reports baseline and post-mutation comparison status strings alongside raw and normalized compare cells. Raw and normalized compare cells render as `pass`, `fail`, or `n/a`.
 
-The JSON matrix summary mirrors that machine-readable status in
-`workbooks[].mutationStatus` and explicit baseline/post-mutation comparison
-status plus availability fields. It also includes `slug` plus `relativeRoot`
-for each per-workbook audit directory.
+The JSON matrix summary mirrors that machine-readable status in `workbooks[].mutationStatus` and explicit baseline/post-mutation comparison status plus availability fields. It also includes `slug` plus `relativeRoot` for each per-workbook audit directory.

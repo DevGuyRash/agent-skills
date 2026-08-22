@@ -38,13 +38,7 @@ You SHALL NOT drive the browser interactively to satisfy a request that a browse
 
 Route on the failure mode and the observable boundary rather than on what the code is called; a state reducer and a persisted store answer to different tiers despite sharing a name.
 
-IF pure logic proves the contract without rendering, browser APIs, or a real integration seam
-THEN you SHALL use a unit or component test
-ELSE IF the contract depends on collaboration among app-owned modules, stores, bridges, adapters, APIs, or persistence but not on real browser behavior
-THEN you SHALL use an integration test
-ELSE IF the remaining material risk needs real rendering, navigation, focus or accessibility behavior, browser storage or permissions, extension lifecycle, auth/session behavior, or a browser-mediated cross-system outcome
-THEN you SHALL use a thin Playwright/e2e test for that risk
-ELSE you SHALL NOT add browser coverage.
+IF pure logic proves the contract without rendering, browser APIs, or a real integration seam THEN you SHALL use a unit or component test ELSE IF the contract depends on collaboration among app-owned modules, stores, bridges, adapters, APIs, or persistence but not on real browser behavior THEN you SHALL use an integration test ELSE IF the remaining material risk needs real rendering, navigation, focus or accessibility behavior, browser storage or permissions, extension lifecycle, auth/session behavior, or a browser-mediated cross-system outcome THEN you SHALL use a thin Playwright/e2e test for that risk ELSE you SHALL NOT add browser coverage.
 
 ## Calibrate Claims To Traversed Boundaries
 

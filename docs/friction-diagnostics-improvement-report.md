@@ -49,7 +49,7 @@ The plugin is useful for continued internal Linux use if callers accept privacy,
 ### Decision matrix
 
 | Priority | Decision | Change | Evidence class |
-|---:|---|---|---|
+| --: | --- | --- | --- |
 | P0 | Implement | Append-order lifecycle reopening and reclosing | Reproduced contract failure |
 | P0 | Implement | Store-qualified identity for cross-store lifecycle | Reproduced cross-store false closure |
 | P0 | Implement | User-only modes and uniform recursive redaction | Direct code evidence and controlled probes |
@@ -1298,7 +1298,7 @@ This appendix separates two categories that should not be conflated:
 This subsection is retained from the report's first evidence pass and is explicitly attributed to DiffHound. In the current EdgeCourt review, the user deliberately requested both logging and mending, so dual activation in this task is not evidence of accidental trigger overlap.
 
 | Plugin behavior | What happened | Why it mattered | Workaround used |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Capture and Mend both claim “review” and mending language | A prior read-only plugin review made both skills appear applicable. | Dual activation increased instruction load and created a risk of accidentally running a mend workflow. | Both skills were read, but Friction Mend was used only as an analytical lens. Static description overlap remains real; the current EdgeCourt task does not independently prove behavioral overlap because the user explicitly invoked both. |
 | Mandatory full session summary | A focused answer about Playwright test coverage ended with a Unicode table, event-store path, and raw shell query. | The diagnostic appendix visually dominated an unrelated product-status answer and exposed internal filesystem detail the user had not requested. | The required block was pasted because the skill used `SHALL`. The proposal changes the default to a compact one-line disclosure and reserves the table for explicit friction work. |
 | “Courtesy” conflicts with `SHALL` | The summary was described as nonessential courtesy while being mandatory. | Agents cannot exercise proportional judgment when the instruction simultaneously says the output is optional in purpose and absolute in execution. | The mandatory path was followed. The report recommends removing the contradiction. |
@@ -1321,7 +1321,7 @@ This subsection is retained from the report's first evidence pass and is explici
 The current EdgeCourt corpus contains 19 records: 14 anchors and 5 recurrences across four session references. The following table is the direct answer to “where could the plugin have helped more?” in this task.
 
 | Observed situation | What worked | Remaining friction or missed support | Proposed generalized improvement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Chrome tab discovery succeeded, then the browser disappeared (`evt-0002`, `evt-0003`, `evt-0004`) | One rich anchor plus cheap recurrence records represented repeated failure well. | The records lack structured backend/resource identity that would distinguish the disappearing tab, profile, and bridge instance. | Capture agent task path, tool/plugin version, and contested resource when discoverable. |
 | Chrome and in-app browser produced the exact same `incrementalAriaSnapshot` failure under two recurrence keys (`evt-0001`, `evt-0010`, `evt-0013`, `evt-0019`) | Later in-app occurrences used recurrence correctly. | User-authored keys let the same likely capability defect become two anchors. No preflight warned future sessions before the first retry. | Suggest semantic duplicates conservatively; publish a generated, bounded active-trap view for recurrent or blocked unmended hazards. |
 | Truncated command output contaminated JSON fixtures (`evt-0005`) | The event preserved the false assumption about tool output and the corrective recapture. | The reporter had to summarize evidence manually after the unsafe output path. | Support `--actual-file` or stdin evidence capture with hash and a separate semantic title. |

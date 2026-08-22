@@ -1,15 +1,12 @@
 # Query
 
-Use this file for direct launcher commands and command discovery. The launcher
-shape is:
+Use this file for direct launcher commands and command discovery. The launcher shape is:
 
 ```text
 <resource> <action> [flags]
 ```
 
-Default output is JSON. Complex mutations use `--spec-json` or `--spec-file`.
-Cloud and destructive commands use `--dry-run`, `--what-if`, `--apply`, or
-explicit destructive flags as required by the command.
+Default output is JSON. Complex mutations use `--spec-json` or `--spec-file`. Cloud and destructive commands use `--dry-run`, `--what-if`, `--apply`, or explicit destructive flags as required by the command.
 
 ## Core Workbook Commands
 
@@ -106,11 +103,7 @@ explicit destructive flags as required by the command.
 - `roundtrip`
 - `refresh`
 
-`plan` returns per-surface capability, compare, merge, and intended write
-counts before mutation. `compare` returns per-surface `strict`, `normalized`,
-and `intent` results for repo artifacts versus the current workbook. `sync` is
-dry-run by default and requires `--apply` to mutate supported package-backed
-surfaces.
+`plan` returns per-surface capability, compare, merge, and intended write counts before mutation. `compare` returns per-surface `strict`, `normalized`, and `intent` results for repo artifacts versus the current workbook. `sync` is dry-run by default and requires `--apply` to mutate supported package-backed surfaces.
 
 ## Common Flags
 
@@ -162,29 +155,13 @@ surfaces.
 
 ## Capability Ledger
 
-`references/excel-capability-matrix.json` is the source of truth for support
-and compatibility. Its per-environment fields (`package`, `desktop`, `graph`,
-`officeScript`, and `tomFabric`) state the current support level for each
-backend even when the overall surface is host-limited; combine them with
-`hostRequirements` before choosing execute, plan, or preserve behavior.
+`references/excel-capability-matrix.json` is the source of truth for support and compatibility. Its per-environment fields (`package`, `desktop`, `graph`, `officeScript`, and `tomFabric`) state the current support level for each backend even when the overall surface is host-limited; combine them with `hostRequirements` before choosing execute, plan, or preserve behavior.
 
-Use `workbook capabilities --deep --documentation` when an agent needs support
-rationale in-band. The response includes matrix documentation anchors and
-closure reasons without creating a second support table. A closed surface can
-still be `preserve-only` or host-limited when the documented public route only
-supports inventory, preservation, diagnostics, or live host execution.
+Use `workbook capabilities --deep --documentation` when an agent needs support rationale in-band. The response includes matrix documentation anchors and closure reasons without creating a second support table. A closed surface can still be `preserve-only` or host-limited when the documented public route only supports inventory, preservation, diagnostics, or live host execution.
 
 ## Excel Repair Dialogs
 
-When Excel reports "We found a problem with some content" for a package-readable
-`.xlsx` or `.xlsm`, run `workbook diagnose` before mutating the file. It is a
-read-only package scan for OOXML records that often pass ZIP/XML parsing but
-still trigger Excel recovery, such as incorrect content types, invalid string
-cell serialization, missing compatibility prefixes for future functions,
-non-GUID threaded comment IDs, VML note shape issues, conditional formatting
-rules missing required attributes, and table ID mismatches. Use `workbook repair`
-for the safe package-backed conformance repairs; use desktop Excel repair only
-when package diagnosis is clean or the workbook is not package-readable.
+When Excel reports "We found a problem with some content" for a package-readable `.xlsx` or `.xlsm`, run `workbook diagnose` before mutating the file. It is a read-only package scan for OOXML records that often pass ZIP/XML parsing but still trigger Excel recovery, such as incorrect content types, invalid string cell serialization, missing compatibility prefixes for future functions, non-GUID threaded comment IDs, VML note shape issues, conditional formatting rules missing required attributes, and table ID mismatches. Use `workbook repair` for the safe package-backed conformance repairs; use desktop Excel repair only when package diagnosis is clean or the workbook is not package-readable.
 
 ## Examples
 
@@ -210,5 +187,4 @@ when package diagnosis is clean or the workbook is not package-readable.
 - `semantic-artifact inspect --definition-dir /path/to/tmdl`
 - `dax execute --workspace-id WORKSPACE_ID --dataset-id DATASET_ID --dax-query 'EVALUATE ROW("A", 1)' --dry-run`
 
-When passing comma-separated `--surface` values from PowerShell, quote the
-value as one argument. Repeating `--surface` also works.
+When passing comma-separated `--surface` values from PowerShell, quote the value as one argument. Repeating `--surface` also works.

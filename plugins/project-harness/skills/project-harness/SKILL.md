@@ -25,10 +25,10 @@ compatibility: >-
 
 # Project Harness
 
-This skill creates or updates a repo-wide command harness without trying to
-rewrite the repo's package manifests, lockfiles, or build internals.
+This skill creates or updates a repo-wide command harness without trying to rewrite the repo's package manifests, lockfiles, or build internals.
 
 It is meant to answer questions like:
+
 - how should this repo expose bootstrap, build, test, lint, fmt, ci, dev, and dist?
 - should `dist/` stay local, be committed, be tracked with Git LFS, or come only from CI?
 - should CI call `just ci`, mirror commands directly, or stay off until the repo is better defined?
@@ -39,6 +39,7 @@ It is meant to answer questions like:
 ## What this skill owns
 
 This skill owns the repo-level wrapper surface:
+
 - `justfile`
 - `.github/workflows/ci.yml`
 - `.github/workflows/release-cross-os.yml`
@@ -49,6 +50,7 @@ This skill owns the repo-level wrapper surface:
 - `.local/harness/render/*` candidate files
 
 This skill does **not** rewrite:
+
 - `Cargo.toml`
 - `package.json`
 - `pyproject.toml`
@@ -56,10 +58,7 @@ This skill does **not** rewrite:
 - `go.mod`
 - existing build manifests in general
 
-This skill also does **not** own governance enforcement such as required checks,
-CODEOWNERS reconciliation, review policy, or branch/ruleset policy. Keep those
-in repository policy plus native host tooling such as `git`, `gh`, and official
-GitHub or GitLab integrations.
+This skill also does **not** own governance enforcement such as required checks, CODEOWNERS reconciliation, review policy, or branch/ruleset policy. Keep those in repository policy plus native host tooling such as `git`, `gh`, and official GitHub or GitLab integrations.
 
 Repo-owned Git hooks are a local convenience overlay, not the authoritative enforcement surface. Keep CI and branch governance authoritative even when this skill emits `githooks/pre-push` and a `hooks-install` recipe.
 
@@ -67,24 +66,24 @@ Repo-owned Git hooks are a local convenience overlay, not the authoritative enfo
 
 The generated `justfile` is a user interface, not just a dump of commands.
 
-WHEN this skill generates a public recipe THEN you SHALL place a one-line description comment directly above it.
-WHEN the recipe is scoped to a component, platform, or distribution surface THEN you SHALL name that scope in the description.
-WHEN the repo has non-obvious operational surfaces such as packaging, dist refresh, hooks, or Docker workflows THEN you SHOULD add a short header comment block with two or three example invocations.
-You SHALL NOT rely on bare labels such as "Run linters" or "Build the project" when the repo surface is specific enough to describe more precisely.
+WHEN this skill generates a public recipe THEN you SHALL place a one-line description comment directly above it. WHEN the recipe is scoped to a component, platform, or distribution surface THEN you SHALL name that scope in the description. WHEN the repo has non-obvious operational surfaces such as packaging, dist refresh, hooks, or Docker workflows THEN you SHOULD add a short header comment block with two or three example invocations. You SHALL NOT rely on bare labels such as "Run linters" or "Build the project" when the repo surface is specific enough to describe more precisely.
 
 Preferred description style:
+
 - one line
 - outcome-first
 - precise about scope and side effects
 - written so it still reads cleanly in `just --list`
 
 Good examples:
+
 - `# Install dependencies, tooling, and local prerequisites for normal development`
 - `# Compile only crates/mpcr in the default build profile`
 - `# Compile release outputs and stage them into dist/ for local packaging`
 - `# Remove staged dist payloads without touching source files`
 
 Weak examples:
+
 - `# Run linters`
 - `# Build the project`
 - `# Clean`
@@ -98,6 +97,7 @@ python <skills-file-root>/scripts/project_harness.py detect /path/to/repo --pret
 ```
 
 2. Choose the command and CI axes:
+
 - architecture: `general`, `local-dist`, `committed-dist`, or `cross-os-dist`
 - dist storage: `none`, `git`, `git-lfs`, or `artifacts`
 - CI mode: `none`, `just`, or `direct`
@@ -134,6 +134,7 @@ python <skills-file-root>/scripts/project_harness.py doctor /path/to/repo --pret
 Detect and mirror it first.
 
 Examples:
+
 - package scripts -> generate matching `just` recipes
 - Cargo binaries -> generate `build`, `release`, and dist staging candidates
 - Makefile or Taskfile -> preserve them, map canonical targets where obvious
@@ -143,19 +144,17 @@ Also generate recipe descriptions that explain what each recipe does, not just i
 
 ### When the repo has **no** examples
 
-Do not fail. Generate a minimal canonical harness with placeholder recipes and a
-comment block that explains what to replace.
+Do not fail. Generate a minimal canonical harness with placeholder recipes and a comment block that explains what to replace.
 
 Default behavior for no-example repos:
+
 - generate a `justfile`
 - keep CI mode at `none` unless setup is truly obvious
 - leave distribution mode at `general` unless the repo already shows binary/dist intent
 - store decisions and warnings in `.local/harness/state.json`
 - include recipe descriptions plus a short header block that shows how the placeholder harness is meant to be used
 
-Load `<skills-file-root>/references/generic-harnesses.md` for the full no-example policy.
-Load `<skills-file-root>/references/extrapolation-protocol.md` when you need the
-full detect -> infer -> render -> stop protocol for partially explicit repos.
+Load `<skills-file-root>/references/generic-harnesses.md` for the full no-example policy. Load `<skills-file-root>/references/extrapolation-protocol.md` when you need the full detect -> infer -> render -> stop protocol for partially explicit repos.
 
 ## Distribution choices
 
@@ -177,9 +176,7 @@ Use three separate questions.
 
 ### 3) Release overlay
 
-The generated cross-OS workflow is an artifact-oriented overlay. For true
-GitHub Release assets, start from
-`<skills-file-root>/assets/workflow-release-assets-cross-os.yml.tpl`.
+The generated cross-OS workflow is an artifact-oriented overlay. For true GitHub Release assets, start from `<skills-file-root>/assets/workflow-release-assets-cross-os.yml.tpl`.
 
 ## CI choices
 
@@ -187,17 +184,12 @@ GitHub Release assets, start from
 - `just`: CI installs toolchains plus `just`, runs `just bootstrap`, then `just ci`
 - `direct`: CI installs toolchains, runs bootstrap steps directly, then explicit checks; contributor-heavy repos may opt into stable `lint`, `test`, and `build` jobs
 
-Use `direct` for monorepos, matrices, or polyglot repos.
-Use `just` for smaller repos where `just ci` should stay the source of truth.
-Use split direct CI only when a repo explicitly opts into it and stable per-job checks are more valuable than preserving a single `ci` check surface.
-Keep change detection at `none` unless the repo has an expensive, distinct `build` lane worth gating. The generated `git-diff` overlay currently targets split direct CI only.
-Keep path filters manual and explicit; do not infer them unless the repo truly has stable ownership boundaries.
+Use `direct` for monorepos, matrices, or polyglot repos. Use `just` for smaller repos where `just ci` should stay the source of truth. Use split direct CI only when a repo explicitly opts into it and stable per-job checks are more valuable than preserving a single `ci` check surface. Keep change detection at `none` unless the repo has an expensive, distinct `build` lane worth gating. The generated `git-diff` overlay currently targets split direct CI only. Keep path filters manual and explicit; do not infer them unless the repo truly has stable ownership boundaries.
 
-Load `<skills-file-root>/references/ci-workflows.md` for workflow quality rules,
-runner notes, contributor-scale guidance, governance boundaries, and
-open-source versus private-repo tradeoffs.
+Load `<skills-file-root>/references/ci-workflows.md` for workflow quality rules, runner notes, contributor-scale guidance, governance boundaries, and open-source versus private-repo tradeoffs.
 
 When examples do not match the repo exactly:
+
 - explore the actual repo first
 - infer from strong signals before weak ones
 - prefer generated defaults when the evidence supports them
@@ -208,21 +200,16 @@ When examples do not match the repo exactly:
 
 ## Existing-file policy
 
-Managed files are overwritten only when absent or already marked as managed.
-Unmanaged targets are never force-merged blindly; candidate files are written
-instead under `.local/harness/render/`.
+Managed files are overwritten only when absent or already marked as managed. Unmanaged targets are never force-merged blindly; candidate files are written instead under `.local/harness/render/`.
 
-`.gitattributes` is managed by section instead of by whole file.
-WHEN this skill updates `.gitattributes` THEN you SHALL preserve human-authored rules outside the project-harness managed section.
-WHEN `.gitattributes` already exists without a project-harness section THEN you SHALL insert the managed section after leading comments and blank lines so later repo-specific rules can override the baseline.
-WHEN `.gitattributes` already contains a project-harness section THEN you SHALL replace only that section.
+`.gitattributes` is managed by section instead of by whole file. WHEN this skill updates `.gitattributes` THEN you SHALL preserve human-authored rules outside the project-harness managed section. WHEN `.gitattributes` already exists without a project-harness section THEN you SHALL insert the managed section after leading comments and blank lines so later repo-specific rules can override the baseline. WHEN `.gitattributes` already contains a project-harness section THEN you SHALL replace only that section.
 
-Load `<skills-file-root>/references/existing-files.md` before changing a repo
-with an existing `justfile`, workflow set, or custom dist layout.
+Load `<skills-file-root>/references/existing-files.md` before changing a repo with an existing `justfile`, workflow set, or custom dist layout.
 
 ## References to load on demand
 
 Load these only when relevant:
+
 - `<skills-file-root>/references/detection.md`
 - `<skills-file-root>/references/selection.md`
 - `<skills-file-root>/references/distribution-strategies.md`
@@ -243,6 +230,7 @@ Load these only when relevant:
 ## Bundled assets
 
 Operational templates:
+
 - `<skills-file-root>/assets/just-general.just.tpl`
 - `<skills-file-root>/assets/just-local-dist.just.tpl`
 - `<skills-file-root>/assets/just-committed-dist.just.tpl`
@@ -253,6 +241,7 @@ Operational templates:
 - `<skills-file-root>/assets/workflow-release-cross-os.yml.tpl`
 
 Generalized examples:
+
 - `<skills-file-root>/assets/just-no-example.just.tpl`
 - `<skills-file-root>/assets/workflow-ci-direct-component-paths.yml.tpl`
 - `<skills-file-root>/assets/workflow-release-assets-cross-os.yml.tpl`

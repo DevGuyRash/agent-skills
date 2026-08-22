@@ -59,10 +59,8 @@ bootstrap  mvn install -DskipTests
 - Phoenix
 - Spring Boot
 
-Framework detection matters mainly for deciding whether to add optional
-developer recipes, not for changing the canonical top-level harness recipes.
+Framework detection matters mainly for deciding whether to add optional developer recipes, not for changing the canonical top-level harness recipes.
 
 ## Rule
 
-For these ecosystems especially, prefer the repo’s existing wrapper scripts
-and build files over speculative lint and format defaults.
+For these ecosystems especially, prefer the repo’s existing wrapper scripts and build files over speculative lint and format defaults.

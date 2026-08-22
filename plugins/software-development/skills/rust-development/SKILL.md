@@ -5,21 +5,18 @@ description: Use for substantive Rust source, Cargo, or tooling. Covers ownershi
 
 # Rust Development
 
-Build and review ordinary Rust while preserving the repository's toolchain, public contracts, and verification surface.
-Prefer code whose ownership and failure behavior are visible at its boundaries.
+Build and review ordinary Rust while preserving the repository's toolchain, public contracts, and verification surface. Prefer code whose ownership and failure behavior are visible at its boundaries.
 
 ## Establish the contract
 
-Before changing code, inspect the nearest `Cargo.toml`, workspace manifest, lockfile policy, CI, and contributor instructions.
-Determine:
+Before changing code, inspect the nearest `Cargo.toml`, workspace manifest, lockfile policy, CI, and contributor instructions. Determine:
 
 - crate role: library, binary, procedural macro, test support, or workspace tooling;
 - selected edition, minimum supported Rust version, feature policy, targets, and `no_std` status;
 - public API and serialization compatibility requirements;
 - repository-owned format, lint, build, and test commands.
 
-Preserve those choices unless the request explicitly changes them.
-Do not upgrade the edition, MSRV, dependencies, feature defaults, or lockfile incidentally.
+Preserve those choices unless the request explicitly changes them. Do not upgrade the edition, MSRV, dependencies, feature defaults, or lockfile incidentally.
 
 ## Compose focused skills
 
@@ -39,42 +36,25 @@ Do not load a reference for a local implementation that does not touch its decis
 
 ## Shape the change
 
-Model invariants with types and ownership before adding runtime checks.
-Prefer borrowing for temporary access and ownership transfer when the callee must retain or consume a value.
-Choose concrete types by default; introduce traits or generics when a real substitution boundary needs them.
-Keep conversions explicit at trust, precision, and allocation boundaries.
+Model invariants with types and ownership before adding runtime checks. Prefer borrowing for temporary access and ownership transfer when the callee must retain or consume a value. Choose concrete types by default; introduce traits or generics when a real substitution boundary needs them. Keep conversions explicit at trust, precision, and allocation boundaries.
 
-Use iterators, pattern matching, and standard-library types when they make intent clearer, not as style quotas.
-Avoid cloning merely to satisfy the borrow checker; first decide which component should own the value.
-Accept a clone when it is the clearest correct tradeoff and its cost fits the path.
+Use iterators, pattern matching, and standard-library types when they make intent clearer, not as style quotas. Avoid cloning merely to satisfy the borrow checker; first decide which component should own the value. Accept a clone when it is the clearest correct tradeoff and its cost fits the path.
 
 ## Make failure intentional
 
-Treat unexpected panic as an API decision, not a blanket syntax ban.
-Return `Result` or `Option` for recoverable conditions the caller can act on.
-Reserve assertions and panic for violated invariants, impossible states, or process-level policies that are explicit in context.
-Add error context at boundaries where it identifies the failed operation without leaking secrets.
-Do not discard an error or convert it to a default unless the contract defines that recovery.
+Treat unexpected panic as an API decision, not a blanket syntax ban. Return `Result` or `Option` for recoverable conditions the caller can act on. Reserve assertions and panic for violated invariants, impossible states, or process-level policies that are explicit in context. Add error context at boundaries where it identifies the failed operation without leaking secrets. Do not discard an error or convert it to a default unless the contract defines that recovery.
 
-Use `unwrap` or `expect` only when the invariant is local and reviewable, or in tests and tightly scoped startup code where aborting is the stated policy.
-Prefer an explanatory `expect` message over repeating the operation.
+Use `unwrap` or `expect` only when the invariant is local and reviewable, or in tests and tightly scoped startup code where aborting is the stated policy. Prefer an explanatory `expect` message over repeating the operation.
 
 ## Preserve interfaces
 
-Keep visibility as narrow as the callers require.
-For public types and functions, consider semver impact, downstream inference, exhaustiveness, feature availability, and documented error behavior.
-Do not expose an implementation dependency through a public signature accidentally.
-Keep platform-specific code behind the existing `cfg` and feature structure.
+Keep visibility as narrow as the callers require. For public types and functions, consider semver impact, downstream inference, exhaustiveness, feature availability, and documented error behavior. Do not expose an implementation dependency through a public signature accidentally. Keep platform-specific code behind the existing `cfg` and feature structure.
 
 ## Verify with repository evidence
 
-Run the repository's narrowest relevant format, build, lint, and test commands first.
-When no commands are defined, use targeted Cargo checks appropriate to the affected crate and feature/target set.
-Compile meaningful feature combinations rather than assuming the default feature set represents every supported build.
-Treat Clippy, compiler warnings, and static analysis as evidence, not substitutes for behavior tests.
+Run the repository's narrowest relevant format, build, lint, and test commands first. When no commands are defined, use targeted Cargo checks appropriate to the affected crate and feature/target set. Compile meaningful feature combinations rather than assuming the default feature set represents every supported build. Treat Clippy, compiler warnings, and static analysis as evidence, not substitutes for behavior tests.
 
-Exercise success, recoverable failure, boundary values, and the changed public contract.
-If a target or feature cannot run locally, report the exact unverified surface rather than silently shrinking support.
+Exercise success, recoverable failure, boundary values, and the changed public contract. If a target or feature cannot run locally, report the exact unverified surface rather than silently shrinking support.
 
 ## Completion
 

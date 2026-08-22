@@ -29,20 +29,17 @@ Optional project extensions used by this skill:
 
 `vbaProject.projectPath` stores queryable project/component metadata.
 
-`vbaProject.referencesPath` stores VBA reference metadata and is the mutable
-artifact used for VBA reference sync.
+`vbaProject.referencesPath` stores VBA reference metadata and is the mutable artifact used for VBA reference sync.
 
 `powerQuery.queriesDirectory` stores one `.pq` file per workbook query.
 
-`powerQuery.queriesPath` stores query-level metadata such as file mapping,
-connection name, and load metadata.
+`powerQuery.queriesPath` stores query-level metadata such as file mapping, connection name, and load metadata.
 
 `powerQuery.connectionsPath` stores safe workbook connection metadata.
 
 `powerQuery.modelPath` stores Data Model table metadata when Excel exposes it.
 
-`powerQuery.refreshPath` stores explicit refresh-related defaults and
-refreshable connection metadata without secrets.
+`powerQuery.refreshPath` stores explicit refresh-related defaults and refreshable connection metadata without secrets.
 
 The CLI normalizes these inputs into logical surfaces:
 
@@ -62,9 +59,7 @@ The CLI normalizes these inputs into logical surfaces:
 - `project`
 - `references`
 
-For the plan-centric package path, `plan`, `compare`, and `sync` consume the
-same committed manifest and treat the listed artifact paths as per-surface repo
-inputs. Current package-backed write surfaces are:
+For the plan-centric package path, `plan`, `compare`, and `sync` consume the same committed manifest and treat the listed artifact paths as per-surface repo inputs. Current package-backed write surfaces are:
 
 - `workbook`
 - `tables`
@@ -78,5 +73,4 @@ inputs. Current package-backed write surfaces are:
 - `comments`
 - `print`
 
-Use `query` or `inspect` without a manifest when only workbook discovery is
-needed.
+Use `query` or `inspect` without a manifest when only workbook discovery is needed.

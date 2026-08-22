@@ -12,8 +12,7 @@ Generated files contain the managed marker:
 # project-harness: managed-file
 ```
 
-Files with that marker may be overwritten by later `update` runs.
-Files without that marker are treated as unmanaged and are **not** force-merged.
+Files with that marker may be overwritten by later `update` runs. Files without that marker are treated as unmanaged and are **not** force-merged.
 
 ## Targets this skill may write directly
 
@@ -29,11 +28,13 @@ Files without that marker are treated as unmanaged and are **not** force-merged.
 ## Candidate-first behavior
 
 When a target file already exists and is unmanaged:
+
 - the real target is left alone
 - a candidate file is written under `.local/harness/render/`
 - state records the target under `candidate_only`
 
 Typical candidate files:
+
 - `.local/harness/render/justfile`
 - `.local/harness/render/ci.yml`
 - `.local/harness/render/release-cross-os.yml`
@@ -43,6 +44,7 @@ Typical candidate files:
 ## Files that are read but not rewritten
 
 The generator may inspect these but does not rewrite them automatically:
+
 - `Makefile`
 - `Taskfile.yml`
 - `package.json`
@@ -55,12 +57,11 @@ The generator may inspect these but does not rewrite them automatically:
 ## `.gitignore` behavior
 
 `update` may append:
+
 - `.local/` always
 - `dist/` for `local-dist`
 
-It does **not** remove existing ignore rules automatically.
-If `dist/` is ignored but you selected a committed-dist architecture, the skill
-warns instead of silently changing that policy.
+It does **not** remove existing ignore rules automatically. If `dist/` is ignored but you selected a committed-dist architecture, the skill warns instead of silently changing that policy.
 
 ## `.gitattributes` behavior
 
@@ -74,25 +75,16 @@ Project Harness uses a managed section inside root `.gitattributes`:
 # END project-harness managed gitattributes
 ```
 
-WHEN `.gitattributes` does not exist THEN you SHALL create it with the managed section.
-WHEN `.gitattributes` exists without the managed section THEN you SHALL insert the managed section after leading comments and blank lines.
-WHEN `.gitattributes` exists with the managed section THEN you SHALL replace only that section.
-You SHALL preserve human-authored rules outside the managed section.
+WHEN `.gitattributes` does not exist THEN you SHALL create it with the managed section. WHEN `.gitattributes` exists without the managed section THEN you SHALL insert the managed section after leading comments and blank lines. WHEN `.gitattributes` exists with the managed section THEN you SHALL replace only that section. You SHALL preserve human-authored rules outside the managed section.
 
-The section includes a broad LF text baseline and common binary file rules.
-If you explicitly select `git-lfs` with `committed-dist` or `cross-os-dist`,
-the section also includes:
+The section includes a broad LF text baseline and common binary file rules. If you explicitly select `git-lfs` with `committed-dist` or `cross-os-dist`, the section also includes:
 
 ```text
 dist/** filter=lfs diff=lfs merge=lfs -text
 ```
 
-The managed section is inserted near the top on purpose. Later repo-specific
-rules remain after it and can override the baseline when a repo needs special
-line-ending or binary handling.
+The managed section is inserted near the top on purpose. Later repo-specific rules remain after it and can override the baseline when a repo needs special line-ending or binary handling.
 
 ## Existing Makefile or Taskfile repos
 
-Do not delete the incumbent task runner first.
-Generate the harness beside it, map obvious canonical targets, and only then
-choose whether the repo wants to keep both surfaces or converge on one.
+Do not delete the incumbent task runner first. Generate the harness beside it, map obvious canonical targets, and only then choose whether the repo wants to keep both surfaces or converge on one.

@@ -16,12 +16,8 @@ Behavior:
 - `push` applies query definitions and safe connection refresh flags without managing credentials.
 - `refresh` explicitly refreshes Mashup-backed workbook connections and reports per-connection results.
 - `roundtrip` syncs Power Query artifacts in both directions but does not auto-refresh.
-- `plan` and per-surface `compare` can include `pq`, `connections`, and `model`
-  in the package path so callers can see capability and drift without invoking
-  COM mutation.
-- Package-backed `sync` treats `pq`, `connections`, and `model` as
-  `desktop-write` surfaces: it inventories, plans, and compares them without
-  invoking desktop Excel, then routes mutation to the desktop backend.
+- `plan` and per-surface `compare` can include `pq`, `connections`, and `model` in the package path so callers can see capability and drift without invoking COM mutation.
+- Package-backed `sync` treats `pq`, `connections`, and `model` as `desktop-write` surfaces: it inventories, plans, and compares them without invoking desktop Excel, then routes mutation to the desktop backend.
 
 Credential boundary:
 

@@ -9,9 +9,7 @@ Run each case at least two ways:
 - Raw/no-skill: give the worker only the original prompt or source.
 - GoalSpec-assisted: have one agent use GoalSpec to produce an Option Map, decision capture, Probe Pack, or Probe Note as appropriate, then have a fresh worker use that output.
 
-WHEN a condition receives extra source context not available to the others THEN you SHALL record the asymmetry before scoring.
-You SHALL NOT score document polish as planning quality.
-You SHALL treat premature durable docs as a regression in design-shaped or known-change cases.
+WHEN a condition receives extra source context not available to the others THEN you SHALL record the asymmetry before scoring. You SHALL NOT score document polish as planning quality. You SHALL treat premature durable docs as a regression in design-shaped or known-change cases.
 
 ## Cases
 

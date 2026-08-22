@@ -4,25 +4,17 @@ Read this reference for pin projection, address-sensitive state, custom futures,
 
 ## Pinning
 
-Pinning is a library contract about movement through a pinned pointer; it does not physically freeze memory or make self-reference safe by itself.
-Identify which fields are structurally pinned, which may move, when the value becomes pinned, and how destruction preserves the invariant.
+Pinning is a library contract about movement through a pinned pointer; it does not physically freeze memory or make self-reference safe by itself. Identify which fields are structurally pinned, which may move, when the value becomes pinned, and how destruction preserves the invariant.
 
-Do not create unchecked pin projections until construction and field-access paths prove the pointee remains at a stable address for the required lifetime.
-Review replacement, swap, drop, panic during initialization, and projection of generic fields.
-Prefer established projection utilities already selected by the repository when they encode the needed contract.
+Do not create unchecked pin projections until construction and field-access paths prove the pointee remains at a stable address for the required lifetime. Review replacement, swap, drop, panic during initialization, and projection of generic fields. Prefer established projection utilities already selected by the repository when they encode the needed contract.
 
 ## Unsafe `Send` and `Sync`
 
-An unsafe implementation makes a global claim about all values of the type and every safe operation exposed on them.
-Inventory interior mutability, aliases, foreign handles, thread affinity, destructors, callbacks, and generic parameters.
-Use negative or conditional implementations where supported by the design rather than asserting unconditional thread safety.
-Do not infer `Sync` from internal locking without checking every access path and guard lifetime.
+An unsafe implementation makes a global claim about all values of the type and every safe operation exposed on them. Inventory interior mutability, aliases, foreign handles, thread affinity, destructors, callbacks, and generic parameters. Use negative or conditional implementations where supported by the design rather than asserting unconditional thread safety. Do not infer `Sync` from internal locking without checking every access path and guard lifetime.
 
 ## Atomics and lock-free code
 
-State the shared invariant, linearization points, memory reclamation strategy, and required ordering relationships before choosing orderings.
-Choose the weakest ordering only when its proof is clear; `SeqCst` is not a substitute for a coherent algorithm, and relaxed ordering is not an optimization quota.
-Account for ABA, integer wraparound, spurious compare-exchange failure, publication, teardown, and objects still observed by other threads.
+State the shared invariant, linearization points, memory reclamation strategy, and required ordering relationships before choosing orderings. Choose the weakest ordering only when its proof is clear; `SeqCst` is not a substitute for a coherent algorithm, and relaxed ordering is not an optimization quota. Account for ABA, integer wraparound, spurious compare-exchange failure, publication, teardown, and objects still observed by other threads.
 
 Unsafe code that is race-free on one architecture may fail on a weaker memory model. Keep supported targets in the verification plan.
 

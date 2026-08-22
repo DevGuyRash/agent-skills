@@ -16,10 +16,13 @@ compatibility: >-
 # Code Review
 
 ## Scope root
+
 All skill-local paths resolve from `<skills-file-root>` (the directory containing this file).
 
 ## Invocation aliases
+
 Recognize these as triggers (case-insensitive):
+
 - `code-review reviewer [ctx]` or `code-review review [ctx]`
 - `code-review applicator [ctx]` or `code-review apply [ctx]`
 - `code-review full-cycle [ctx]`, `code-review full [ctx]`, or `code-review auto [ctx]`
@@ -27,14 +30,12 @@ Recognize these as triggers (case-insensitive):
 
 ## Role detection
 
-IF your prompt includes dispatch markers (assigned scope, `reviewer_id`
-bindings, `MPCR_DISPATCH_ROLE`) THEN you SHALL follow the dispatch prompt
-only; you SHALL NOT run orchestrator commands (`register`, `spawn-routed`,
-`finalize`).
+IF your prompt includes dispatch markers (assigned scope, `reviewer_id` bindings, `MPCR_DISPATCH_ROLE`) THEN you SHALL follow the dispatch prompt only; you SHALL NOT run orchestrator commands (`register`, `spawn-routed`, `finalize`).
 
 ELSE you SHALL follow Bootstrap below as the orchestrator.
 
 ## Bootstrap
+
 Infer the mode from the user request first.
 
 Run `mpcr route --mode <reviewer|applicator|full-cycle> --target-ref <ref-string> --execution-capability <single_process|bounded_helpers|parallel_subagents> --max-worker-count <n> --orchestrator-read-budget-lines <n> --orchestrator-read-budget-snippets <n> [--changed-file <path>]... [--public-interface <path>]... [--behavior-facing-artifact <path>]...` before loading detailed guidance. `target-ref` is an opaque session key: a branch name, commit SHA, or literal `HEAD` all work as long as every later command reuses the exact same string for that session.
@@ -45,21 +46,16 @@ Prefer `parallel_subagents` whenever helpers are available so routed workers, no
 
 For a fresh isolated session, prefer an unused canonical date leaf via `--repo-root <path> --date <yyyy-mm-dd>` or the matching canonical session dir under `.local/reports/code_reviews/YYYY-MM-DD`. One canonical date leaf holds one session. If that leaf already belongs to a different `target-ref`, pick another date or run `mpcr session cleanup --session-dir <path>` before rerouting. For existing sessions, reuse the exact `persisted.session_dir` and the same `target-ref` string for all later route, dispatch, reviewer, applicator, and full-cycle steps; do not point `--session-dir` at scratch or ad hoc directories.
 
-After routing, you SHALL read `<skills-file-root>/references/execution-playbook.md`
-and follow the section for your mode (Reviewer, Applicator, or Full-cycle).
+After routing, you SHALL read `<skills-file-root>/references/execution-playbook.md` and follow the section for your mode (Reviewer, Applicator, or Full-cycle).
 
-You MAY use `mpcr protocol mode --mode <reviewer|applicator|full-cycle> --view checklist`
-for supplementary policy constraints during execution.
+You MAY use `mpcr protocol mode --mode <reviewer|applicator|full-cycle> --view checklist` for supplementary policy constraints during execution.
 
-You MAY load `mpcr protocol dispatch --role <role> --session-dir <path> [--reviewer-id <id>] --view checklist`
-for worker-specific prompts; load `mpcr protocol dispatch --role orchestrator-root` for the
-thin coordination rules. Use the current worker's `reviewer_id` for session-bound dispatch.
+You MAY load `mpcr protocol dispatch --role <role> --session-dir <path> [--reviewer-id <id>] --view checklist` for worker-specific prompts; load `mpcr protocol dispatch --role orchestrator-root` for the thin coordination rules. Use the current worker's `reviewer_id` for session-bound dispatch.
 
-You MAY use static `mpcr protocol worker --kind <kind>`, `mpcr protocol module --id <id>`,
-or `mpcr protocol escalation --id <id>` lookups for discovery, fallback, or narrow
-troubleshooting.
+You MAY use static `mpcr protocol worker --kind <kind>`, `mpcr protocol module --id <id>`, or `mpcr protocol escalation --id <id>` lookups for discovery, fallback, or narrow troubleshooting.
 
 ## Wrapper behavior
+
 `<skills-file-root>/scripts/mpcr` executes the packaged Rust binary in `<skills-file-root>/dist/linux-<arch>/mpcr`.
 
 If the packaged binary is missing, refresh it from the repo root with `just dist-host` or retrieve refreshed `dist/` outputs from CI.
@@ -67,6 +63,7 @@ If the packaged binary is missing, refresh it from the repo root with `just dist
 The wrapper does not build from source at runtime.
 
 ## Universal rules
+
 - Machine artifacts are canonical truth. Each agent directory must finish with a full `report.md` explanatory companion; `mpcr reviewer complete-child` and `mpcr reviewer finalize` render one from the stored artifact when you do not author it separately.
 - Keep `findings[].anchors` repo-relative (`path:line` or `path:start-end`). Cite PR threads, API docs, specs, and web sources in `report.md`, then tie them back to anchored repo evidence before escalating a claim.
 - `_session.json` is the primary session ledger. `_session.toml` is the mirror when TOML writes succeed.
@@ -84,29 +81,23 @@ The wrapper does not build from source at runtime.
 
 ## Reviewer, applicator, and full-cycle guidance
 
-You SHALL follow `<skills-file-root>/references/execution-playbook.md` for
-the complete procedure for each mode.
+You SHALL follow `<skills-file-root>/references/execution-playbook.md` for the complete procedure for each mode.
 
 The following constraints apply universally across all modes:
 
-- Each reviewer owns one agent directory, one full `report.md`, one local
-  ledger, and zero or more child helpers beneath `children/<child-id>/...`.
-- Parent reviewers SHALL claim scope before delegating. Child helpers SHALL
-  NOT re-run the same investigation slice.
+- Each reviewer owns one agent directory, one full `report.md`, one local ledger, and zero or more child helpers beneath `children/<child-id>/...`.
+- Parent reviewers SHALL claim scope before delegating. Child helpers SHALL NOT re-run the same investigation slice.
 - Register the root anchor with `mpcr reviewer register --target-ref <same-exact-ref> --session-dir <persisted.session_dir>`, then prefer `mpcr reviewer spawn-routed` to materialize workers; use `mpcr reviewer spawn-children` only for targeted manual replay.
 - Before escalating a finding, trace both the introducing path and the downstream effect or closure path. Reject claims that later guards already neutralize.
 - Before a finding becomes canonical, run a 3-voter legitimacy gate. Only findings with 2-of-3 `legitimate` votes proceed. Record rejected findings with `mpcr reviewer note` or `mpcr applicator note`.
 - The reviewer roster includes the `final-synthesis` dispatch role (`final-synthesizer` worker policy).
-- `references/reviewer-artifact-examples.md` contains canonical reviewer
-  artifact examples for manual `validate` / `finalize` flows.
-- `verification_result` SHALL cover exactly the finding IDs listed in
-  `application_result.verification_needed`; partial or failed verification
-  keeps the applicator blocked.
+- `references/reviewer-artifact-examples.md` contains canonical reviewer artifact examples for manual `validate` / `finalize` flows.
+- `verification_result` SHALL cover exactly the finding IDs listed in `application_result.verification_needed`; partial or failed verification keeps the applicator blocked.
 - Use `mpcr fullcycle plan`, `mpcr fullcycle checkpoint`, and `mpcr fullcycle state` for convergence management.
-- Use `mpcr session metrics` when grouped precision or convergence detail
-  is needed.
+- Use `mpcr session metrics` when grouped precision or convergence detail is needed.
 
 ## Skills debugging: error accumulation log
+
 At the start of each top-level invocation, create one log file for this skill.
 
 - Path: `/tmp/skill-errors/code-review/<yyyy-mm-dd>/<HH-MM-SS>_errors.md`

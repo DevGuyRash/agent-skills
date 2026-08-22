@@ -17,9 +17,7 @@ Keep this contract in types, names, nearby documentation, or established annotat
 
 ## Guard the dangerous transitions
 
-Before allocation or indexing, validate additions and multiplications without performing the overflowing expression first.
-Convert between signed, unsigned, and narrower types only after range checks appropriate to the destination.
-Keep pointer arithmetic within the relevant array-object rules; an integer address that appears in range is not by itself a valid C object access.
+Before allocation or indexing, validate additions and multiplications without performing the overflowing expression first. Convert between signed, unsigned, and narrower types only after range checks appropriate to the destination. Keep pointer arithmetic within the relevant array-object rules; an integer address that appears in range is not by itself a valid C object access.
 
 Do not read indeterminate values, use storage after lifetime ends, access outside an object, form invalid shifts, violate effective-type/aliasing rules, or race non-atomic accesses. Compiler optimization may exploit undefined behavior even when a debug build appears correct.
 
@@ -27,20 +25,15 @@ Use `memcpy` for bytewise representation transfer when its source, destination, 
 
 ## Strings and binary data
 
-Carry lengths for untrusted or binary data. Establish whether a buffer includes a terminator and whether embedded NUL bytes are allowed.
-Check `snprintf`-style results for negative failure and required-length/truncation behavior according to the supported implementation.
-Do not call string APIs on untrusted storage until termination within the accessible extent is proven.
+Carry lengths for untrusted or binary data. Establish whether a buffer includes a terminator and whether embedded NUL bytes are allowed. Check `snprintf`-style results for negative failure and required-length/truncation behavior according to the supported implementation. Do not call string APIs on untrusted storage until termination within the accessible extent is proven.
 
 ## Cleanup and partial construction
 
-Initialize owned handles to a state the cleanup path can distinguish. Acquire resources in a visible order and release only those successfully acquired, in an order allowed by their dependencies.
-Set a pointer to null after free only when that prevents a real local reuse; it does not invalidate aliases and is not a global use-after-free defense.
+Initialize owned handles to a state the cleanup path can distinguish. Acquire resources in a visible order and release only those successfully acquired, in an order allowed by their dependencies. Set a pointer to null after free only when that prevents a real local reuse; it does not invalidate aliases and is not a global use-after-free defense.
 
 ## Concurrency
 
-In C, a data race on ordinary memory is undefined behavior. Use the repository's mutex/atomic primitives and their memory-order contract.
-Do not add `volatile` as thread synchronization; it serves different implementation-defined and device-facing purposes.
-Define object lifetime relative to worker completion so teardown cannot race access.
+In C, a data race on ordinary memory is undefined behavior. Use the repository's mutex/atomic primitives and their memory-order contract. Do not add `volatile` as thread synchronization; it serves different implementation-defined and device-facing purposes. Define object lifetime relative to worker completion so teardown cannot race access.
 
 ## Verification
 

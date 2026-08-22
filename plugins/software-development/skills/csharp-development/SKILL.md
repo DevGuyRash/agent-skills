@@ -47,8 +47,7 @@ Read one matching reference before implementation. Read a second only when the t
 ## Compose without absorbing sibling work
 
 - Add framework-specific skills for ASP.NET Core, Entity Framework, Blazor, MAUI, Unity, Orleans, or other framework lifecycle and configuration semantics.
-- Add `test-driven-development` for changed executable behavior or a known bug
-  whose prior behavior can be demonstrated by an automated test.
+- Add `test-driven-development` for changed executable behavior or a known bug whose prior behavior can be demonstrated by an automated test.
 - Add `systematic-debugging`, `refactoring`, or `performance-engineering` for their respective cross-language workflows.
 - Add `trunk-based-development` for branch and integration policy.
 - Add native-language or platform skills when interop changes cross those boundaries.

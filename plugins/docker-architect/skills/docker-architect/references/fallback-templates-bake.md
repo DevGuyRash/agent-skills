@@ -1,8 +1,6 @@
 # Fallback Templates — docker-bake.hcl (Image Mode)
 
-Use this template when generating Image-mode architecture that includes Buildx Bake
-support. The `docker-bake.hcl` file provides declarative build orchestration with
-multi-platform support, reproducible builds, and supply-chain attestation controls.
+Use this template when generating Image-mode architecture that includes Buildx Bake support. The `docker-bake.hcl` file provides declarative build orchestration with multi-platform support, reproducible builds, and supply-chain attestation controls.
 
 ---
 
@@ -127,16 +125,8 @@ SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) docker buildx bake release --push
 
 ## Notes
 
-- **`SOURCE_DATE_EPOCH`**: Setting this to a deterministic value (e.g., last git commit
-  timestamp) makes builds reproducible. File timestamps, build IDs, and other
-  non-deterministic metadata are normalized to this epoch.
-- **Multi-platform**: The `release` target builds for `linux/amd64` and `linux/arm64`.
-  Add platforms as needed (e.g., `linux/arm/v7` for IoT).
-- **SBOM**: `attest: type=sbom` generates a Software Bill of Materials using BuildKit's
-  built-in scanner. The SBOM is attached as an in-toto attestation.
-- **Provenance**: `attest: type=provenance,mode=max` captures full build provenance
-  including Dockerfile, build args, and source info. `mode=max` includes complete
-  build steps (vs `mode=min` which captures only the final result).
-- **`--push` required for attestation**: SBOM and provenance attestations are stored
-  in the registry alongside the image manifest. They require `--push` or a local
-  registry to persist.
+- **`SOURCE_DATE_EPOCH`**: Setting this to a deterministic value (e.g., last git commit timestamp) makes builds reproducible. File timestamps, build IDs, and other non-deterministic metadata are normalized to this epoch.
+- **Multi-platform**: The `release` target builds for `linux/amd64` and `linux/arm64`. Add platforms as needed (e.g., `linux/arm/v7` for IoT).
+- **SBOM**: `attest: type=sbom` generates a Software Bill of Materials using BuildKit's built-in scanner. The SBOM is attached as an in-toto attestation.
+- **Provenance**: `attest: type=provenance,mode=max` captures full build provenance including Dockerfile, build args, and source info. `mode=max` includes complete build steps (vs `mode=min` which captures only the final result).
+- **`--push` required for attestation**: SBOM and provenance attestations are stored in the registry alongside the image manifest. They require `--push` or a local registry to persist.

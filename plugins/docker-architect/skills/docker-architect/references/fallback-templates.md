@@ -1,9 +1,6 @@
 # Fallback Templates
 
-Use these templates when the Rust tooling (`docker-architect-compose`,
-`docker-architect-image`) is unavailable. They encode the same hardening invariants
-enforced by the policy packs. Adapt to the user's language/framework.
-Replace all example digests with verified image digests from your registry before use.
+Use these templates when the Rust tooling (`docker-architect-compose`, `docker-architect-image`) is unavailable. They encode the same hardening invariants enforced by the policy packs. Adapt to the user's language/framework. Replace all example digests with verified image digests from your registry before use.
 
 ---
 
@@ -254,8 +251,7 @@ ENTRYPOINT ["./myapp"]
 
 ## Compose Template (Hardened)
 
-Anchor structure mirrors the Rust tooling output (`x-hardening-core`,
-`x-resource-defaults-compose`, `x-composite-restart`, `x-init-permissions-core`).
+Anchor structure mirrors the Rust tooling output (`x-hardening-core`, `x-resource-defaults-compose`, `x-composite-restart`, `x-init-permissions-core`).
 
 ```yaml
 # ── Hardened Compose Template ──
@@ -407,22 +403,10 @@ networks:
 
 ### Usage Notes
 
-- **Anchor pattern**: Four composable anchors (`hardening_core`, `resource_defaults_compose`,
-  `composite_restart`, `init_permissions_core`) merged via `<<: [*a, *b, *c]`. This matches
-  the Rust tooling output shape. Generated anchor names may include a content-derived suffix.
-  Override per-service as needed (e.g., add `cap_add: [NET_BIND_SERVICE]` for port 80).
-- **Merge keys (`<<`)**: Compose policy evaluation materializes YAML merge keys before applying
-  rules, so inherited values from anchors are evaluated the same as explicit keys.
-- **Resource limits**: Use `cpus`, `mem_limit`, `pids_limit` (Compose v2 flat keys), not
-  `deploy.resources.limits` (which requires Swarm mode or `--compatibility`).
-- **Init sidecars**: The `app-init-perms` and `db-init-perms` services run on every
-  `docker compose up`, check current ownership with `stat`, conditionally `chown` if
-  needed, and exit immediately. No manual profile activation is required. The conditional
-  check avoids unnecessary filesystem writes on subsequent starts. These sidecars are
-  referenced via `depends_on: { *-init-perms: { condition: service_completed_successfully } }`
-  to guarantee volume ownership is correct before the main service starts.
+- **Anchor pattern**: Four composable anchors (`hardening_core`, `resource_defaults_compose`, `composite_restart`, `init_permissions_core`) merged via `<<: [*a, *b, *c]`. This matches the Rust tooling output shape. Generated anchor names may include a content-derived suffix. Override per-service as needed (e.g., add `cap_add: [NET_BIND_SERVICE]` for port 80).
+- **Merge keys (`<<`)**: Compose policy evaluation materializes YAML merge keys before applying rules, so inherited values from anchors are evaluated the same as explicit keys.
+- **Resource limits**: Use `cpus`, `mem_limit`, `pids_limit` (Compose v2 flat keys), not `deploy.resources.limits` (which requires Swarm mode or `--compatibility`).
+- **Init sidecars**: The `app-init-perms` and `db-init-perms` services run on every `docker compose up`, check current ownership with `stat`, conditionally `chown` if needed, and exit immediately. No manual profile activation is required. The conditional check avoids unnecessary filesystem writes on subsequent starts. These sidecars are referenced via `depends_on: { *-init-perms: { condition: service_completed_successfully } }` to guarantee volume ownership is correct before the main service starts.
 - **Secrets**: Replace `file:` source with `external: true` for production (pre-created secrets).
-- **Digest pinning**: Replace `image: myapp:latest` with `image: myapp@sha256:...` before
-  production deployment.
-- **tmpfs**: All services mount `/tmp`, `/run`, and `/var/run` with `noexec,nosuid,nodev`
-  options. This is required because `read_only: true` makes the root filesystem immutable.
+- **Digest pinning**: Replace `image: myapp:latest` with `image: myapp@sha256:...` before production deployment.
+- **tmpfs**: All services mount `/tmp`, `/run`, and `/var/run` with `noexec,nosuid,nodev` options. This is required because `read_only: true` makes the root filesystem immutable.

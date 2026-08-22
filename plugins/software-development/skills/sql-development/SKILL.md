@@ -7,16 +7,12 @@ description: Use for relational SQL queries, schemas, constraints, transactions,
 
 ## Purpose
 
-Preserve query meaning, invariants, transactions, and construction in the
-repository's dialect.
+Preserve query meaning, invariants, transactions, and construction in the repository's dialect.
 
 ## Compose Deliberately
 
 - For engine-specific behavior, use an installed vendor skill; otherwise consult detected engine/version primary documentation and name assumptions or unverified semantics.
-- Add `systematic-debugging` first for an unexplained slowdown. Add
-  `performance-engineering` once the workload and criterion are explicit, or
-  after diagnosis when validating a query, index, or data-structure change.
-  Keep SQL correctness active whenever a query or schema changes.
+- Add `systematic-debugging` first for an unexplained slowdown. Add `performance-engineering` once the workload and criterion are explicit, or after diagnosis when validating a query, index, or data-structure change. Keep SQL correctness active whenever a query or schema changes.
 - Add the host-language skill for embedded SQL or query-builder code.
 - Add ORM/framework guidance for model APIs or generated SQL; retain this skill only for relational semantics.
 - Exclude NoSQL, backups, replication, HA, and administration without SQL effects.
@@ -79,16 +75,8 @@ Read [transactions-and-concurrency.md](<skills-file-root>/references/transaction
 
 Use configured SQL tools, test databases, and CI. Do not invent a runner or connect to an unconfirmed target.
 
-Run the narrowest safe existing checks for results, edge cases, constraints,
-affected rows, migration state, and relevant concurrency. Read
-[verification.md](<skills-file-root>/references/verification.md) when designing
-new database checks, applying a migration, validating concurrent behavior,
-executing consequential DML, or claiming behavior across engines or versions.
-Report engine/version, settings, commands, outcomes, and untested
-production-scale or cross-engine behavior.
+Run the narrowest safe existing checks for results, edge cases, constraints, affected rows, migration state, and relevant concurrency. Read [verification.md](<skills-file-root>/references/verification.md) when designing new database checks, applying a migration, validating concurrent behavior, executing consequential DML, or claiming behavior across engines or versions. Report engine/version, settings, commands, outcomes, and untested production-scale or cross-engine behavior.
 
 ## Avoid Universal Mandates
 
-Do not prescribe “ANSI SQL,” casing, naming, `SELECT *` bans, normalization,
-identifier strategy, soft deletes, procedures, ORMs, isolation, migration tools,
-blanket retries, or shape-only indexes. Never mutate an unknown or unauthorized database.
+Do not prescribe “ANSI SQL,” casing, naming, `SELECT *` bans, normalization, identifier strategy, soft deletes, procedures, ORMs, isolation, migration tools, blanket retries, or shape-only indexes. Never mutate an unknown or unauthorized database.

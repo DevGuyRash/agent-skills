@@ -26,8 +26,7 @@ Treat repository configuration and supported consumers as authoritative. Do not 
 
 - Read `<skills-file-root>/references/project-and-verification.md` when the task changes dependencies, environments, project metadata, tool configuration, tests, or supported Python versions.
 - Read `<skills-file-root>/references/types-and-apis.md` when it changes annotations, public call signatures, imports, protocols, data models, decorators, or compatibility-facing behavior.
-- Read `<skills-file-root>/references/errors-resources-and-concurrency.md` when it touches exceptions, cleanup, context managers, subprocesses, threads, processes, async code, cancellation, or task lifetimes.
-Do not load unrelated references.
+- Read `<skills-file-root>/references/errors-resources-and-concurrency.md` when it touches exceptions, cleanup, context managers, subprocesses, threads, processes, async code, cancellation, or task lifetimes. Do not load unrelated references.
 
 ## Implement within the contract
 

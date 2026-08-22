@@ -33,17 +33,9 @@ GoalSpec does not make better products by producing more planning artifacts. It 
 4. Distinguish true blockers from safe defaults.
 5. Keep implementation design freedom with the executor unless the user or source explicitly constrains the method.
 
-WHEN a `.local*/context/` directory exists in the target repo THEN you SHALL use that context directory.
-ELSE IF a repo-root `context/` directory exists THEN you SHALL use it.
-ELSE you SHALL create repo-root `context/`.
-Durable planning artifacts live under `context/docs/` inside that context directory, and only after the direction is chosen or accepted.
+WHEN a `.local*/context/` directory exists in the target repo THEN you SHALL use that context directory. ELSE IF a repo-root `context/` directory exists THEN you SHALL use it. ELSE you SHALL create repo-root `context/`. Durable planning artifacts live under `context/docs/` inside that context directory, and only after the direction is chosen or accepted.
 
-WHEN the user is still choosing direction THEN you SHALL stay in chat and produce an Option Map instead of writing durable docs.
-WHEN execution handoff is requested or implied THEN you SHALL include acceptance probes and a final source-review checklist.
-WHEN a decision changes product direction, irreversible architecture, acceptance semantics, or stakeholder commitment THEN you SHALL treat it as a true blocker.
-WHEN a decision is reversible, locally testable, or executor-owned THEN you SHALL offer a safe default with a note instead of blocking.
-You SHALL NOT create PRD, BRD, design, architecture, roadmap, or handoff files merely because those artifact types exist.
-You SHALL NOT turn implementation moves into acceptance unless the user or source makes the method part of the desired outcome.
+WHEN the user is still choosing direction THEN you SHALL stay in chat and produce an Option Map instead of writing durable docs. WHEN execution handoff is requested or implied THEN you SHALL include acceptance probes and a final source-review checklist. WHEN a decision changes product direction, irreversible architecture, acceptance semantics, or stakeholder commitment THEN you SHALL treat it as a true blocker. WHEN a decision is reversible, locally testable, or executor-owned THEN you SHALL offer a safe default with a note instead of blocking. You SHALL NOT create PRD, BRD, design, architecture, roadmap, or handoff files merely because those artifact types exist. You SHALL NOT turn implementation moves into acceptance unless the user or source makes the method part of the desired outcome.
 
 ## Reference Index
 

@@ -1,21 +1,15 @@
 # Tokens — color, typography, and the embeddable stylesheet
 
-This file is the default token instance. Forks override the ramp table and
-hex values for a brand or domain; the class system, stop-selection rules, and
-stylesheet structure stay unchanged — they are part of the invariant method.
+This file is the default token instance. Forks override the ramp table and hex values for a brand or domain; the class system, stop-selection rules, and stylesheet structure stay unchanged — they are part of the invariant method.
 
-Read this before producing any output. Every file embeds the relevant
-stylesheet block below so class names (`t`, `ts`, `th`, `box`, `arr`,
-`leader`, `c-{ramp}`) work identically across outputs and adapt to dark mode
-automatically via `prefers-color-scheme`.
+Read this before producing any output. Every file embeds the relevant stylesheet block below so class names (`t`, `ts`, `th`, `box`, `arr`, `leader`, `c-{ramp}`) work identically across outputs and adapt to dark mode automatically via `prefers-color-scheme`.
 
 ## Color ramps — 9 families × 7 stops
 
-50 = lightest fill, 100–200 = light fills, 400 = mid tones, 600 = strong/
-border, 800–900 = text on light fills.
+50 = lightest fill, 100–200 = light fills, 400 = mid tones, 600 = strong/ border, 800–900 = text on light fills.
 
-| Ramp | 50 | 100 | 200 | 400 | 600 | 800 | 900 |
-|------|----|-----|-----|-----|-----|-----|-----|
+| Ramp   | 50      | 100     | 200     | 400     | 600     | 800     | 900     |
+| ------ | ------- | ------- | ------- | ------- | ------- | ------- | ------- |
 | purple | #EEEDFE | #CECBF6 | #AFA9EC | #7F77DD | #534AB7 | #3C3489 | #26215C |
 | teal   | #E1F5EE | #9FE1CB | #5DCAA5 | #1D9E75 | #0F6E56 | #085041 | #04342C |
 | coral  | #FAECE7 | #F5C4B3 | #F0997B | #D85A30 | #993C1D | #712B13 | #4A1B0C |
@@ -27,32 +21,23 @@ border, 800–900 = text on light fills.
 | red    | #FCEBEB | #F7C1C1 | #F09595 | #E24B4A | #A32D2D | #791F1F | #501313 |
 
 Stop selection:
+
 - Light mode: 50 fill + 600 stroke + 800 title / 600 subtitle.
 - Dark mode: 800 fill + 200 stroke + 100 title / 200 subtitle.
 - Title and subtitle must be two different stops — same stop reads flat.
 - Colored connector strokes: any 400-level hex works in both modes.
 
 Assignment philosophy:
-- Group by category — all nodes of one type share one ramp (immune cells =
-  purple, pathogens = coral, outcomes = teal).
+
+- Group by category — all nodes of one type share one ramp (immune cells = purple, pathogens = coral, outcomes = teal).
 - Gray for neutral/structural nodes (start, end, generic steps).
-- Prefer purple, teal, coral, pink for general categories. Reserve blue,
-  green, amber, red for genuinely informational/success/warning/error meaning
-  — they carry UI connotations. Exception: illustrative diagrams use blue/
-  amber/red freely for physical properties (cold, heat, pressure).
-- Illustrative diagrams: color encodes intensity, not category — warm ramps =
-  heat/energy/active/attended, cool or gray = cold/dormant/ignored.
-- Physical-color scenes (sky, water, skin, materials): all hardcoded hex,
-  no theme classes — the scene must not invert in dark mode. Provide an
-  explicit dark variant via the media query only if wanted.
+- Prefer purple, teal, coral, pink for general categories. Reserve blue, green, amber, red for genuinely informational/success/warning/error meaning — they carry UI connotations. Exception: illustrative diagrams use blue/ amber/red freely for physical properties (cold, heat, pressure).
+- Illustrative diagrams: color encodes intensity, not category — warm ramps = heat/energy/active/attended, cool or gray = cold/dormant/ignored.
+- Physical-color scenes (sky, water, skin, materials): all hardcoded hex, no theme classes — the scene must not invert in dark mode. Provide an explicit dark variant via the media query only if wanted.
 
 ## Embeddable SVG stylesheet
 
-Place this `<style>` as the first child of the root `<svg>` (after
-`<title>`/`<desc>`). It defines the full class system with automatic dark
-mode. Most browsers and editors honor `<style>` in standalone SVG; for strict
-image pipelines that strip it, fall back to inline fill/stroke attributes
-using the table above.
+Place this `<style>` as the first child of the root `<svg>` (after `<title>`/`<desc>`). It defines the full class system with automatic dark mode. Most browsers and editors honor `<style>` in standalone SVG; for strict image pipelines that strip it, fall back to inline fill/stroke attributes using the table above.
 
 ```svg
 <style>
@@ -108,15 +93,11 @@ text{font-family:Inter,system-ui,sans-serif;fill:var(--p)}
 ```
 
 Usage notes:
-- The ramp classes use direct-child selectors for shapes. Apply `c-{ramp}` to
-  the `<g>` that directly holds the rect/circle/ellipse and its text — a
-  nested inner `<g>` makes shapes grandchildren and they render black.
-- Never apply ramp classes to `<path>` — paths don't get ramp fill; style
-  paths inline.
-- Every `<text>` carries `t`, `ts`, or `th`. An unclassed text is the tell
-  you forgot.
-- The background rect height should match the viewBox height exactly (replace
-  100% with the computed H if a viewer mishandles percentages).
+
+- The ramp classes use direct-child selectors for shapes. Apply `c-{ramp}` to the `<g>` that directly holds the rect/circle/ellipse and its text — a nested inner `<g>` makes shapes grandchildren and they render black.
+- Never apply ramp classes to `<path>` — paths don't get ramp fill; style paths inline.
+- Every `<text>` carries `t`, `ts`, or `th`. An unclassed text is the tell you forgot.
+- The background rect height should match the viewBox height exactly (replace 100% with the computed H if a viewer mishandles percentages).
 
 ## Standard defs — include in every SVG, right after the stylesheet
 
@@ -127,11 +108,7 @@ Usage notes:
  stroke-linejoin="round"/></marker></defs>
 ```
 
-`context-stroke` makes the head inherit each line's color (modern browsers).
-For maximum portability, duplicate the marker with a hardcoded stroke per line
-color. `<defs>` may additionally hold one `<clipPath>`, subtle `<pattern>`
-fills used as a secondary cue alongside color for categorical data, and — in
-illustrative diagrams only — a single two-stop `<linearGradient>`. No filters.
+`context-stroke` makes the head inherit each line's color (modern browsers). For maximum portability, duplicate the marker with a hardcoded stroke per line color. `<defs>` may additionally hold one `<clipPath>`, subtle `<pattern>` fills used as a secondary cue alongside color for categorical data, and — in illustrative diagrams only — a single two-stop `<linearGradient>`. No filters.
 
 ## HTML token CSS
 
@@ -156,22 +133,18 @@ h3{font-size:16px;font-weight:500}
 </style>
 ```
 
-Mental test for every color decision: if the background were near-black, would
-every element still read? If the background were white, same question.
+Mental test for every color decision: if the background were near-black, would every element still read? If the background were white, same question.
 
 ## Typography calibration
 
-Reference widths for a grotesque sans at these sizes (Inter tracks within
-~5% — keep the margins):
+Reference widths for a grotesque sans at these sizes (Inter tracks within ~5% — keep the margins):
 
-| text | chars | weight | size | width |
-|---|---|---|---|---|
-| Authentication Service | 22 | 500 | 14px | 167px |
-| Background Job Processor | 24 | 500 | 14px | 201px |
-| Detects and validates incoming tokens | 37 | 400 | 14px | 279px |
-| forwards request to | 19 | 400 | 12px | 123px |
-| データベースサーバー接続 | 12 | 400 | 14px | 181px |
+| text                                  | chars | weight | size | width |
+| ------------------------------------- | ----- | ------ | ---- | ----- |
+| Authentication Service                | 22    | 500    | 14px | 167px |
+| Background Job Processor              | 24    | 500    | 14px | 201px |
+| Detects and validates incoming tokens | 37    | 400    | 14px | 279px |
+| forwards request to                   | 19    | 400    | 12px | 123px |
+| データベースサーバー接続              | 12    | 400    | 14px | 181px |
 
-Rule of thumb: 8px/char at 14px-500, 7px/char at 12px-400; CJK ~15px/char;
-formulas, sub/superscripts, and unicode symbols +30–50%. Before placing any
-text in a box: (text width + 2×24 padding) ≤ box width, or shorten the label.
+Rule of thumb: 8px/char at 14px-500, 7px/char at 12px-400; CJK ~15px/char; formulas, sub/superscripts, and unicode symbols +30–50%. Before placing any text in a box: (text width + 2×24 padding) ≤ box width, or shorten the label.

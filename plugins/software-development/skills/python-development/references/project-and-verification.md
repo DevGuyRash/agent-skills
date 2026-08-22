@@ -37,7 +37,6 @@ Prefer commands exposed by the project or CI. A common evidence ladder is:
 1. Syntax/import or focused test for the changed unit.
 2. Relevant formatter/linter/type-check target.
 3. Package or integration suite affected by the change.
-4. Supported-version matrix for compatibility-sensitive work.
-Do not assume `pytest`, strict typing, coverage thresholds, or a formatter is required when the repository does not establish it. Conversely, do not skip configured checks because a different local tool reports success.
+4. Supported-version matrix for compatibility-sensitive work. Do not assume `pytest`, strict typing, coverage thresholds, or a formatter is required when the repository does not establish it. Conversely, do not skip configured checks because a different local tool reports success.
 
 Report command, scope, interpreter, result, and any missing service or platform needed for stronger evidence.

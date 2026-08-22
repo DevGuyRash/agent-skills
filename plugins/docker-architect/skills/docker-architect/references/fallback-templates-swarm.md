@@ -1,8 +1,6 @@
 # Fallback Templates — Swarm Mode
 
-Use this template when the Rust tooling is unavailable and the target deployment
-is Docker Swarm. It encodes the same hardening invariants as the Compose template
-but uses Swarm-native constructs (`deploy.*` keys, overlay networks, external secrets).
+Use this template when the Rust tooling is unavailable and the target deployment is Docker Swarm. It encodes the same hardening invariants as the Compose template but uses Swarm-native constructs (`deploy.*` keys, overlay networks, external secrets).
 
 Replace all example digests with verified image digests from your registry before use.
 
@@ -10,8 +8,7 @@ Replace all example digests with verified image digests from your registry befor
 
 ## Stack Template (Hardened)
 
-Anchor structure mirrors the Compose template for shared hardening, with Swarm-specific
-resource and restart configuration via `deploy.*` keys.
+Anchor structure mirrors the Compose template for shared hardening, with Swarm-specific resource and restart configuration via `deploy.*` keys.
 
 ```yaml
 # ── Hardened Docker Swarm Stack Template ──
@@ -173,8 +170,7 @@ networks:
 
 ## Ownership Bootstrap
 
-Swarm does not support `depends_on` or init-sidecar startup sequencing. Instead, run
-ownership bootstrap commands **before** `docker stack deploy`:
+Swarm does not support `depends_on` or init-sidecar startup sequencing. Instead, run ownership bootstrap commands **before** `docker stack deploy`:
 
 ```bash
 # ── Pre-deploy ownership bootstrap ──
@@ -199,21 +195,11 @@ docker stack deploy -c docker-stack.yaml mystack
 
 ## Usage Notes
 
-- **No `depends_on`**: Swarm ignores `depends_on` entirely. Services start in parallel.
-  Design services to tolerate dependency unavailability (retry loops, connection backoff).
-- **No init sidecars**: The Compose init-sidecar pattern (`*-init-perms` with
-  `condition: service_completed_successfully`) does not work in Swarm. Use the
-  ownership bootstrap pattern above instead.
-- **Resource limits via `deploy`**: Swarm uses `deploy.resources.limits` and
-  `deploy.resources.reservations`, not the Compose v2 flat keys (`cpus`, `mem_limit`).
-- **External secrets**: Swarm secrets must be created before stack deploy:
-  `echo "password" | docker secret create db_password -`. The `external: true` pattern
-  references pre-existing secrets.
-- **Overlay networks**: All Swarm networks use `driver: overlay`. Set `attachable: true`
-  to allow standalone containers to connect for debugging.
-- **Rolling updates**: `update_config.failure_action: rollback` automatically reverts
-  failed deployments. `order: start-first` ensures zero-downtime for stateless services.
-- **Placement constraints**: Replace placeholder constraints with actual node labels
-  or roles for production targeting.
-- **Digest pinning**: Replace all `@sha256:<replace-with-verified-digest>` with actual
-  digests before deployment.
+- **No `depends_on`**: Swarm ignores `depends_on` entirely. Services start in parallel. Design services to tolerate dependency unavailability (retry loops, connection backoff).
+- **No init sidecars**: The Compose init-sidecar pattern (`*-init-perms` with `condition: service_completed_successfully`) does not work in Swarm. Use the ownership bootstrap pattern above instead.
+- **Resource limits via `deploy`**: Swarm uses `deploy.resources.limits` and `deploy.resources.reservations`, not the Compose v2 flat keys (`cpus`, `mem_limit`).
+- **External secrets**: Swarm secrets must be created before stack deploy: `echo "password" | docker secret create db_password -`. The `external: true` pattern references pre-existing secrets.
+- **Overlay networks**: All Swarm networks use `driver: overlay`. Set `attachable: true` to allow standalone containers to connect for debugging.
+- **Rolling updates**: `update_config.failure_action: rollback` automatically reverts failed deployments. `order: start-first` ensures zero-downtime for stateless services.
+- **Placement constraints**: Replace placeholder constraints with actual node labels or roles for production targeting.
+- **Digest pinning**: Replace all `@sha256:<replace-with-verified-digest>` with actual digests before deployment.

@@ -1,6 +1,6 @@
 # Host session identity for plugins and skills
 
-How a plugin's shell scripts can learn *which session/thread they are running in* on Claude Code and Codex, and how to walk from that identifier to the on-disk transcript. Discovered and validated live 2026-07 (Claude Code 2.1.x, Codex CLI 0.142); reference implementation lives in `plugins/friction-diagnostics` (`hooks/`, `skills/friction-diagnostics/scripts/_common.sh` `resolve_session_ref`).
+How a plugin's shell scripts can learn _which session/thread they are running in_ on Claude Code and Codex, and how to walk from that identifier to the on-disk transcript. Discovered and validated live 2026-07 (Claude Code 2.1.x, Codex CLI 0.142); reference implementation lives in `plugins/friction-diagnostics` (`hooks/`, `skills/friction-diagnostics/scripts/_common.sh` `resolve_session_ref`).
 
 ## The problem
 
@@ -9,7 +9,7 @@ Claude Code does **not** put a session identifier in the environment of Bash too
 ## Per-host mechanism
 
 | Host | Mechanism | Identifier |
-|---|---|---|
+| --- | --- | --- |
 | Claude Code | Plugin-shipped **SessionStart hook** writes `export` lines to `$CLAUDE_ENV_FILE` (documented); the variables appear in every later Bash call of that session | `session_id` from hook stdin JSON — a **UUIDv4**, identical to the transcript filename |
 | Codex | Nothing to ship — the runtime exports it natively | `CODEX_THREAD_ID` — a **UUIDv7** (first 48 bits = Unix-ms start timestamp), identical to the id in the rollout filename |
 
@@ -26,7 +26,7 @@ done
 ```
 
 - Put your own hook-exported variable first so the hook can override anything.
-- You SHALL NOT probe `CLAUDE_CODE_SESSION_ID`: companion wrappers (e.g. the codex-companion plugin) inject it into *nested* child processes carrying the **parent Claude session's** id — reading it would mis-attribute a Codex thread's work to the Claude session that launched it. `CODEX_THREAD_ID` is the correct identity for nested Codex runs and wins by being reachable only when actually inside Codex.
+- You SHALL NOT probe `CLAUDE_CODE_SESSION_ID`: companion wrappers (e.g. the codex-companion plugin) inject it into _nested_ child processes carrying the **parent Claude session's** id — reading it would mis-attribute a Codex thread's work to the Claude session that launched it. `CODEX_THREAD_ID` is the correct identity for nested Codex runs and wins by being reachable only when actually inside Codex.
 
 ## From identifier to transcript
 

@@ -1,9 +1,6 @@
 # Friction Diagnostics Improvement Report — the mica marathon field study
 
-**Report ID:** f6d12e4b-83b1-4d76-a651-925127cc18f8
-**Date:** 2026-07-18
-**Author:** the agent that lived the session under study (Claude, primary thread), with two transcript-mining subagents
-**Plugin under review:** `plugins/friction-diagnostics` (skills `friction-diagnostics` v5.1.3 + `friction-mend` v5.1.3, SessionStart hook), in `/home/rashino/repos/agent-tooling`
+**Report ID:** f6d12e4b-83b1-4d76-a651-925127cc18f8 **Date:** 2026-07-18 **Author:** the agent that lived the session under study (Claude, primary thread), with two transcript-mining subagents **Plugin under review:** `plugins/friction-diagnostics` (skills `friction-diagnostics` v5.1.3 + `friction-mend` v5.1.3, SessionStart hook), in `/home/rashino/repos/agent-tooling`
 
 ---
 
@@ -30,7 +27,7 @@ Two honest scope notes. First, the author reviewed a plugin whose job is to catc
 From the transcript miners (sampled, not exhaustive; counts are grep-based):
 
 | Metric | Value |
-|---|---|
+| --- | --- |
 | Transcript size / span | ~50 MB, ~5 days, 2 compactions |
 | Feedback rounds / commits | ~17 rounds / 65 commits |
 | `cargo test --workspace` gates | 47 |
@@ -56,19 +53,19 @@ The last two rows are the trigger-design finding in miniature: the plugin listen
 
 Filing an event is cheap and pleasant. Exercised live: one tool call, sub-second, and the talkback (event id, recurrence key, cluster/trap counts, ready-made `--recur` command) is genuinely useful. **The mechanics are not the bottleneck and should not be the focus of further engineering.**
 
-What failed is attention economics. The session ran in tight loops — fix → gate (2-min background run) → deploy (socket ritual) → commit — saturated with interrupt-driven notifications (154 task notifications; one 8-minute stretch had 12 phase-oscillation events from a background Codex job). Every natural pause was pre-claimed by a competing distillation task: "While the gate runs, recording the hard-won doctrine in AGENTS.md" is a literal quote, and it has siblings at every pause point. The plugin's exact trigger condition was even *verbalized* — "my model is missing something" — and the next action was forensics, not filing. The reflective act the plugin needs never had a scheduling slot.
+What failed is attention economics. The session ran in tight loops — fix → gate (2-min background run) → deploy (socket ritual) → commit — saturated with interrupt-driven notifications (154 task notifications; one 8-minute stretch had 12 phase-oscillation events from a background Codex job). Every natural pause was pre-claimed by a competing distillation task: "While the gate runs, recording the hard-won doctrine in AGENTS.md" is a literal quote, and it has siblings at every pause point. The plugin's exact trigger condition was even _verbalized_ — "my model is missing something" — and the next action was forensics, not filing. The reflective act the plugin needs never had a scheduling slot.
 
-This is the difference between this report and a design critique: the design assumes surprise produces a reflective beat; in a real high-pressure session, surprise produces *escalated instrumentation*. The plugin must either attach to beats that already exist (commits, session boundaries, compaction) or accept capture rates near zero for exactly the sessions that generate the most friction.
+This is the difference between this report and a design critique: the design assumes surprise produces a reflective beat; in a real high-pressure session, surprise produces _escalated instrumentation_. The plugin must either attach to beats that already exist (commits, session boundaries, compaction) or accept capture rates near zero for exactly the sessions that generate the most friction.
 
 ### 2.2 The competing-sink problem is real, user-mandated, and unaddressed
 
-Midway through the session the user explicitly ordered lessons written into the project's own AGENTS.md ("update AGENTS.md … so we don't make the same mistake … add as much foundational knowledge as possible"). From then on, every root-cause produced doctrine: 58 "doctrine" mentions, four capital-R "Root-caused" narratives — all landing in AGENTS.md or commit bodies. The project file did, in-repo and user-visibly and *with the fix attached*, nearly everything the plugin's stated purpose describes ("so that instructions and environments can be mended and future sessions avoid known traps").
+Midway through the session the user explicitly ordered lessons written into the project's own AGENTS.md ("update AGENTS.md … so we don't make the same mistake … add as much foundational knowledge as possible"). From then on, every root-cause produced doctrine: 58 "doctrine" mentions, four capital-R "Root-caused" narratives — all landing in AGENTS.md or commit bodies. The project file did, in-repo and user-visibly and _with the fix attached_, nearly everything the plugin's stated purpose describes ("so that instructions and environments can be mended and future sessions avoid known traps").
 
-The SKILL.md never articulates what filing adds **when the lesson already has a home**. The honest answer exists — the event is the *cross-session, cross-repo index* of the lesson; it carries recurrence counts, machine-queryable structure, and mend provenance that a doctrine bullet cannot — but the skill doesn't say it, and mid-session the third full write-up of an already-committed, already-doctrinized lesson lost every time. Worse, the skill *forbids* the part the agent values most ("Do not propose fixes inside records"), making the filing feel like the strictly-worse sibling of the doctrine bullet.
+The SKILL.md never articulates what filing adds **when the lesson already has a home**. The honest answer exists — the event is the _cross-session, cross-repo index_ of the lesson; it carries recurrence counts, machine-queryable structure, and mend provenance that a doctrine bullet cannot — but the skill doesn't say it, and mid-session the third full write-up of an already-committed, already-doctrinized lesson lost every time. Worse, the skill _forbids_ the part the agent values most ("Do not propose fixes inside records"), making the filing feel like the strictly-worse sibling of the doctrine bullet.
 
 ### 2.3 The learning loop never closed (corroborating report `a13a0ba6` with fresh evidence)
 
-The mica store demonstrates the open loop concretely: 10 days of history, 5 open clusters, **zero resolutions, no `known-traps.md` ever distilled** — so the one feed-forward affordance the capture side promises ("WHEN `known-traps.md` exists THEN read it before acting") had nothing to read, all session, in the very repo where two of its anchored traps re-bit (the Xvfb-empty-reading-view trap and the persisted-state e2e flake both recurred; the session's own words for the socket trap were "the classic state" — a textbook `--recur` moment against an anchor it never knew existed). Capture without the loop is a write-only diary; the store's unique value stayed invisible because it only speaks *after* a filing, and there were no filings.
+The mica store demonstrates the open loop concretely: 10 days of history, 5 open clusters, **zero resolutions, no `known-traps.md` ever distilled** — so the one feed-forward affordance the capture side promises ("WHEN `known-traps.md` exists THEN read it before acting") had nothing to read, all session, in the very repo where two of its anchored traps re-bit (the Xvfb-empty-reading-view trap and the persisted-state e2e flake both recurred; the session's own words for the socket trap were "the classic state" — a textbook `--recur` moment against an anchor it never knew existed). Capture without the loop is a write-only diary; the store's unique value stayed invisible because it only speaks _after_ a filing, and there were no filings.
 
 ### 2.4 Invisible by design and by accident simultaneously
 
@@ -76,14 +73,14 @@ Three compounding invisibilities:
 
 1. **The ambient integration was never installed.** `references/integration.md` ships a paste-ready AGENTS.md snippet whose entire purpose is to keep the policy in working context. The mica repo — which has the events store, meaning someone used the plugin there — never received the snippet. Nothing in the plugin detects or even mentions this gap at runtime.
 2. **The trigger text was 10–40 MB behind the working position** for most of the session, and both compaction summaries carried loop state but zero friction-policy words. After each compaction, the skill effectively did not exist.
-3. **The no-mention rule extinguishes the deliberation precursor.** "WHEN you filed nothing … you SHALL NOT mention friction diagnostics … anywhere in your response" is correct as user-facing etiquette, but for an LLM the externalized "is this friction?" check is often the *only* mechanism by which the act happens. As phrased, the rule suppresses the check itself. The silent default becomes silent never.
+3. **The no-mention rule extinguishes the deliberation precursor.** "WHEN you filed nothing … you SHALL NOT mention friction diagnostics … anywhere in your response" is correct as user-facing etiquette, but for an LLM the externalized "is this friction?" check is often the _only_ mechanism by which the act happens. As phrased, the rule suppresses the check itself. The silent default becomes silent never.
 
 The comparison case (miner finding): the only skills that reliably fired all session had imperative, domain-anchored triggers ("REQUIRED when any part of the task touches Rust — do not write Rust without this skill active"). Reflective self-diagnostic triggers did not fire once. Trigger phrasing is a lever with empirically demonstrated throw.
 
 ### 2.5 What the plugin gets deeply right (preserve these)
 
 - **The worth-logging test** is the correct gate; post-hoc it cleanly sorted the 22 episodes (20 in, 2 marginal) with no ambiguity.
-- **The field design** (`actual_outcome` verbatim-first, `reading` from inside the decision, `pivot_information` as an information-gap not a self-verdict, `sources[].claim` as prior-belief-only) produced records during the live filings that a stranger could judge. The discipline of "no fixes in records" is right *for the record* — the problem is only that its value isn't argued.
+- **The field design** (`actual_outcome` verbatim-first, `reading` from inside the decision, `pivot_information` as an information-gap not a self-verdict, `sources[].claim` as prior-belief-only) produced records during the live filings that a stranger could judge. The discipline of "no fixes in records" is right _for the record_ — the problem is only that its value isn't argued.
 - **The talkback loop** ("the store briefs you at the point of action") is the correct inversion — no pre-query needed.
 - **Logging-only default posture with mend gated on user request** proved exactly right: an unsupervised mend during this session's fix-loops would have been noise.
 - **Storage resolution** (repo `.local` area, `--events-file` override) behaved perfectly in hands-on use, including the scratch-store trial.
@@ -91,7 +88,7 @@ The comparison case (miner finding): the only skills that reliably fired all ses
 
 ### 2.6 Verdict
 
-The plugin is a well-built instrument pointed slightly away from where surprise actually happens, silent at the moments it must speak, and mute about its value against the sinks that outcompete it. Every high-value change is in the trigger surface, the ambient presence, and the loop closure — not in the recorder. "Nothing" was a permitted answer; the evidence does not support it, but it *does* support a narrow answer: fix presence and attribution, and change very little else.
+The plugin is a well-built instrument pointed slightly away from where surprise actually happens, silent at the moments it must speak, and mute about its value against the sinks that outcompete it. Every high-value change is in the trigger surface, the ambient presence, and the loop closure — not in the recorder. "Nothing" was a permitted answer; the evidence does not support it, but it _does_ support a narrow answer: fix presence and attribution, and change very little else.
 
 ---
 
@@ -101,9 +98,9 @@ Ordered by severity. Each has evidence and a concrete, checkable change. File pa
 
 ### A1 — Session attribution is wrong in continued conversations (bug, live-proven twice)
 
-**Evidence.** During this review, the live environment of session `2feccc82` carried `FRICTION_SESSION_REF=d9824d96-…` — a *previous* incarnation of the same conversation. The three events filed during this review (evt-0007/8/9) are all stamped `session_ref: d9824d96…`, verifiably wrong. Independently, the transcript miner found session `aaa35ccf`'s shells carrying `1e9c6540` (its predecessor). Mechanism: `friction-session-env.sh` appends exports to `CLAUDE_ENV_FILE`; that file's contents survive process restarts within a continued conversation, so the last-written ref — possibly several restarts stale — wins. The hook's own comment ("the env file is per-session, so concurrent sessions in one repo attribute correctly") is false for the continued-conversation case, which for long work is the *common* case. `transcript_path` goes stale identically, so a mend session drilling into "the transcript for this event" opens the wrong file.
+**Evidence.** During this review, the live environment of session `2feccc82` carried `FRICTION_SESSION_REF=d9824d96-…` — a _previous_ incarnation of the same conversation. The three events filed during this review (evt-0007/8/9) are all stamped `session_ref: d9824d96…`, verifiably wrong. Independently, the transcript miner found session `aaa35ccf`'s shells carrying `1e9c6540` (its predecessor). Mechanism: `friction-session-env.sh` appends exports to `CLAUDE_ENV_FILE`; that file's contents survive process restarts within a continued conversation, so the last-written ref — possibly several restarts stale — wins. The hook's own comment ("the env file is per-session, so concurrent sessions in one repo attribute correctly") is false for the continued-conversation case, which for long work is the _common_ case. `transcript_path` goes stale identically, so a mend session drilling into "the transcript for this event" opens the wrong file.
 
-**Change.** Stop treating the env var as authoritative. Have the hook write `{session_id, transcript_path, written_at}` to a sidecar (e.g. next to the events file or under the plugin data dir), and make `resolve_session_ref` in `scripts/_common.sh` prefer the sidecar when its `written_at` is newer than the env-derived value's provenance; keep env as fallback for hosts without the hook. Acceptance check: file an event immediately after a `--resume`/restart and assert `session_ref` equals the *current* session id.
+**Change.** Stop treating the env var as authoritative. Have the hook write `{session_id, transcript_path, written_at}` to a sidecar (e.g. next to the events file or under the plugin data dir), and make `resolve_session_ref` in `scripts/_common.sh` prefer the sidecar when its `written_at` is newer than the env-derived value's provenance; keep env as fallback for hosts without the hook. Acceptance check: file an event immediately after a `--resume`/restart and assert `session_ref` equals the _current_ session id.
 
 ### A2 — The hook pollutes every process listing (plugin-caused friction, felt directly)
 
@@ -113,21 +110,22 @@ Ordered by severity. Each has evidence and a concrete, checkable change. File pa
 
 ### A3 — The trigger vocabulary does not match how surprise presents (design, empirically quantified)
 
-**Evidence.** In 50 MB of a friction-dense session, the plugin's listening vocabulary ("surprise", "diverged from what you predicted") occurs ~zero times in working text, while the actual carriers of surprise occur hundreds of times: "silently" (44), "no-op" (130), "flake" (89), "stale" (117), plus the recurring shapes: a test that fails only in the sandbox, a green test masking a real-input bug, an edit script that half-applied, a background job phase-oscillating, a tool refusing scope, a deploy ritual misbehaving *again*. The exclusion clause ("intended test failures … are not friction") actively points away from the session's dominant surprise channel — 153 e2e runs — because a red test reads as "the test doing its job" even when the failure *reason* was an environment betrayal.
+**Evidence.** In 50 MB of a friction-dense session, the plugin's listening vocabulary ("surprise", "diverged from what you predicted") occurs ~zero times in working text, while the actual carriers of surprise occur hundreds of times: "silently" (44), "no-op" (130), "flake" (89), "stale" (117), plus the recurring shapes: a test that fails only in the sandbox, a green test masking a real-input bug, an edit script that half-applied, a background job phase-oscillating, a tool refusing scope, a deploy ritual misbehaving _again_. The exclusion clause ("intended test failures … are not friction") actively points away from the session's dominant surprise channel — 153 e2e runs — because a red test reads as "the test doing its job" even when the failure _reason_ was an environment betrayal.
 
 **Change (specific text).** Rework the description's middle sentence to name the empirical carriers:
 
 > …a tool, command, instruction, document, or assumption behaved differently than expected — including: a test that fails only in CI/e2e/sandbox (or passes there and fails for real users), a flaky or intermittent failure, an edit or command that silently no-opped, a background job or deploy that hung, oscillated, or timed out, a tool that refused, mangled, or mis-scoped a request, or a known trap biting again.
 
-And narrow the exclusion to the *reason*: "Outcomes you predicted **for the reason you predicted** are not friction; a failure you expected whose cause turns out different **is**." Acceptance check: the description contains "flaky", "silently", "only in CI", "known trap biting again", and the reason-scoped exclusion.
+And narrow the exclusion to the _reason_: "Outcomes you predicted **for the reason you predicted** are not friction; a failure you expected whose cause turns out different **is**." Acceptance check: the description contains "flaky", "silently", "only in CI", "known trap biting again", and the reason-scoped exclusion.
 
 ### A4 — No presence at the beats the workflow actually has (design; highest-leverage single change)
 
 **Evidence.** 65 commits; all four "Root-caused" narratives were composed at commit time; the census shows the least disruptive filing moments were the root-cause confession lines and the per-round commit/summary beats. The store also stayed silent at session start/resume/compaction despite holding `--recur` anchors for two traps the session re-hit.
 
 **Change (two parts, both rate-limited and silent-when-empty).**
-1. *Commit-coupled nudge:* a PostToolUse hook matching `git commit` Bash invocations that injects at most one context line — "Root-caused something you didn't predict this round? File it or `--recur` (friction-diagnostics)." — throttled via touch-file to once per N minutes. The narrative is already being written at that moment; the nudge lands where the words are.
-2. *Store speaks at boundaries:* extend the SessionStart hook (and register for resume/compaction sources if the host exposes them) to emit ≤2 context lines **only when the repo store has open events**: "friction store: 5 open — top keys: `obsidian-relaunch-races-dying-instance` ×2, `synthetic-events-mask-native-defaults` ×1 … (`--recur` targets exist)." This is the known-traps affordance made real even before mend has ever run, and it survives compaction — the exact moment the census shows unlogged knowledge dying (the CLI named-params lesson recurred immediately after compaction 2).
+
+1. _Commit-coupled nudge:_ a PostToolUse hook matching `git commit` Bash invocations that injects at most one context line — "Root-caused something you didn't predict this round? File it or `--recur` (friction-diagnostics)." — throttled via touch-file to once per N minutes. The narrative is already being written at that moment; the nudge lands where the words are.
+2. _Store speaks at boundaries:_ extend the SessionStart hook (and register for resume/compaction sources if the host exposes them) to emit ≤2 context lines **only when the repo store has open events**: "friction store: 5 open — top keys: `obsidian-relaunch-races-dying-instance` ×2, `synthetic-events-mask-native-defaults` ×1 … (`--recur` targets exist)." This is the known-traps affordance made real even before mend has ever run, and it survives compaction — the exact moment the census shows unlogged knowledge dying (the CLI named-params lesson recurred immediately after compaction 2).
 
 Acceptance checks: hook emits nothing on empty stores; ≤2 lines otherwise; the commit nudge appears at most once per throttle window.
 
@@ -135,13 +133,13 @@ Acceptance checks: hook emits nothing on empty stores; ≤2 lines otherwise; the
 
 **Evidence.** Every mid-session lesson was already being written once into a commit body and once into AGENTS.md doctrine; the skill demands a third, longest composition (5 narrative fields with min-length floors) and forbids including the fix. The sink won 22 out of 22 times.
 
-**Change.** (1) One sentence in the SKILL.md Policy: "File even when the lesson is going into a commit message or repo doc — the record is the cross-session index of that lesson, and its `sources[].ref` may simply point at it." (2) A *pointer mode* in `report-friction.sh`: when a source ref matches `commit:<hash>` or `<file>#<anchor>`, relax the narrative minimums so a 3–4 line filing validates. The full elicitation stays the default; the pointer mode prices the marginal filing at ~15 seconds when the narrative demonstrably exists elsewhere. Acceptance check: a pointer-mode filing under current floors succeeds and the record round-trips through `query-friction.sh`.
+**Change.** (1) One sentence in the SKILL.md Policy: "File even when the lesson is going into a commit message or repo doc — the record is the cross-session index of that lesson, and its `sources[].ref` may simply point at it." (2) A _pointer mode_ in `report-friction.sh`: when a source ref matches `commit:<hash>` or `<file>#<anchor>`, relax the narrative minimums so a 3–4 line filing validates. The full elicitation stays the default; the pointer mode prices the marginal filing at ~15 seconds when the narrative demonstrably exists elsewhere. Acceptance check: a pointer-mode filing under current floors succeeds and the record round-trips through `query-friction.sh`.
 
 ### A6 — The no-mention rule suppresses the deliberation that precedes filing (design, one-word-class fix)
 
 **Evidence.** Section 2.4. The rule as written bars mentioning friction diagnostics "anywhere in your response," which in practice extinguishes the internal check.
 
-**Change.** Rephrase to target user-facing chatter only: "Never *narrate to the user* the decision not to file, and never mention filings you didn't make — but you MAY consider filing silently at any point." Acceptance check: the SHALL NOT clause names narration/chatter, not consideration.
+**Change.** Rephrase to target user-facing chatter only: "Never _narrate to the user_ the decision not to file, and never mention filings you didn't make — but you MAY consider filing silently at any point." Acceptance check: the SHALL NOT clause names narration/chatter, not consideration.
 
 ### A7 — Schema drift across record generations is undocumented (hygiene)
 
@@ -168,7 +166,7 @@ Acceptance checks: hook emits nothing on empty stores; ≤2 lines otherwise; the
 Recorded here because each is exactly the kind of operational knowledge that died in context instead of landing in the store:
 
 1. **Codex plugin state read directly** (`~/.claude/plugins/data/codex-inline/state/<repo>/state.json` + `jobs/<id>.log`) after `codex:codex-rescue` forwarders refused follow-up by contract and `/codex:status` was model-blocked. Now filed as evt-0009.
-2. **Pre-relaunch death verification** for the Obsidian socket ritual (`pgrep -cf … == 0` before `setsid`), discovered after four dueling-instance episodes. Now filed as evt-0008; the mendable artifact is mica's AGENTS.md ritual, which mandates the wait *after* relaunch but not the check *before*.
+2. **Pre-relaunch death verification** for the Obsidian socket ritual (`pgrep -cf … == 0` before `setsid`), discovered after four dueling-instance episodes. Now filed as evt-0008; the mendable artifact is mica's AGENTS.md ritual, which mandates the wait _after_ relaunch but not the check _before_.
 3. **Trusted-input e2e via WebDriver element clicks** after synthetic events proved blind to native default actions (three separate shipped bugs). Now filed as evt-0007.
 4. **Monitor phase-vocabulary discovery by observation** — a Monitor exited early because "editing" wasn't in its live-phase case list; the phase vocabulary lives only in the codex plugin's `state.json`. Unfiled (judged self-inflicted configuration rather than a misleading source; borderline under the current exclusion, in-scope under A3's reason-scoped rewrite).
 5. **Windowed transcript sampling** (grep -b + byte-offset dd/sed reads) for mining a 50 MB JSONL without context overflow — used by both subagents in this review; generalizable to the mend playbook's "Transcript drill-down" section.
@@ -176,10 +174,10 @@ Recorded here because each is exactly the kind of operational knowledge that die
 
 ## 5. Things that worked where the plugin was absent
 
-For calibration, the sinks that *did* capture lessons, and what they lack that the store has:
+For calibration, the sinks that _did_ capture lessons, and what they lack that the store has:
 
 | Sink | What it captured | What it cannot do |
-|---|---|---|
+| --- | --- | --- |
 | mica `AGENTS.md` doctrine | ~25 distilled bullets incl. all flagship root-causes, with fixes | No recurrence counts, no cross-repo reach, no machine queryability, no provenance chain; grows unboundedly; per-repo only |
 | `state.md` | Deferred decisions, watch-items; one entry converted a false bug-hunt into a feature build (row-resize "regression") | Deliberately deletes resolved items — the history the store keeps is exactly what it discards |
 | Commit messages | Narrative root-causes with diffs attached | Discoverable only by archaeology; never re-enter working context |
@@ -191,11 +189,11 @@ The plugin's pitch against these sinks writes itself from this table — but tod
 
 Considered against real session needs, honestly:
 
-- **Cross-repo reporting** — already exists (`generate-report.sh --cross-repo`); the session's friction spanned mica and agent-tooling's own codex plugin, and the existing mechanism suffices once events exist. *No expansion needed.*
-- **Auto-capture from failing commands/hooks** — tempting (exit-144 recurred 11× undiagnosed) but wrong: it inverts the worth-logging gate and would flood the store with predicted failures. The commit-nudge (A4) is the right compromise. *Rejected.*
-- **Mend automation** — the session's fix-loops confirm the logging-only default; auto-mend would have collided with in-flight work. *Rejected; keep as-is.*
-- **A "capture-rate" metric** — one cheap addition with observed value: `generate-report.sh --report-type stats` could report events-per-active-day and days-since-last-filing, giving mend sessions (and users) the signal that a store is under-capturing relative to activity — this session's store would have shown 10 active days / 2 filings, a visible anomaly. *Modest yes.*
-- **Host-capability mapping (round 1's computer-use collapse)** — real pain, wrong plugin; belongs in host tooling. The friction store is the right place to *record* such collapses (census #1 was log-worthy and unfiled), not to manage capabilities. *Rejected as scope; covered by A3's vocabulary widening.*
+- **Cross-repo reporting** — already exists (`generate-report.sh --cross-repo`); the session's friction spanned mica and agent-tooling's own codex plugin, and the existing mechanism suffices once events exist. _No expansion needed._
+- **Auto-capture from failing commands/hooks** — tempting (exit-144 recurred 11× undiagnosed) but wrong: it inverts the worth-logging gate and would flood the store with predicted failures. The commit-nudge (A4) is the right compromise. _Rejected._
+- **Mend automation** — the session's fix-loops confirm the logging-only default; auto-mend would have collided with in-flight work. _Rejected; keep as-is._
+- **A "capture-rate" metric** — one cheap addition with observed value: `generate-report.sh --report-type stats` could report events-per-active-day and days-since-last-filing, giving mend sessions (and users) the signal that a store is under-capturing relative to activity — this session's store would have shown 10 active days / 2 filings, a visible anomaly. _Modest yes._
+- **Host-capability mapping (round 1's computer-use collapse)** — real pain, wrong plugin; belongs in host tooling. The friction store is the right place to _record_ such collapses (census #1 was log-worthy and unfiled), not to manage capabilities. _Rejected as scope; covered by A3's vocabulary widening._
 
 ## 7. Recommended implementation order
 
@@ -213,7 +211,7 @@ A deliberate non-recommendation: do not add ceremony to the recorder itself (mor
 Line anchors refer to the `aaa35ccf` transcript. "Landed" = where the lesson was durably recorded, if anywhere.
 
 | # | Episode | Root cause (as eventually found) | Worth test | Landed | Recurred |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | Computer-use/portal collapse driving live Obsidian (L176–503) | Never diagnosed; abandoned for CLI+e2e | Yes | Nowhere | ~10× |
 | 2 | Editor click never ran in e2e (L1200) | Own root-guard allowlist swallowed mousedown | Yes | Fix only | Family → #15/#17/#19 |
 | 3 | CLI bring-up: socket absent; `code=` named params (L1334) | CLI binds at app start; eval named-params only | Yes | Habit only | Yes — post-compaction |

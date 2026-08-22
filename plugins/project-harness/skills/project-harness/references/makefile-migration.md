@@ -4,12 +4,12 @@ Load this file when the repo already uses `make` or `task`.
 
 ## Default stance
 
-Do not rip out the incumbent task runner on the first pass.
-Mirror obvious canonical targets first.
+Do not rip out the incumbent task runner on the first pass. Mirror obvious canonical targets first.
 
 ## Canonical mapping
 
 Map these only when the existing names are clear:
+
 - `build`
 - `test`
 - `lint`
@@ -31,6 +31,4 @@ If the old file uses nonstandard names, keep the harness conservative.
 
 ## Monorepo caution
 
-A single top-level Makefile often hides multiple real component lifecycles.
-When the repo is multi-component, prefer explicit component-prefixed recipes in
-`just` rather than copying a monolithic wrapper blindly.
+A single top-level Makefile often hides multiple real component lifecycles. When the repo is multi-component, prefer explicit component-prefixed recipes in `just` rather than copying a monolithic wrapper blindly.

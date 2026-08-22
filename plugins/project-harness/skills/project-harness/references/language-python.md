@@ -52,8 +52,7 @@ fmt-check  ruff format --check .
 bootstrap  python -m pip install -e ".[dev]"
 ```
 
-This assumes the repo is comfortable with standard Python developer tooling.
-If the repo clearly uses another tool, wrap that instead.
+This assumes the repo is comfortable with standard Python developer tooling. If the repo clearly uses another tool, wrap that instead.
 
 ## Framework signals
 
@@ -61,18 +60,12 @@ If the repo clearly uses another tool, wrap that instead.
 - Flask: dependency inspection
 - FastAPI: dependency inspection
 
-Framework detection mainly informs bootstrap and developer expectations. It
-should not force the justfile to become framework-specific unless the repo
-already exposes framework-specific management commands.
+Framework detection mainly informs bootstrap and developer expectations. It should not force the justfile to become framework-specific unless the repo already exposes framework-specific management commands.
 
 ## Virtual environment note
 
-For a generalized harness, prefer command families that work without requiring
-shell activation to persist across recipe lines. That is one reason uv and
-poetry are good defaults when present.
+For a generalized harness, prefer command families that work without requiring shell activation to persist across recipe lines. That is one reason uv and poetry are good defaults when present.
 
 ## When to stop guessing
 
-If the repo uses Hatch, PDM, tox, nox, or a bespoke wrapper and that tool is
-clearly the project’s entry point, wrap that tool instead of imposing uv,
-poetry, or pip conventions.
+If the repo uses Hatch, PDM, tox, nox, or a bespoke wrapper and that tool is clearly the project’s entry point, wrap that tool instead of imposing uv, poetry, or pip conventions.

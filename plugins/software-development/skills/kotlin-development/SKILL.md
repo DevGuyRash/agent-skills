@@ -48,9 +48,7 @@ Read one matching reference before implementation. Read a second only when the t
 
 - Add an Android-specific skill for lifecycle, Compose, resources, Gradle Android Plugin, manifest, or Android API behavior.
 - Add the relevant framework skill for server, persistence, UI, serialization, or dependency-injection semantics.
-- Add `test-driven-development` for changed executable behavior or a known bug
-  whose prior behavior can be demonstrated by an automated test. Add the other
-  method skills only when their intent or evidence is present.
+- Add `test-driven-development` for changed executable behavior or a known bug whose prior behavior can be demonstrated by an automated test. Add the other method skills only when their intent or evidence is present.
 - Add `trunk-based-development` for branch and integration policy.
 - Use `java-development` too when a mixed JVM API change affects Java source or contracts.
 

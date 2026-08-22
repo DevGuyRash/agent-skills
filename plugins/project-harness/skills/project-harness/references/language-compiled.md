@@ -17,11 +17,11 @@ bootstrap  go mod download
 ```
 
 Binary hints:
+
 - `cmd/<name>/`
 - root `main.go`
 
-For staged binaries, build explicit `main` packages instead of assuming every
-package produces an executable.
+For staged binaries, build explicit `main` packages instead of assuming every package produces an executable.
 
 ## C / C++ with CMake
 
@@ -66,18 +66,18 @@ bootstrap  zig build
 
 ## Dist guidance
 
-These ecosystems vary more than Rust. Only auto-generate staging logic when the
-output path is obvious.
+These ecosystems vary more than Rust. Only auto-generate staging logic when the output path is obvious.
 
 Safe cases:
+
 - Go `cmd/` binaries
 - `.NET` `dotnet publish`
 - CMake projects with clear executable targets and known output paths
 
 Unsafe cases:
+
 - mixed library and binary workspaces
 - custom post-build packaging
 - generated SDK or installer pipelines
 
-In unsafe cases, keep the justfile in `general` mode and write dist workflow
-candidates for manual customization.
+In unsafe cases, keep the justfile in `general` mode and write dist workflow candidates for manual customization.

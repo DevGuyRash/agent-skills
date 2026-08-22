@@ -2,24 +2,26 @@
 
 Load this file for GitHub Actions decisions.
 
-For the general detect -> infer -> render protocol, load
-`<skills-file-root>/references/extrapolation-protocol.md`.
+For the general detect -> infer -> render protocol, load `<skills-file-root>/references/extrapolation-protocol.md`.
 
 ## Templates in this skill
 
 Generated templates:
+
 - `<skills-file-root>/assets/workflow-ci-just.yml.tpl`
 - `<skills-file-root>/assets/workflow-ci-direct.yml.tpl`
 - `<skills-file-root>/assets/workflow-ci-direct-split.yml.tpl`
 - `<skills-file-root>/assets/workflow-release-cross-os.yml.tpl`
 
 Example-only templates:
+
 - `<skills-file-root>/assets/workflow-ci-direct-component-paths.yml.tpl`
 - `<skills-file-root>/assets/workflow-release-assets-cross-os.yml.tpl`
 
 ## Quality rules for generated workflows
 
 Generated workflows should:
+
 - check out the repo explicitly
 - set up the required language toolchains explicitly
 - run bootstrap/install before lint/test/build
@@ -36,6 +38,7 @@ Generated workflows should:
 The shipped templates optimize for balanced cost rather than maximum cleverness.
 
 Default behavior:
+
 - ordinary CI uses shallow checkout
 - release artifact builds also use shallow checkout by default
 - dependency caching is emitted through setup actions when the repo shape makes it safe
@@ -44,11 +47,13 @@ Default behavior:
 - artifact retention stays short by default for generated dist verification workflows
 
 Use full-history checkout only when:
+
 - versioning reads tags or commit history
 - release notes or changelog generation runs inside the workflow
 - the build itself shells out to Git history
 
 Prefer built-in action caching when available:
+
 - Node via `actions/setup-node`
 - Python via `actions/setup-python`
 - Go via `actions/setup-go`
@@ -57,8 +62,7 @@ Prefer built-in action caching when available:
 - uv via `astral-sh/setup-uv`
 - Rust via `Swatinem/rust-cache`
 
-Avoid generic `actions/cache` defaults for ecosystems where the cache surface is tool-specific or easy to stale out. Add those only after the repo's toolchain, lockfiles, and restore paths are clear.
-Some setup actions, including `.NET`, still need extra repo-specific restore safeguards before automatic caching is a safe default.
+Avoid generic `actions/cache` defaults for ecosystems where the cache surface is tool-specific or easy to stale out. Add those only after the repo's toolchain, lockfiles, and restore paths are clear. Some setup actions, including `.NET`, still need extra repo-specific restore safeguards before automatic caching is a safe default.
 
 ## Build change-detection modes
 
@@ -67,27 +71,32 @@ There are three useful modes for expensive build lanes:
 ### 1. No optimization
 
 Use when:
+
 - the workflow is still evolving
 - the build is cheap enough that correctness and simplicity dominate
 - the repo does not yet have a distinct build lane
 
 Behavior:
+
 - every job runs whenever the workflow triggers
 - easiest to reason about and the default generated mode
 
 ### 2. Git-diff or path-based detection
 
 Use when:
+
 - the repo already opted into split direct CI
 - `build` is distinct from `lint` and `test`
 - changed-path matching is accurate enough for the repo's structure
 
 Behavior:
+
 - add a lightweight detection job
 - compare the base and head revisions
 - run `build` only when watched paths changed
 
 Generated support in this skill:
+
 - opt-in only via `--change-detection git-diff`
 - currently generated only for `direct` plus `--ci-layout split`
 - currently applied only to the `build` lane, not to `lint` or `test`
@@ -96,11 +105,13 @@ Generated support in this skill:
 ### 3. Hash-based invalidation
 
 Use when:
+
 - changed-path heuristics are too coarse
 - the repo has a stable definition of the exact inputs that matter to packaging
 - maintainers are willing to own the extra logic
 
 Behavior:
+
 - compute a fingerprint for the build inputs
 - compare it to a persisted or previously published value
 - skip rebuilding only when the fingerprint matches
@@ -130,11 +141,13 @@ Pseudocode example:
 ### `just`
 
 Use when:
+
 - the repo is small or moderately sized
 - a single Linux CI job is enough at first
 - `just ci` should stay authoritative
 
 Flow:
+
 1. checkout
 2. setup language tools
 3. install `just`
@@ -144,32 +157,33 @@ Flow:
 ### `direct`
 
 Use when:
+
 - the repo is polyglot
 - the repo is a workspace or monorepo
 - CI steps need to stay visible
 - matrices or artifacts are involved
 
 Default shapes:
+
 - single-job direct CI for moderate repos where one visible lane is still enough
 - split-job direct CI only when a repo explicitly opts into stable `lint`, `test`, and `build` checks
 
 Flow:
+
 1. checkout
 2. setup language tools
 3. run bootstrap commands directly
 4. run formatting, lint, and test steps directly
 
 Contributor-scale split mode should:
+
 - keep job names stable as `lint`, `test`, and `build`
 - repeat setup/bootstrap per job unless a repo has a proven shared-cache or artifact handoff
 - stay Linux-first by default unless a repo truly needs wider CI coverage in ordinary PR checks
 
-Path filters and docs-only skips can save minutes, but they are intentionally not generated by default.
-Only add them when the repo has stable ownership boundaries and a missed run would not hide a required check.
-The example component-path template is an overlay, not a generated default.
+Path filters and docs-only skips can save minutes, but they are intentionally not generated by default. Only add them when the repo has stable ownership boundaries and a missed run would not hide a required check. The example component-path template is an overlay, not a generated default.
 
-Optional local pre-push hooks are also an overlay, not a generated default for generic repos.
-Use them only when a repo intentionally ships committed hooks and wants fast local feedback ahead of CI.
+Optional local pre-push hooks are also an overlay, not a generated default for generic repos. Use them only when a repo intentionally ships committed hooks and wants fast local feedback ahead of CI.
 
 Pseudocode example:
 
@@ -182,119 +196,104 @@ Pseudocode example:
 
 Keep CI authoritative even when the repo also offers a local hook installer.
 
-Prefer gating only the most expensive lane first.
-Do not introduce broad skip logic for lint/test unless the repo has already proven that the extra complexity is worth it.
+Prefer gating only the most expensive lane first. Do not introduce broad skip logic for lint/test unless the repo has already proven that the extra complexity is worth it.
 
 ## CI safety matrix
 
 Use this matrix when examples do not match the repo exactly:
 
-- Strong lifecycle, simple repo, clear bootstrap:
-  generate ordinary CI
-- Strong lifecycle, polyglot or multi-component repo:
-  generate `direct` CI
-- Need stable review surfaces and the repo explicitly chose them:
-  allow split direct CI
-- Need path filters and every relevant build surface is nested cleanly under owned components:
-  allow manual component path filters
-- Any root-level workspace or shared manifest changes generated CI behavior:
-  omit path filters and warn instead
+- Strong lifecycle, simple repo, clear bootstrap: generate ordinary CI
+- Strong lifecycle, polyglot or multi-component repo: generate `direct` CI
+- Need stable review surfaces and the repo explicitly chose them: allow split direct CI
+- Need path filters and every relevant build surface is nested cleanly under owned components: allow manual component path filters
+- Any root-level workspace or shared manifest changes generated CI behavior: omit path filters and warn instead
 
-Do not treat split CI or path filtering as the default reward for a large repo.
-Treat them as overlays that need an explicit safety case.
+Do not treat split CI or path filtering as the default reward for a large repo. Treat them as overlays that need an explicit safety case.
 
-Only promoted runnable surfaces should widen generated CI.
-Weak nested detections belong in notes/state until the repo makes them authoritative.
+Only promoted runnable surfaces should widen generated CI. Weak nested detections belong in notes/state until the repo makes them authoritative.
 
 ## Contributor-Scale Guidance
 
-When many people contribute, the main CI risks are not basic syntax or runner setup.
-They are:
+When many people contribute, the main CI risks are not basic syntax or runner setup. They are:
+
 - unstable required-check names
 - superseded runs wasting minutes
 - monorepo changes triggering too much CI
 - hidden ownership boundaries between components
 
 Prefer this progression:
+
 1. start with single-job CI that is obviously correct
 2. opt into stable `lint`, `test`, and `build` jobs when reviewers need clearer check surfaces
 3. add path filters only after component ownership is explicit and well understood
 
-Do not treat path-filtering as a free optimization.
-It is safe only when the repo has clear boundaries and the generated checks are not relied on in ways that a skipped run would violate.
+Do not treat path-filtering as a free optimization. It is safe only when the repo has clear boundaries and the generated checks are not relied on in ways that a skipped run would violate.
 
 ## Governance Handoff
 
-`project-harness` stops at CI generation, workflow shape, and starter examples.
-It does not own branch protection, required-check enforcement, CODEOWNERS reconciliation, or ruleset management.
+`project-harness` stops at CI generation, workflow shape, and starter examples. It does not own branch protection, required-check enforcement, CODEOWNERS reconciliation, or ruleset management.
 
-Use stable workflow and job names here so repository policy and native host
-tooling can depend on them later.
+Use stable workflow and job names here so repository policy and native host tooling can depend on them later.
 
 For enforcement and operations, rely on the repo's chosen governance surface:
+
 - required-check policy in repository settings or rulesets
 - CODEOWNERS policy in tracked repository files
 - branch protection or ruleset reconciliation through official host integrations
 - review and label operations through native `git`, `gh`, or first-party host tooling
 
-That split keeps `project-harness` focused on command and CI scaffolding
-without reintroducing a separate Git governance skill.
+That split keeps `project-harness` focused on command and CI scaffolding without reintroducing a separate Git governance skill.
 
 ## Generated versus example-only CI assets
 
-Generated templates are part of the skill's automatic render path.
-Example-only templates are patterns to adapt, not inferred repo truth.
+Generated templates are part of the skill's automatic render path. Example-only templates are patterns to adapt, not inferred repo truth.
 
 When you load an example-only template:
+
 - use it to understand the shape of a solution
 - do not treat its commands, triggers, or ownership boundaries as evidence about the repo you are editing
 
 ## Cross-OS workflow policy
 
-The generated `release-cross-os.yml` is artifact-first.
-It builds on Linux, Windows, and macOS, stages into `dist/<platform-id>/`, and
-uploads those directories as artifacts.
+The generated `release-cross-os.yml` is artifact-first. It builds on Linux, Windows, and macOS, stages into `dist/<platform-id>/`, and uploads those directories as artifacts.
 
 That is the right default when:
+
 - you need build verification across platforms
 - you want distributable outputs
 - you do not yet want to commit binaries
 
-If you need true Release assets attached to a tag, start from the example
-release-assets template instead of overloading ordinary CI.
+If you need true Release assets attached to a tag, start from the example release-assets template instead of overloading ordinary CI.
 
 The generated artifact workflow is tuned for build verification and short-lived downloads, not long-retention release storage.
 
 ## Toolchain version policy
 
 Generated workflows use evergreen version selectors where available:
+
 - Node: `<current LTS selector>`
 - Go: `<latest stable selector>`
 - Python: `<latest stable Python 3 selector>`
 - Elixir/OTP: `<latest stable selector>`
 
-In explanatory text, examples, and pseudocode, prefer labels like `latest stable`
-or `current LTS` over hard-coded version numbers. Some executable workflows still
-need a concrete selector for ecosystems that do not support floating labels.
+In explanatory text, examples, and pseudocode, prefer labels like `latest stable` or `current LTS` over hard-coded version numbers. Some executable workflows still need a concrete selector for ecosystems that do not support floating labels.
 
 ## Runner assumptions
 
-These templates assume GitHub-hosted runners and current official action majors.
-On current hosted runners:
+These templates assume GitHub-hosted runners and current official action majors. On current hosted runners:
+
 - `ubuntu-latest` is x64
 - `windows-latest` is x64
 - `macos-latest` is arm64
 
-That means the default macOS dist artifact is `macos-arm64`.
-If the project needs macOS x64 too, fork the matrix intentionally.
+That means the default macOS dist artifact is `macos-arm64`. If the project needs macOS x64 too, fork the matrix intentionally.
 
 ## Public versus private repositories
 
-Public open-source repos can often afford a richer artifact or release workflow.
-Private repos should account for Actions minutes and artifact storage before
-adding large matrices or long retention periods.
+Public open-source repos can often afford a richer artifact or release workflow. Private repos should account for Actions minutes and artifact storage before adding large matrices or long retention periods.
 
 For private repos, prefer:
+
 - shallow checkout unless history is required
 - the smallest useful matrix
 - short artifact retention
@@ -302,6 +301,4 @@ For private repos, prefer:
 
 ## Self-hosted and GHES caution
 
-The shipped templates target current hosted-runner behavior. For older self-hosted
-runners or GitHub Enterprise Server, you may need older action major versions.
-Keep the harness logic, but downgrade action versions intentionally.
+The shipped templates target current hosted-runner behavior. For older self-hosted runners or GitHub Enterprise Server, you may need older action major versions. Keep the harness logic, but downgrade action versions intentionally.

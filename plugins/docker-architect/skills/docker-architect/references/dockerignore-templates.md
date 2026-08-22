@@ -1,7 +1,6 @@
 # .dockerignore Templates
 
-Use these templates alongside every Dockerfile. A `.dockerignore` prevents build-context
-bloat, avoids leaking secrets into layers, and speeds up `COPY . .` operations.
+Use these templates alongside every Dockerfile. A `.dockerignore` prevents build-context bloat, avoids leaking secrets into layers, and speeds up `COPY . .` operations.
 
 > **Policy**: AC-DF-DOCKERIGNORE — every Dockerfile must have a companion `.dockerignore`.
 
@@ -49,9 +48,7 @@ docs/
 secrets/
 ```
 
-**Rationale**: `.git` alone can add hundreds of MB. IDE and CI files are never needed at
-runtime. Excluding `Dockerfile*` and compose files prevents accidental recursive copies.
-Secrets exclusions are a defense-in-depth layer on top of multi-stage builds.
+**Rationale**: `.git` alone can add hundreds of MB. IDE and CI files are never needed at runtime. Excluding `Dockerfile*` and compose files prevents accidental recursive copies. Secrets exclusions are a defense-in-depth layer on top of multi-stage builds.
 
 ---
 
@@ -100,9 +97,7 @@ venv/
 env/
 ```
 
-**Rationale**: `__pycache__` and `.pyc` files are platform-specific bytecode — copying
-them into a container breaks portability. Virtual environments (`venv/`, `.venv/`) contain
-host-platform binaries and should never enter the build context.
+**Rationale**: `__pycache__` and `.pyc` files are platform-specific bytecode — copying them into a container breaks portability. Virtual environments (`venv/`, `.venv/`) contain host-platform binaries and should never enter the build context.
 
 ---
 
@@ -143,9 +138,7 @@ coverage/
 .eslintcache
 ```
 
-**Rationale**: `node_modules/` is the single largest context-bloat offender — it can
-exceed 500 MB. It must be excluded because `npm ci` / `yarn install --frozen-lockfile`
-inside the container produces a Linux-native dependency tree.
+**Rationale**: `node_modules/` is the single largest context-bloat offender — it can exceed 500 MB. It must be excluded because `npm ci` / `yarn install --frozen-lockfile` inside the container produces a Linux-native dependency tree.
 
 ---
 
@@ -177,8 +170,7 @@ target/
 *.rs.bk
 ```
 
-**Rationale**: `target/` contains host-platform compilation artifacts and can easily
-exceed 1 GB. Cargo rebuilds inside the container with the correct target triple.
+**Rationale**: `target/` contains host-platform compilation artifacts and can easily exceed 1 GB. Cargo rebuilds inside the container with the correct target triple.
 
 ---
 
@@ -214,6 +206,4 @@ bin/
 coverage.txt
 ```
 
-**Rationale**: Go binaries are statically compiled inside the builder stage. The `vendor/`
-directory (if present) should be excluded when using `go mod download` in the builder;
-keep it only if you vendor explicitly and skip the download step.
+**Rationale**: Go binaries are statically compiled inside the builder stage. The `vendor/` directory (if present) should be excluded when using `go mod download` in the builder; keep it only if you vendor explicitly and skip the download step.

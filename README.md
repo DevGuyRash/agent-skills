@@ -1,54 +1,36 @@
 # Agent Tooling
 
-This repository contains portable agent tooling: host-aware plugin packages,
-host-agnostic skill payloads, Rust-backed launchers, and repo harness scripts.
+This repository contains portable agent tooling: host-aware plugin packages, host-agnostic skill payloads, Rust-backed launchers, and repo harness scripts.
 
 ## Repository layout
 
-Top-level `plugins/` contains plugin packages that may bundle skills, hooks,
-MCP servers, apps, and host manifests.
-Top-level `skills/` is kept with `.gitkeep` for future standalone,
-host-agnostic skill packages that are not distributed as plugins.
+Top-level `plugins/` contains plugin packages that may bundle skills, hooks, MCP servers, apps, and host manifests. Top-level `skills/` is kept with `.gitkeep` for future standalone, host-agnostic skill packages that are not distributed as plugins.
 
-WHEN adding a plugin package to this repository THEN you SHALL place it under
-`plugins/<plugin-name>/`.
-WHEN adding reusable skill content that is not a plugin package THEN you SHALL
-place it under `skills/<skill-name>/`.
-WHEN a plugin bundles skill instructions THEN you SHALL keep those bundled
-skills inside the plugin package's own `skills/` directory.
+WHEN adding a plugin package to this repository THEN you SHALL place it under `plugins/<plugin-name>/`. WHEN adding reusable skill content that is not a plugin package THEN you SHALL place it under `skills/<skill-name>/`. WHEN a plugin bundles skill instructions THEN you SHALL keep those bundled skills inside the plugin package's own `skills/` directory.
 
 Marketplace manifests:
 
 - Codex: `.agents/plugins/marketplace.json`
 - Claude: `.claude-plugin/marketplace.json`
 
-The catalogs are independent. Most plugins support both hosts; a plugin that
-depends on a host-native runtime or instruction surface is published only for
-the capable host.
+The catalogs are independent. Most plugins support both hosts; a plugin that depends on a host-native runtime or instruction surface is published only for the capable host.
 
-Reusable instruction and evaluation decisions, their outcome evidence, and reopening conditions
-are indexed in [`docs/adr/`](docs/adr/README.md). The ADRs record rationale; `AGENTS.md`, target
-contracts, host schemas, and maker requirements remain authoritative.
+Reusable instruction and evaluation decisions, their outcome evidence, and reopening conditions are indexed in [`docs/adr/`](docs/adr/README.md). The ADRs record rationale; `AGENTS.md`, target contracts, host schemas, and maker requirements remain authoritative.
 
 Current local plugins:
 
-- `plugins/chatgpt-browser/` provides portable ChatGPT conversation, context,
-  attachment, model-selection, and thread-hygiene guidance when an authorized
-  interactive-browser controller is available.
+- `plugins/chatgpt-browser/` provides portable ChatGPT conversation, context, attachment, model-selection, and thread-hygiene guidance when an authorized interactive-browser controller is available.
 - `plugins/code-review/`
 - `plugins/docker-architect/`
 - `plugins/espanso-dynamic-forms/`
 - `plugins/excel-foundry/`
 - `plugins/friction-diagnostics/`
-- `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and
-  bundles the agnostic `$authoring-goals` skill payload.
+- `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and bundles the agnostic `$authoring-goals` skill payload.
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
 - `plugins/skill-auditor/`
 - `plugins/split-testing/`
-- `plugins/software-development/` replaces `rust-development` and
-  `gitops-workflow` with a shared development catalog for both Codex and
-  Claude Code.
+- `plugins/software-development/` replaces `rust-development` and `gitops-workflow` with a shared development catalog for both Codex and Claude Code.
 
 ## Plugin Packages
 
@@ -78,9 +60,7 @@ Path: `plugins/docker-architect/skills/docker-architect/`
 
 ## Plugin portability converter
 
-`scripts/plugin_port.py` converts Codex and Claude Code plugin packages and
-marketplaces while preserving source trees and writing a conversion report to
-`.plugin-portability/report.json`.
+`scripts/plugin_port.py` converts Codex and Claude Code plugin packages and marketplaces while preserving source trees and writing a conversion report to `.plugin-portability/report.json`.
 
 Common commands:
 
@@ -92,31 +72,13 @@ Common commands:
 
 Compatibility contract:
 
-- Supported active surfaces: plugin detection, plugin/marketplace inspection,
-  Codex skills, Claude skills, Claude commands converted to Codex skills, basic
-  manifests, local marketplaces, MCP path normalization, and hook placeholder
-  normalization.
-- Preserved-only surfaces: Codex apps and plugin-root `CLAUDE.md` files when
-  targeting Claude; Claude LSP/output styles/themes/monitors/bin/settings when
-  targeting Codex. Root `CLAUDE.md` files are moved to
-  `.plugin-portability/preserved/CLAUDE.md` in Claude output because Claude
-  plugin validation rejects plugin-root context files.
-- Strict rejection surfaces: unsupported hook events, async command hooks,
-  handler-level hook filters, non-command hook handlers, invalid JSON/YAML,
-  non-local marketplace entries, marketplace paths that escape the
-  marketplace root, and MCP runtime paths that escape the plugin root.
-- Roundtrips use strict mode by default and internally validate the converted
-  second-hop plugin. Codex external validation resolves its bundled validator
-  below `CODEX_HOME` when that environment variable is set.
-- Best-effort behavior: the source tree is still copied, but semantic loss is
-  recorded in `unsupported`, `preserved_only`, and `executable_surfaces`.
-  Invalid skill, command, or agent frontmatter is repaired with generated target
-  metadata only in best-effort conversion; validation still rejects malformed
-  source frontmatter.
+- Supported active surfaces: plugin detection, plugin/marketplace inspection, Codex skills, Claude skills, Claude commands converted to Codex skills, basic manifests, local marketplaces, MCP path normalization, and hook placeholder normalization.
+- Preserved-only surfaces: Codex apps and plugin-root `CLAUDE.md` files when targeting Claude; Claude LSP/output styles/themes/monitors/bin/settings when targeting Codex. Root `CLAUDE.md` files are moved to `.plugin-portability/preserved/CLAUDE.md` in Claude output because Claude plugin validation rejects plugin-root context files.
+- Strict rejection surfaces: unsupported hook events, async command hooks, handler-level hook filters, non-command hook handlers, invalid JSON/YAML, non-local marketplace entries, marketplace paths that escape the marketplace root, and MCP runtime paths that escape the plugin root.
+- Roundtrips use strict mode by default and internally validate the converted second-hop plugin. Codex external validation resolves its bundled validator below `CODEX_HOME` when that environment variable is set.
+- Best-effort behavior: the source tree is still copied, but semantic loss is recorded in `unsupported`, `preserved_only`, and `executable_surfaces`. Invalid skill, command, or agent frontmatter is repaired with generated target metadata only in best-effort conversion; validation still rejects malformed source frontmatter.
 
-Report fields include `schema_version`, `status`, `support_level`,
-`validation_summary`, `executable_surfaces`, `warnings`, `unsupported`,
-`preserved_only`, `mappings`, and `files_copied`.
+Report fields include `schema_version`, `status`, `support_level`, `validation_summary`, `executable_surfaces`, `warnings`, `unsupported`, `preserved_only`, `mappings`, and `files_copied`.
 
 Exit codes:
 
@@ -125,47 +87,40 @@ Exit codes:
 - `3`: validation failure
 - `4`: required external validator unavailable
 
-WHEN semantic loss would be unacceptable THEN you SHALL use `--mode strict`.
-WHEN publishing converted output THEN you SHALL inspect
-`.plugin-portability/report.json` for warnings, unsupported items, preserved-only
-items, executable/runtime surfaces, validation summaries, and file mappings.
-WHEN external validator parity is required THEN you SHALL run `validate` with
-`--require-external-validator`.
+WHEN semantic loss would be unacceptable THEN you SHALL use `--mode strict`. WHEN publishing converted output THEN you SHALL inspect `.plugin-portability/report.json` for warnings, unsupported items, preserved-only items, executable/runtime surfaces, validation summaries, and file mappings. WHEN external validator parity is required THEN you SHALL run `validate` with `--require-external-validator`.
 
 Local tests:
 
 - `just test-plugin-port` runs deterministic unit tests.
-- `PLUGIN_PORT_LIVE=1 PLUGIN_PORT_CLAUDE=1 just test-plugin-port-live` runs
-  Claude CLI checks when `claude` is installed.
-- `PLUGIN_PORT_LIVE=1 PLUGIN_PORT_CODEX=1 just test-plugin-port-live` runs Codex
-  temp-marketplace checks when `codex` is installed.
-- Live tests use temporary directories and a temporary `CODEX_HOME`; they do not
-  install into the user's normal plugin state.
+- `PLUGIN_PORT_LIVE=1 PLUGIN_PORT_CLAUDE=1 just test-plugin-port-live` runs Claude CLI checks when `claude` is installed.
+- `PLUGIN_PORT_LIVE=1 PLUGIN_PORT_CODEX=1 just test-plugin-port-live` runs Codex temp-marketplace checks when `codex` is installed.
+- Live tests use temporary directories and a temporary `CODEX_HOME`; they do not install into the user's normal plugin state.
 
 ## Container bootstrap scripts
 
 These scripts are repo-wide (not skill-specific) and are intended for:
+
 - AI agent runners that create a new container and then clone this repo
 - CI/CD systems that reuse cached containers/workspaces
 
-They are optional, but recommended for deterministic environments because they ensure Rust is available and prebuild binaries up front.
-Single-skill installs should invoke each skill's local launcher under `<skills-file-root>/scripts/`.
+They are optional, but recommended for deterministic environments because they ensure Rust is available and prebuild binaries up front. Single-skill installs should invoke each skill's local launcher under `<skills-file-root>/scripts/`.
 
 - Fresh container (after clone): `scripts/setup.sh`
 - Cached container (after checkout): `scripts/maintenance.sh`
 
 Both scripts:
+
 - Ensure `.local/reports/code_reviews/` exists (gitignored)
 - Best-effort add the repo root to git `safe.directory`
 - Bootstrap the root Rust workspace
-- Stage host-platform packaged binaries into each plugin-local skill's
-  `dist/<platform-id>/` directory
+- Stage host-platform packaged binaries into each plugin-local skill's `dist/<platform-id>/` directory
 
 ## Repo harness
 
 The repo-local command surface lives in `justfile`.
 
 Common commands:
+
 - `just bootstrap` — install packaging prerequisites used by the repo scripts
 - `just verify` — run the fast local verification surface (`fmt-check`, `lint`, `test`)
 - `just ci` — run the full repo verification surface, including staged packaging checks
@@ -179,14 +134,7 @@ Common commands:
 
 `just hooks-install` is local convenience, not the authoritative policy surface. CI and PR gating remain the real enforcement path.
 
-`just audit-plugins` prints what the auditor's scripts can observe and fails only
-on what is broken for every target. Facts whose significance depends on the
-target — lengths, naming, house idiom — are printed with the reference that owns
-the rule, and never fail; a script cannot see a target's age or profile, so
-judging those is the reader's. Run `scripts/audit-plugins.sh --help` for the
-current contract — that text is canonical, so this paragraph does not restate
-it. CI audits only the plugins a change touches, so one plugin's backlog blocks
-nobody else's work.
+`just audit-plugins` prints what the auditor's scripts can observe and fails only on what is broken for every target. Facts whose significance depends on the target — lengths, naming, house idiom — are printed with the reference that owns the rule, and never fail; a script cannot see a target's age or profile, so judging those is the reader's. Run `scripts/audit-plugins.sh --help` for the current contract — that text is canonical, so this paragraph does not restate it. CI audits only the plugins a change touches, so one plugin's backlog blocks nobody else's work.
 
 ### Install all plugins
 
@@ -201,10 +149,7 @@ By default it uses the GitHub marketplace source `DevGuyRash/agent-tooling` with
 - Codex: `.agents/plugins` plus `plugins`
 - Claude Code: `.claude-plugin` plus `plugins`
 
-The script reads each committed host marketplace independently, adds a
-marketplace only when that host has selected plugins, then installs each entry
-as `<plugin>@agent-tooling`. By default, every plugin is installed on each host
-where it is published.
+The script reads each committed host marketplace independently, adds a marketplace only when that host has selected plugins, then installs each entry as `<plugin>@agent-tooling`. By default, every plugin is installed on each host where it is published.
 
 Filter the dynamic plugin list with repeatable CSV/glob flags:
 
@@ -213,9 +158,7 @@ scripts/install-all --exclude 'software-development'
 scripts/install-all --include 'goalspec,project-harness' --exclude 'project-*'
 ```
 
-Filters are applied independently to enabled host catalogs. A host-specific
-selection skips the other host without error. A host-only run fails clearly
-when an include pattern has no match in that host's catalog.
+Filters are applied independently to enabled host catalogs. A host-specific selection skips the other host without error. A host-only run fails clearly when an include pattern has no match in that host's catalog.
 
 Limit the target host when needed:
 
@@ -230,17 +173,11 @@ The `just` recipe forwards the same flags:
 just install-all --exclude 'software-development'
 ```
 
-Use `scripts/install-all --help` for source, scope, host, filter, and dry-run options.
-`--replace-marketplace` first checks whether the named marketplace exists,
-skips an already-absent registration, and limits Claude removal to the selected
-`--claude-scope`. The script does not replace or unset `CODEX_HOME`.
+Use `scripts/install-all --help` for source, scope, host, filter, and dry-run options. `--replace-marketplace` first checks whether the named marketplace exists, skips an already-absent registration, and limits Claude removal to the selected `--claude-scope`. The script does not replace or unset `CODEX_HOME`.
 
 ### `software-development` migration
 
-The `software-development` plugin replaces both `rust-development` and
-`gitops-workflow`. Remove the legacy plugin identities before installing the
-new catalog, then start a fresh task or restart the host so discovery reloads
-against the new skill set:
+The `software-development` plugin replaces both `rust-development` and `gitops-workflow`. Remove the legacy plugin identities before installing the new catalog, then start a fresh task or restart the host so discovery reloads against the new skill set:
 
 ```bash
 codex plugin remove rust-development@agent-tooling
@@ -254,8 +191,7 @@ claude plugin install software-development@agent-tooling
 
 ### Contributor hook setup
 
-Repo-owned hooks are committed under `githooks/`, but Git does not execute them automatically from a tracked directory.
-Each clone that wants the local pre-push guard must opt into that path once:
+Repo-owned hooks are committed under `githooks/`, but Git does not execute them automatically from a tracked directory. Each clone that wants the local pre-push guard must opt into that path once:
 
 - `just hooks-install`
 - or `git config --local core.hooksPath githooks`
@@ -264,9 +200,7 @@ That updates the clone-local `core.hooksPath` setting so Git runs the committed 
 
 ## Packaged binary policy
 
-Normal CI stays lean and Linux-first.
-This repository currently pre-packages and commits Linux `dist/` payloads only.
-Windows and macOS are no longer supported packaging targets in this repo.
+Normal CI stays lean and Linux-first. This repository currently pre-packages and commits Linux `dist/` payloads only. Windows and macOS are no longer supported packaging targets in this repo.
 
 That means:
 

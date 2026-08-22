@@ -16,27 +16,19 @@ Smart pointers do not repair a confused ownership graph. Avoid heap allocation a
 
 ## Protect borrowed state
 
-Check that `string_view`, `span`, iterator, range, reference, pointer, and callback captures cannot outlive or be invalidated by their owner.
-Review temporaries, container growth/erase, moves, asynchronous retention, lambda capture, and return-value boundaries.
-Do not infer safety from `const`; it restricts mutation through that access path, not object lifetime or mutation through aliases.
+Check that `string_view`, `span`, iterator, range, reference, pointer, and callback captures cannot outlive or be invalidated by their owner. Review temporaries, container growth/erase, moves, asynchronous retention, lambda capture, and return-value boundaries. Do not infer safety from `const`; it restricts mutation through that access path, not object lifetime or mutation through aliases.
 
 After move, rely only on guarantees of the moved-from type and repository contract. Do not add blanket resets unless callers need a stronger postcondition.
 
 ## Exceptions and RAII
 
-Construct objects so partially completed acquisition is owned immediately by a local RAII object.
-Keep destructors non-throwing under the repository's exception policy.
-When translating exceptions, retain actionable context and avoid slicing or catch-all suppression.
-When exceptions are disabled, use the established status/result mechanism consistently rather than introducing a parallel model.
+Construct objects so partially completed acquisition is owned immediately by a local RAII object. Keep destructors non-throwing under the repository's exception policy. When translating exceptions, retain actionable context and avoid slicing or catch-all suppression. When exceptions are disabled, use the established status/result mechanism consistently rather than introducing a parallel model.
 
 Declare `noexcept` for a semantic guarantee, not an optimization ritual. Review called operations and future maintenance implications.
 
 ## Concurrency
 
-A data race is undefined behavior. Tie shared mutable state to a synchronization contract and keep lock ownership scoped.
-Avoid calling unknown/reentrant code while holding a lock unless the protocol requires it.
-For atomics, state the invariant and ordering relation; do not treat `volatile` as synchronization.
-Ensure worker completion precedes destruction of observed state.
+A data race is undefined behavior. Tie shared mutable state to a synchronization contract and keep lock ownership scoped. Avoid calling unknown/reentrant code while holding a lock unless the protocol requires it. For atomics, state the invariant and ordering relation; do not treat `volatile` as synchronization. Ensure worker completion precedes destruction of observed state.
 
 ## Verification
 

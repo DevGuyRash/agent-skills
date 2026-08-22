@@ -9,9 +9,7 @@ Run each case two ways:
 - Raw/no-skill: give the worker only the original prompt or source.
 - GoalSpec-assisted: have one agent use GoalSpec to produce the phase-appropriate output, then have a fresh worker use that output when execution is relevant.
 
-WHEN a condition receives extra source context not available to the others THEN you SHALL record the asymmetry before scoring.
-You SHALL NOT score artifact polish as planning quality.
-You SHALL count premature `context/docs/` creation as a regression for design-shaped and known-change cases.
+WHEN a condition receives extra source context not available to the others THEN you SHALL record the asymmetry before scoring. You SHALL NOT score artifact polish as planning quality. You SHALL count premature `context/docs/` creation as a regression for design-shaped and known-change cases.
 
 ## Cases
 

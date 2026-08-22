@@ -1,13 +1,8 @@
 # Instruction Design
 
-Use this lens for instructions directed at another AI. It tests whether the system supplies
-non-inferable purpose, reality, authority, persistence, and evidence while leaving open judgment open.
-The block below is adopted authority in the Skill Auditor's source repository and is reproduced
-verbatim. Copying or installing the auditor does not transfer that authority to an unrelated target.
+Use this lens for instructions directed at another AI. It tests whether the system supplies non-inferable purpose, reality, authority, persistence, and evidence while leaving open judgment open. The block below is adopted authority in the Skill Auditor's source repository and is reproduced verbatim. Copying or installing the auditor does not transfer that authority to an unrelated target.
 
-For a target that has not adopted it, the block supports design judgment rather than portable
-conformance. Its functions are semantic contracts, not headings, an audit order, a report template,
-or a complete list of possible defects.
+For a target that has not adopted it, the block supports design judgment rather than portable conformance. Its functions are semantic contracts, not headings, an audit order, a report template, or a complete list of possible defects.
 
 ---
 
@@ -77,23 +72,8 @@ Do not require private chain-of-thought, named reasoning methods, visible compli
 
 ## Audit use
 
-The block is source-repository authority, not a report template or reasoning sequence. It is target
-authority only where the target remains governed by that repository or adopts it independently.
-Otherwise judge whether the target preserves its material outcomes, authority, hazards, evidence,
-and handoff without binding unneeded pathways, and present the result as a design risk or
-recommendation. An artifact's own preference does not establish a maker requirement. Exact methods
-remain legitimate when an external interface, named hazard, or observed failure makes them
-load-bearing.
+The block is source-repository authority, not a report template or reasoning sequence. It is target authority only where the target remains governed by that repository or adopts it independently. Otherwise judge whether the target preserves its material outcomes, authority, hazards, evidence, and handoff without binding unneeded pathways, and present the result as a design risk or recommendation. An artifact's own preference does not establish a maker requirement. Exact methods remain legitimate when an external interface, named hazard, or observed failure makes them load-bearing.
 
-Evaluate the composed instruction, mechanism, host, and handoff. Deterministic tools may own facts,
-transforms, custody, or enforcement; they do not inherit semantic policy or quality judgment. Treat
-plans, headings, counts, and scripts by their observed marginal effect rather than artifact type.
-Comparative evidence shows both procedural displacement and a tool-to-agent gap; inspect whether the
-agent actually uses evidence to improve the outcome. Apply departures as design risks outside this
-repository unless the target adopted the same authority.
+Evaluate the composed instruction, mechanism, host, and handoff. Deterministic tools may own facts, transforms, custody, or enforcement; they do not inherit semantic policy or quality judgment. Treat plans, headings, counts, and scripts by their observed marginal effect rather than artifact type. Comparative evidence shows both procedural displacement and a tool-to-agent gap; inspect whether the agent actually uses evidence to improve the outcome. Apply departures as design risks outside this repository unless the target adopted the same authority.
 
-Repeated evaluation can justify model-specific compensation, but it can also accumulate the visible
-symptoms of one underlying defect into an instruction inventory. Inspect whether narrow clauses,
-examples, or ordered safeguards still transfer distinct non-inferable controls, or whether a single
-earlier semantic invariant would preserve the observed correction with less attention competition.
-Validate consolidation behaviorally; shorter prose is not itself evidence that the control survived.
+Repeated evaluation can justify model-specific compensation, but it can also accumulate the visible symptoms of one underlying defect into an instruction inventory. Inspect whether narrow clauses, examples, or ordered safeguards still transfer distinct non-inferable controls, or whether a single earlier semantic invariant would preserve the observed correction with less attention competition. Validate consolidation behaviorally; shorter prose is not itself evidence that the control survived.

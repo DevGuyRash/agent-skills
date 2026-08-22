@@ -1,11 +1,6 @@
 # Charts, maps, and ERDs — standalone HTML
 
-All outputs here are .html files using the page scaffold and token CSS from
-tokens.md. Scripts load from public CDNs (cdnjs.cloudflare.com, esm.sh,
-cdn.jsdelivr.net, unpkg.com) — note in your reply that the file needs an
-internet connection to render. If the user needs offline output, draw simple
-bar/line charts as hand-computed SVG rects/polylines instead (same ladder
-math as diagrams.md) and skip maps/ERDs.
+All outputs here are .html files using the page scaffold and token CSS from tokens.md. Scripts load from public CDNs (cdnjs.cloudflare.com, esm.sh, cdn.jsdelivr.net, unpkg.com) — note in your reply that the file needs an internet connection to render. If the user needs offline output, draw simple bar/line charts as hand-computed SVG rects/polylines instead (same ladder math as diagrams.md) and skip maps/ERDs.
 
 ## Chart.js
 
@@ -31,29 +26,18 @@ new Chart(document.getElementById('chart1'), {
 ```
 
 Rules:
-- Every canvas: `role="img"`, descriptive `aria-label`, fallback text between
-  the tags. Without these the chart is invisible to screen readers.
-- Canvas can't resolve CSS variables — hardcode hex; pick light/dark via
-  `matchMedia` as above (use 400-stop hexes for series; they read on both).
-- Height ONLY on the wrapper div (position:relative), never on the canvas.
-  `responsive:true, maintainAspectRatio:false`. Horizontal bar charts:
-  wrapper height ≥ bars × 40 + 80.
-- Load the UMD build via plain `<script src>` (sets window.Chart), then a
-  plain script after it — no type="module" for Chart.js.
-- Multiple charts → unique ids, each with its own wrapper div.
-- Never rely on color alone between series: pair each color with a dash
-  pattern (lines), marker shape (scatter), or hatching (bars/pies), and show
-  both in the legend.
-- Bubble/scatter: radii extend past centers and clip at the scale edge — pad
-  `scales.{x,y}.min/max` ~10% beyond the data, or `layout:{padding:20}`.
-- ≤12 categories where every label matters (months, waterfall):
-  `scales.x.ticks:{ autoSkip:false, maxRotation:45 }`.
-- Number formatting: sign before currency — `-$5M`, never `$-5M`:
-  `v => (v<0?'-':'') + '$' + Math.abs(v) + 'M'`. Round everything displayed.
 
-Legends — always disable the Chart.js default and build custom HTML above or
-below the canvas (small squares, tight spacing, values included for
-categorical data):
+- Every canvas: `role="img"`, descriptive `aria-label`, fallback text between the tags. Without these the chart is invisible to screen readers.
+- Canvas can't resolve CSS variables — hardcode hex; pick light/dark via `matchMedia` as above (use 400-stop hexes for series; they read on both).
+- Height ONLY on the wrapper div (position:relative), never on the canvas. `responsive:true, maintainAspectRatio:false`. Horizontal bar charts: wrapper height ≥ bars × 40 + 80.
+- Load the UMD build via plain `<script src>` (sets window.Chart), then a plain script after it — no type="module" for Chart.js.
+- Multiple charts → unique ids, each with its own wrapper div.
+- Never rely on color alone between series: pair each color with a dash pattern (lines), marker shape (scatter), or hatching (bars/pies), and show both in the legend.
+- Bubble/scatter: radii extend past centers and clip at the scale edge — pad `scales.{x,y}.min/max` ~10% beyond the data, or `layout:{padding:20}`.
+- ≤12 categories where every label matters (months, waterfall): `scales.x.ticks:{ autoSkip:false, maxRotation:45 }`.
+- Number formatting: sign before currency — `-$5M`, never `$-5M`: `v => (v<0?'-':'') + '$' + Math.abs(v) + 'M'`. Round everything displayed.
+
+Legends — always disable the Chart.js default and build custom HTML above or below the canvas (small squares, tight spacing, values included for categorical data):
 
 ```html
 <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:8px;font-size:12px;color:var(--s);">
@@ -62,26 +46,19 @@ categorical data):
 </div>
 ```
 
-Dashboards: metric cards (mockups.md) in a 2–4 column grid above, chart
-below without a card wrapper.
+Dashboards: metric cards (mockups.md) in a 2–4 column grid above, chart below without a card wrapper.
 
 ## Geographic maps — D3 choropleth
 
-Never invent coordinates: no hand-drawn region paths, no inline GeoJSON.
-Fetch real topology or don't draw a map.
+Never invent coordinates: no hand-drawn region paths, no inline GeoJSON. Fetch real topology or don't draw a map.
 
 Topology sources (cdn.jsdelivr.net only — other hosts/packages 404):
-- US states: `https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json`
-  → `d3.geoAlbersUsa()`, object key `.states`
-- World: `https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json`
-  → `d3.geoNaturalEarth1()`, object key `.countries`
-- Country subdivisions: `https://cdn.jsdelivr.net/npm/datamaps@0.5.10/src/js/data/{iso3}.topo.json`
-  (lowercase alpha-3: deu, jpn, gbr…), object key `.{iso3}`
 
-Before writing the widget, fetch the first ~1KB of the topology
-(`curl -s <url> | head -c 1000`) to see the real feature `id` and
-`properties.name` values — key your data on those, never guess. Granularity
-varies (16 features or 232); if it doesn't match the ask, say so in the reply.
+- US states: `https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json` → `d3.geoAlbersUsa()`, object key `.states`
+- World: `https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json` → `d3.geoNaturalEarth1()`, object key `.countries`
+- Country subdivisions: `https://cdn.jsdelivr.net/npm/datamaps@0.5.10/src/js/data/{iso3}.topo.json` (lowercase alpha-3: deu, jpn, gbr…), object key `.{iso3}`
+
+Before writing the widget, fetch the first ~1KB of the topology (`curl -s <url> | head -c 1000`) to see the real feature `id` and `properties.name` values — key your data on those, never guess. Granularity varies (16 features or 232); if it doesn't match the ask, say so in the reply.
 
 ```html
 <div id="map" style="width:100%;"></div>
@@ -109,13 +86,9 @@ Add a quantize-scale legend (one swatch row per bucket) in HTML below the map.
 
 ## ERDs and class diagrams — mermaid
 
-A schema table is header + N field rows + typed columns + crow's-foot
-connectors: a text-layout problem that hand-placed SVG fails every time.
-Use mermaid `erDiagram` (or `classDiagram` — same init, different source).
+A schema table is header + N field rows + typed columns + crow's-foot connectors: a text-layout problem that hand-placed SVG fails every time. Use mermaid `erDiagram` (or `classDiagram` — same init, different source).
 
-The same init also renders `flowchart TD` / `flowchart LR` sources — this is
-the target for the dense-graph fallback in diagrams.md. Keep the
-themeVariables identical so flowcharts, ERDs, and class diagrams match.
+The same init also renders `flowchart TD` / `flowchart LR` sources — this is the target for the dense-graph fallback in diagrams.md. Keep the themeVariables identical so flowcharts, ERDs, and class diagrams match.
 
 ```html
 <div id="erd"></div>
@@ -147,9 +120,4 @@ document.getElementById('erd').innerHTML = svg;
 </script>
 ```
 
-Keep fontFamily and fontSize exactly in the init — mermaid measures text for
-layout with them; deviate and labels clip. Optional polish: post-render,
-replace each entity's sharp-cornered outer `<path>` with a rounded
-`<rect rx="8">` and strip strokes from attribute-row paths so only the outer
-container and header keep borders — alternating row fills already separate
-rows. Skip the polish if it's not worth the script weight for the use case.
+Keep fontFamily and fontSize exactly in the init — mermaid measures text for layout with them; deviate and labels clip. Optional polish: post-render, replace each entity's sharp-cornered outer `<path>` with a rounded `<rect rx="8">` and strip strokes from attribute-row paths so only the outer container and header keep borders — alternating row fills already separate rows. Skip the polish if it's not worth the script weight for the use case.

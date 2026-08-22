@@ -17,6 +17,7 @@ Use this file when the repo uses `package.json`.
 Prefer existing scripts from `package.json`.
 
 Examples:
+
 - `build`
 - `test`
 - `lint`
@@ -26,8 +27,7 @@ Examples:
 - `ci`
 - `dev`
 
-A wrapper justfile should delegate to those scripts before inventing direct
-ESLint, Prettier, or Vite commands.
+A wrapper justfile should delegate to those scripts before inventing direct ESLint, Prettier, or Vite commands.
 
 ## Package-manager command families
 
@@ -53,9 +53,7 @@ fmt        pnpm run format --if-present
 
 ### yarn
 
-Use the repo’s existing lockfile and conventions. The safest generic bootstrap
-is `yarn install`. Prefer a stricter install mode only when the repo already
-uses it consistently.
+Use the repo’s existing lockfile and conventions. The safest generic bootstrap is `yarn install`. Prefer a stricter install mode only when the repo already uses it consistently.
 
 ### bun
 
@@ -77,24 +75,19 @@ fmt        bun run format
 - Astro
 - NestJS
 
-These matter because they often determine whether `build`, `test`, and `dev`
-scripts already exist.
+These matter because they often determine whether `build`, `test`, and `dev` scripts already exist.
 
 ## Workspace guidance
 
-For npm or pnpm workspaces, prefer workspace-native commands when the repo
-already uses them. Otherwise use per-package prefixed recipes plus aggregate
-top-level recipes.
+For npm or pnpm workspaces, prefer workspace-native commands when the repo already uses them. Otherwise use per-package prefixed recipes plus aggregate top-level recipes.
 
 ## Formatting fallback
 
-If the repo has no `format` script but clearly depends on Prettier, a fallback
-command is reasonable:
+If the repo has no `format` script but clearly depends on Prettier, a fallback command is reasonable:
 
 ```text
 prettier --write .
 prettier --check .
 ```
 
-Use that only when the repo does not already express a preferred formatting
-entry point.
+Use that only when the repo does not already express a preferred formatting entry point.

@@ -5,9 +5,11 @@ The generator keeps local state under `.local/harness/`.
 ## State file
 
 Path:
+
 - `.local/harness/state.json`
 
 The state records:
+
 - generator version
 - detection output summary
 - selected architecture, CI mode, CI layout, change detection, release overlay, and dist storage
@@ -55,9 +57,11 @@ Example shape:
 ## Candidate directory
 
 Path:
+
 - `.local/harness/render/`
 
 Use it when:
+
 - an unmanaged file blocked a direct write
 - you want to diff the generated version before copying it over manually
 - you want the skill to show its proposal without mutating project files
@@ -65,6 +69,7 @@ Use it when:
 ## Recovery workflow
 
 If an update result is not what you wanted:
+
 1. inspect `.local/harness/state.json`
 2. inspect `.local/harness/render/`
 3. adjust `--architecture`, `--ci-mode`, `--ci-layout`, `--change-detection`, `--dist-storage`, or `--release-overlay`

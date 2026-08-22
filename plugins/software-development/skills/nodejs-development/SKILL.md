@@ -7,8 +7,7 @@ description: Use for Node.js runtime or package work involving ESM/CJS resolutio
 
 ## Purpose
 
-Build Node.js software against repository runtime, package, module, resource,
-and operational contracts. Keep language concerns in JavaScript or TypeScript.
+Build Node.js software against repository runtime, package, module, resource, and operational contracts. Keep language concerns in JavaScript or TypeScript.
 
 ## Compose Deliberately
 
@@ -82,11 +81,8 @@ Run the narrowest existing checks first:
 4. Pack/build checks when exports, bins, files, declarations, or dependencies change.
 5. Broader integration tests when lifecycle, shared packages, or external resources change.
 
-Where possible, detect leaked handles, incomplete shutdown, unobserved rejection,
-and partial cleanup. Report commands, runtime, package manager, verified behavior,
-and unavailable environments.
+Where possible, detect leaked handles, incomplete shutdown, unobserved rejection, and partial cleanup. Report commands, runtime, package manager, verified behavior, and unavailable environments.
 
 ## Avoid Universal Mandates
 
-Do not prescribe ESM or CommonJS, a package manager, framework, logger,
-environment convention, dependency count, or server architecture universally.
+Do not prescribe ESM or CommonJS, a package manager, framework, logger, environment convention, dependency count, or server architecture universally.

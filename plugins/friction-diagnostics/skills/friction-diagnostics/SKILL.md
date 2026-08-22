@@ -54,7 +54,7 @@ The append is the commit point. `FRICTION_EVENT_ID=` on stdout means the record 
 The write lock is bounded by `FRICTION_LOCK_TIMEOUT`, default 15 seconds. On timeout the error names the lock owner's pid and creation time.
 
 | Code | Meaning |
-| ---- | ------- |
+| --- | --- |
 | 0 | record written; the receipt names the event id |
 | 1 | invalid arguments, unrecoverable validation failure, or the write lock was not acquired within the bounded wait |
 | 2 | input error on `--from-json` — nothing was filed. Malformed JSON is saved to a quarantine file; empty stdin is not, because there was nothing to save |

@@ -1,25 +1,15 @@
 # Interactive explainers — standalone HTML
 
-For anything the user should operate: sliders changing a model, toggles
-switching states, steppers walking through stages, live calculators. The
-decision rule from diagrams.md: if the real-world system has a control, give
-the diagram that control. A cross-section you can operate beats one you can
-only look at.
+For anything the user should operate: sliders changing a model, toggles switching states, steppers walking through stages, live calculators. The decision rule from diagrams.md: if the real-world system has a control, give the diagram that control. A cross-section you can operate beats one you can only look at.
 
-Output is a full .html page: DOCTYPE, head with the token CSS from tokens.md,
-content, then all `<script>` blocks at the end of body. The page is its own
-container: set the page background, max-width (~760px), and padding from the
-token CSS.
+Output is a full .html page: DOCTYPE, head with the token CSS from tokens.md, content, then all `<script>` blocks at the end of body. The page is its own container: set the page background, max-width (~760px), and padding from the token CSS.
 
 ## All interactivity is local
 
-The page runs with no backend and no agent runtime — every behavior is
-implemented in the file's own JavaScript:
-- Filtering, sorting, toggling, stepping, and calculation are all local JS.
-  Nothing calls out to a model or server at runtime.
-- Where per-element explanations are wanted ("click a stage to learn more"),
-  precompute the content into the page and reveal it in a local detail panel
-  — never wire a control to an answer that doesn't exist in the file.
+The page runs with no backend and no agent runtime — every behavior is implemented in the file's own JavaScript:
+
+- Filtering, sorting, toggling, stepping, and calculation are all local JS. Nothing calls out to a model or server at runtime.
+- Where per-element explanations are wanted ("click a stage to learn more"), precompute the content into the page and reveal it in a local detail panel — never wire a control to an answer that doesn't exist in the file.
 - Links (`<a href>`) work normally — use them for further reading.
 
 ## Page scaffold
@@ -51,6 +41,7 @@ border-radius:var(--r-lg);padding:1rem 1.25rem}
 ## Control patterns
 
 Slider with live readout (label left, slider flex, value right):
+
 ```html
 <div style="display:flex;align-items:center;gap:12px;margin:0 0 1.5rem;">
   <label style="font-size:14px;color:var(--s);">Years</label>
@@ -63,21 +54,13 @@ Slider with live readout (label left, slider flex, value right):
 </div>
 ```
 
-- Set `step` on every range so the input emits round values, and still round
-  on display: `Math.round`, `.toFixed(n)`, or `toLocaleString()` for currency.
-  Integers for counts, 1–2 decimals for percentages.
-- Toggle switches: a styled checkbox track (32×18px rounded track, 14px thumb,
-  transform on :checked) — no library needed.
-- Wire with `oninput`/`onchange` or addEventListener; keep state in plain JS
-  variables and re-render the affected DOM only.
+- Set `step` on every range so the input emits round values, and still round on display: `Math.round`, `.toFixed(n)`, or `toLocaleString()` for currency. Integers for counts, 1–2 decimals for percentages.
+- Toggle switches: a styled checkbox track (32×18px rounded track, 14px thumb, transform on :checked) — no library needed.
+- Wire with `oninput`/`onchange` or addEventListener; keep state in plain JS variables and re-render the affected DOM only.
 
 ## Steppers — the correct form for cycles
 
-One panel per stage, position dots (● ○ ○), Prev/Next buttons; Next wraps
-from the last stage to the first — the wrap IS the loop. Each panel owns its
-stage's inputs and products (an event loop's pending callbacks live inside
-the Poll panel, not floating beside a ring). Nothing collides because nothing
-shares a canvas.
+One panel per stage, position dots (● ○ ○), Prev/Next buttons; Next wraps from the last stage to the first — the wrap IS the loop. Each panel owns its stage's inputs and products (an event loop's pending callbacks live inside the Poll panel, not floating beside a ring). Nothing collides because nothing shares a canvas.
 
 ```html
 <div id="panels"></div>
@@ -106,14 +89,11 @@ render();
 </script>
 ```
 
-Panels may contain inline SVG drawn to the same rules as diagrams.md — keep
-`viewBox="0 0 680 H"` so all label math holds.
+Panels may contain inline SVG drawn to the same rules as diagrams.md — keep `viewBox="0 0 680 H"` so all label math holds.
 
 ## Inline SVG + controls (operable illustrative diagrams)
 
-The richest pattern: an SVG mechanism with HTML controls under it. The
-controls mutate SVG attributes or toggle classes. Example wiring for a
-two-zone gradient boundary driven by a slider:
+The richest pattern: an SVG mechanism with HTML controls under it. The controls mutate SVG attributes or toggle classes. Example wiring for a two-zone gradient boundary driven by a slider:
 
 ```html
 <svg viewBox="0 0 680 400" width="100%">
@@ -131,21 +111,12 @@ two-zone gradient boundary driven by a slider:
 
 ## Animation
 
-- CSS `@keyframes` animating only `transform` and `opacity` (plus
-  stroke-dashoffset for flow-along-path effects).
-- Loops under ~2s; gentle, purposeful — show how the system behaves
-  (convection, rotation, packet flight), never motion for its own sake.
-- Wrap every animation in `@media (prefers-reduced-motion: no-preference)`
-  so it's opt-out by default.
-- Flow along a path: `stroke-dasharray: 5 5` + keyframes to
-  `stroke-dashoffset: -20` at ~1.6s linear infinite; vary --dur per path for
-  organic feel. Toggle off by pausing animation-play-state and fading opacity.
+- CSS `@keyframes` animating only `transform` and `opacity` (plus stroke-dashoffset for flow-along-path effects).
+- Loops under ~2s; gentle, purposeful — show how the system behaves (convection, rotation, packet flight), never motion for its own sake.
+- Wrap every animation in `@media (prefers-reduced-motion: no-preference)` so it's opt-out by default.
+- Flow along a path: `stroke-dasharray: 5 5` + keyframes to `stroke-dashoffset: -20` at ~1.6s linear infinite; vary --dur per path for organic feel. Toggle off by pausing animation-play-state and fading opacity.
 - No physics engines or heavy animation libraries.
 
 ## Libraries
 
-Online: load UMD builds from cdnjs.cloudflare.com / cdn.jsdelivr.net /
-unpkg.com via `<script src>`, or ES modules from esm.sh via
-`<script type="module">`. Offline requirement: vanilla JS only — every
-pattern above works without a library. State the dependency in your reply
-either way.
+Online: load UMD builds from cdnjs.cloudflare.com / cdn.jsdelivr.net / unpkg.com via `<script src>`, or ES modules from esm.sh via `<script type="module">`. Offline requirement: vanilla JS only — every pattern above works without a library. State the dependency in your reply either way.

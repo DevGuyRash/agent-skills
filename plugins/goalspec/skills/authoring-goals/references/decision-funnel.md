@@ -34,10 +34,7 @@ Generate a Probe Note only. Creating durable docs for a small known change is us
 
 ## Phase Rules
 
-WHEN the direction is not chosen THEN you SHALL produce an Option Map in chat before any durable docs.
-WHEN the user accepts, chooses, or clearly implies a direction THEN you MAY capture durable decisions under `context/docs/` if it reduces future risk.
-WHEN execution handoff is requested or implied THEN you SHALL include a Probe Pack or Probe Note.
-WHEN a task is a known change THEN you SHALL skip durable docs unless the user explicitly asks for them or the handoff spans sessions/stakeholders.
+WHEN the direction is not chosen THEN you SHALL produce an Option Map in chat before any durable docs. WHEN the user accepts, chooses, or clearly implies a direction THEN you MAY capture durable decisions under `context/docs/` if it reduces future risk. WHEN execution handoff is requested or implied THEN you SHALL include a Probe Pack or Probe Note. WHEN a task is a known change THEN you SHALL skip durable docs unless the user explicitly asks for them or the handoff spans sessions/stakeholders.
 
 ## Blockers And Defaults
 

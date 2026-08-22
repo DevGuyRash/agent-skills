@@ -12,13 +12,11 @@ For each task, stream, request, or queued item, record:
 - whether shutdown drains, aborts, checkpoints, or transfers work;
 - which resources and external effects may remain after interruption.
 
-A dropped future stops being polled; it does not automatically undo completed effects or stop work owned elsewhere.
-Dropping a join handle may detach rather than cancel a task, depending on the runtime and abstraction. Use the repository's actual primitive contract.
+A dropped future stops being polled; it does not automatically undo completed effects or stop work owned elsewhere. Dropping a join handle may detach rather than cancel a task, depending on the runtime and abstraction. Use the repository's actual primitive contract.
 
 ## Review cancellation points
 
-For every branch that can lose a race in `select`-style control flow, identify whether abandoning that future loses buffered data, corrupts framing, leaks capacity, or leaves an operation running.
-Keep protocol frames, transactions, and state-machine transitions owned by a layer that can resume or reconcile them.
+For every branch that can lose a race in `select`-style control flow, identify whether abandoning that future loses buffered data, corrupts framing, leaks capacity, or leaves an operation running. Keep protocol frames, transactions, and state-machine transitions owned by a layer that can resume or reconcile them.
 
 When a timeout wraps an operation, distinguish:
 
@@ -31,16 +29,13 @@ Do not claim all four from evidence of only the first.
 
 ## Retry and shutdown
 
-Retry only errors classified as transient, with an attempt/time budget and an idempotency or deduplication contract.
-Propagate final failure with attempt context; do not create an infinite recovery loop.
+Retry only errors classified as transient, with an attempt/time budget and an idempotency or deduplication contract. Propagate final failure with attempt context; do not create an infinite recovery loop.
 
 For graceful shutdown, stop accepting new work, signal owned tasks, resolve queued work according to policy, await bounded completion, and surface unfinished work. The exact order may differ when a protocol requires it.
 
 ## Backpressure
 
-Bound queues and in-flight work from a stated resource or latency budget.
-Define behavior at capacity: wait, reject, shed, coalesce, or spill through an established durable mechanism.
-An unbounded channel is appropriate only when the producer itself is strictly bounded and that invariant is reviewable.
+Bound queues and in-flight work from a stated resource or latency budget. Define behavior at capacity: wait, reject, shed, coalesce, or spill through an established durable mechanism. An unbounded channel is appropriate only when the producer itself is strictly bounded and that invariant is reviewable.
 
 ## Verification
 

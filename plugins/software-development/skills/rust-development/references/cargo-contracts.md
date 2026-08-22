@@ -16,26 +16,19 @@ The absence of an explicit MSRV is not permission to choose one. Infer only what
 
 ## Preserve feature semantics
 
-Features are additive build-time configuration, not mutually exclusive runtime modes unless the project explicitly enforces that policy.
-Avoid making a previously optional dependency unconditional or enabling its default features accidentally.
-When a feature changes public items or trait implementations, test the supported combinations that observe those differences.
-Use target-specific dependency tables and `cfg` expressions consistently with the existing manifest.
+Features are additive build-time configuration, not mutually exclusive runtime modes unless the project explicitly enforces that policy. Avoid making a previously optional dependency unconditional or enabling its default features accidentally. When a feature changes public items or trait implementations, test the supported combinations that observe those differences. Use target-specific dependency tables and `cfg` expressions consistently with the existing manifest.
 
 Do not assume `--all-features` is a valid product configuration: some repositories intentionally define incompatible feature sets. Follow their matrix.
 
 ## Protect compatibility
 
-For published libraries, review changes to public signatures, trait implementations, type inference, feature availability, re-exports, default generic parameters, and enum exhaustiveness.
-Avoid exposing dependency-owned types or feature flags unless they are part of the intended API.
-Keep crate names, binary names, paths, metadata keys, and build-script outputs stable unless the request changes their contract.
+For published libraries, review changes to public signatures, trait implementations, type inference, feature availability, re-exports, default generic parameters, and enum exhaustiveness. Avoid exposing dependency-owned types or feature flags unless they are part of the intended API. Keep crate names, binary names, paths, metadata keys, and build-script outputs stable unless the request changes their contract.
 
 Treat `Cargo.lock` changes according to repository policy. Do not refresh unrelated packages or widen version requirements to make a local build convenient.
 
 ## Build scripts and generated code
 
-Build scripts execute during compilation. Keep their inputs declared, outputs deterministic where practical, rerun directives accurate, and host-versus-target assumptions explicit.
-Do not read network resources, credentials, or undeclared host state unless the repository contract deliberately requires it.
-For generated bindings or code, preserve the canonical regeneration command and avoid hand-editing generated output without its source.
+Build scripts execute during compilation. Keep their inputs declared, outputs deterministic where practical, rerun directives accurate, and host-versus-target assumptions explicit. Do not read network resources, credentials, or undeclared host state unless the repository contract deliberately requires it. For generated bindings or code, preserve the canonical regeneration command and avoid hand-editing generated output without its source.
 
 ## Verification
 

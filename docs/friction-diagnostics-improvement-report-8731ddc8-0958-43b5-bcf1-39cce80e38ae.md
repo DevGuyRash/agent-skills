@@ -48,7 +48,7 @@ The right response is evolutionary rather than architectural overreach. Preserve
 ### Priority decisions
 
 | Priority | Recommendation | Why now |
-|---:|---|---|
+| --: | --- | --- |
 | P0 | Sanitize every persisted string and every diagnostic path | A controlled probe preserved token-shaped content in JSON source fields. |
 | P0 | Enforce `0700` directories and `0600` files | A controlled probe created the canonical stream as `0644` under a common umask. |
 | P0 | Make explicit repository roots control physical routing | Current behavior can make recorded provenance disagree with storage reality. |
@@ -1057,7 +1057,7 @@ WHEN this command exits successfully THEN every shipped file relevant to normal 
 ### 9.2 Store-integrity matrix
 
 | Scenario | Required result |
-|---|---|
+| --- | --- |
 | Empty new store | First valid append commits one parseable record and produces private derived artifacts. |
 | Healthy existing store | Next ID is allocated under lock without rewriting earlier lines. |
 | Blank line | Policy is explicit and consistent; no identity is derived from raw line count. |
@@ -1712,4 +1712,3 @@ Implement Phase 0 as one coherent delivery slice, not a series of cosmetic docum
 - **Multi-host or shared-service operation:** not established and not currently justified.
 
 The recommendation is therefore: **proceed after the named Phase 0 corrections, preserve the cognitive model, and resist premature platform expansion.**
-

@@ -1,14 +1,8 @@
 # Architecture decision records
 
-These records preserve why repository-wide instruction and evaluation choices were made, the evidence
-that supported them, and what would justify reopening them. They are not a second policy layer or a
-required template for skills and plugins. Current normative instructions remain in
-[`AGENTS.md`](../../AGENTS.md), target contracts, host schemas, and maker requirements.
+These records preserve why repository-wide instruction and evaluation choices were made, the evidence that supported them, and what would justify reopening them. They are not a second policy layer or a required template for skills and plugins. Current normative instructions remain in [`AGENTS.md`](../../AGENTS.md), target contracts, host schemas, and maker requirements.
 
-An accepted ADR records the decision horizon at the time it was made. When evidence changes the
-direction, add or revise a superseding record rather than silently rewriting the historical reason.
-Not every implementation choice needs an ADR; use one only when the decision is consequential and
-reusable across targets.
+An accepted ADR records the decision horizon at the time it was made. When evidence changes the direction, add or revise a superseding record rather than silently rewriting the historical reason. Not every implementation choice needs an ADR; use one only when the decision is consequential and reusable across targets.
 
 | ADR | Decision |
 | --- | --- |

@@ -1,10 +1,11 @@
 # Reviewer Fallback
 
 ## reviewer
-version: 2026.03.08
-Produce canonical review artifacts from semantic routing and concern-specific worker execution.
+
+version: 2026.03.08 Produce canonical review artifacts from semantic routing and concern-specific worker execution.
 
 ### Must
+
 - route by semantic surfaces
 - emit machine artifacts first
 - register one root reviewer ledger and then spawn every required routed worker before synthesis
@@ -14,21 +15,25 @@ Produce canonical review artifacts from semantic routing and concern-specific wo
 - render markdown only from artifacts
 
 ### Must Not
+
 - treat prose as canonical
 - route primarily by churn
-- store full artifacts in _session.toml
+- store full artifacts in \_session.toml
 
 ### Inputs
+
 - target_ref
 - surface_map
 - route_decision
 - selected policy refs
 
 ### Outputs
+
 - child_findings
 - parent_review
 
 ### Checks
+
 - load mode checklist after routing
 - reuse the persisted canonical session_dir and same target_ref string when resuming
 - validate artifacts at hard and soft layers
@@ -38,24 +43,29 @@ Produce canonical review artifacts from semantic routing and concern-specific wo
 - candidate findings that survive into parent_review have a recorded 2-of-3 legitimacy vote with a compact call-chain packet
 
 ### Stop When
+
 - every required worker is finalized or categorically closed and parent_review is finalized
 - hard validation fails
 - session is legacy v1
 
 ### Escalate When
+
 - malformed output
 - security risk exceeds baseline route
 - route revision raises rigor
 
 ### Anti Patterns
+
 - domain sprawl without surface evidence
 - manual markdown synthesis before machine artifact exists
 
 ### Examples
+
 - Low-risk docs-only update -> direct architecture + lite rigor + the full reviewer roster.
 - Auth boundary change -> delegated + forensic + exploit-tracer + contract-comparer + release-risk-assessor coverage.
 
 ### Schema
+
 - mode
 - execution_architecture
 - rigor_level
@@ -68,34 +78,40 @@ Route first. Treat `target-ref` as an opaque session key: branch name, commit SH
 Manual reviewer artifact examples are indexed in SKILL.md, and machine-valid TOML scaffolds live under `<skills-file-root>/references/examples/`.
 
 ## language-detector
-version: 2026.03.08
-Identify the active implementation languages early so research workers can fetch targeted primary-source guidance once.
+
+version: 2026.03.08 Identify the active implementation languages early so research workers can fetch targeted primary-source guidance once.
 
 ### Must
+
 - derive languages from changed files and relevant interfaces
 - normalize languages to stable slugs
 - flag when public-interface or PR context implies downstream docs or API research
 - avoid speculative language guesses when evidence is absent
 
 ### Must Not
+
 - emit product findings in place of language classification
 - trigger duplicate language research for the same language without new evidence
 
 ### Checks
+
 - every detected language has a concrete file or interface signal
 - unknown files do not block known-language handoff
 
 ### Stop When
+
 - the language roster is stable enough for research fan-out
 
 ### Escalate When
+
 - the change cannot be safely reviewed without resolving an unknown generated or embedded language
 
 ## language-research
-version: 2026.03.08
-Fetch current primary-source docs, standards, and idioms for one language so downstream reviewers stop re-browsing the same material.
+
+version: 2026.03.08 Fetch current primary-source docs, standards, and idioms for one language so downstream reviewers stop re-browsing the same material.
 
 ### Must
+
 - use primary sources first
 - prefer official API docs/specs and standards over commentary
 - capture the sources and key idioms in the authored report
@@ -103,25 +119,30 @@ Fetch current primary-source docs, standards, and idioms for one language so dow
 - limit research to guidance relevant to the changed language and routed domains
 
 ### Must Not
+
 - restate generic review doctrine instead of language-specific guidance
 - repeat research already cached for the same language without a new need
 
 ### Checks
+
 - sources are current and language-native
 - guidance maps back to routed review concerns
 - report.md records stable source citations when external docs were used
 
 ### Stop When
+
 - downstream workers have enough language-specific guidance to proceed without re-browsing
 
 ### Escalate When
+
 - no trustworthy primary source can be established for a critical language feature
 
 ## domain-reviewer
-version: 2026.03.08
-Own one review domain, produce a full authored report, and persist machine findings without duplicating sibling scope.
+
+version: 2026.03.08 Own one review domain, produce a full authored report, and persist machine findings without duplicating sibling scope.
 
 ### Must
+
 - own exactly the assigned module or delegated sub-scope
 - write a full report.md even for no-findings or low-signal outcomes
 - walk adjacent code, callers, tests, docs, and PR context when changed lines are insufficient
@@ -133,12 +154,14 @@ Own one review domain, produce a full authored report, and persist machine findi
 - write report.md as a coherent narrative with concrete exploit or failure paths, not as a disconnected bullet list
 
 ### Must Not
+
 - re-run language research already provided by upstream workers
 - re-open already-addressed or low-signal claims
 - delegate the same investigation slice twice
 - leave first-hand sibling exploration to the orchestrator
 
 ### Checks
+
 - claimed_scope and delegated_scope stay disjoint
 - surviving findings keep repo anchors and any external sources are cited in report.md
 - surviving findings name both the enabling condition and the downstream effect or closure path
@@ -147,18 +170,21 @@ Own one review domain, produce a full authored report, and persist machine findi
 - residual risks explain why work stops or escalates
 
 ### Stop When
+
 - the assigned module has a complete report and finalized child_findings
 - the assigned scope is out-of-scope or low-signal and that categorical outcome is documented
 
 ### Escalate When
+
 - new evidence implies a different routed domain must be delegated
 - a major or blocker finding survives challenge
 
 ## final-synthesizer
-version: 2026.03.08
-Worker policy for the `final-synthesis` dispatch role: concatenate descendant reports, preserve recursive counts, and surface only challenged high-signal findings in the parent synthesis.
+
+version: 2026.03.08 Worker policy for the `final-synthesis` dispatch role: concatenate descendant reports, preserve recursive counts, and surface only challenged high-signal findings in the parent synthesis.
 
 ### Must
+
 - walk descendant reports in stable order
 - preserve recursive counts from machine artifacts
 - filter out low-signal, duplicate, non-actionable, and already-addressed claims
@@ -170,12 +196,14 @@ Worker policy for the `final-synthesis` dispatch role: concatenate descendant re
 - produce a specific push-or-stop recommendation naming blocking findings by ID and stating the concrete ship decision — the recommendation SHALL NOT be generic boilerplate
 
 ### Must Not
+
 - invent new evidence
 - duplicate leaf findings as fresh discoveries
 - reopen loops for weak or already-resolved items
 - emit a generic push-or-stop recommendation that does not reference specific finding IDs
 
 ### Checks
+
 - final counts match descendant artifacts
 - concatenation order is stable
 - push-or-stop recommendation is evidence-backed
@@ -184,71 +212,88 @@ Worker policy for the `final-synthesis` dispatch role: concatenate descendant re
 - compositional risk chains are traced for findings that interact across domains
 
 ### Stop When
+
 - the final synthesis is internally consistent and the next action is explicit
 
 ### Escalate When
+
 - a surviving blocker or major finding requires reopen
 
 ## core-correctness
-version: 2026.03.08
-Baseline correctness module that always loads for review routing.
+
+version: 2026.03.08 Baseline correctness module that always loads for review routing.
 
 ### Must
+
 - challenge core behavior invariants
 - cover changed control flow
 - walk adjacent callers, callees, or tests when changed lines underdetermine behavior
 
 ### Must Not
+
 - skip changed behavior because another module exists
 
 ### Checks
+
 - core invariants are covered
 
 ### Stop When
+
 - baseline correctness is covered
 
 ### Escalate When
+
 - counterexample breaks correctness
 
 ## docs-staleness
-version: 2026.03.08
-Behavior-facing documentation and example congruence module.
+
+version: 2026.03.08 Behavior-facing documentation and example congruence module.
 
 ### Must
+
 - compare docs/examples/comments to actual behavior
 - anchor mismatches to repo behavior and cite any external docs or PR context used
 
 ### Must Not
+
 - treat style edits as behavior-facing drift
 
 ### Checks
+
 - reopen eligibility is explicit
 - mismatch stays traceable to behavior and documentation evidence
 
 ### Stop When
+
 - staleness status is clear
 
 ### Escalate When
+
 - behavior-facing staleness remains
 
 ## ship-readiness
-version: 2026.03.08
-Ship-readiness synthesis module that always loads.
+
+version: 2026.03.08 Ship-readiness synthesis module that always loads.
 
 ### Must
+
 - summarize release posture
 - count required-now and follow-up items correctly
 
 ### Must Not
+
 - invent blockers without underlying evidence
 
 ### Checks
+
 - counts match the artifact body
 - blocking items are traceable to evidence
 - ship decision stays anchored to findings or cited supporting sources
 
 ### Stop When
+
 - ship readiness is finalized
 
 ### Escalate When
+
 - blocking items remain
