@@ -59,7 +59,7 @@ Apply this precedence:
 ## Select models, apps, and GPTs
 
 - Unless the user explicitly requests a different selection or asks not to maximize capability, choose the live UI's most capable model and highest reasoning effort compatible with the requested app, GPT, tools, and context. Report any compatibility constraint that prevents this default.
-- Interpret a user-supplied label that matches any live model, compact preset, or reasoning-effort option as a request for that selection, even when the same word also appears in account-plan UI. A bare label such as `Pro` means the matching selection, not account status, unless the user explicitly refers to an account, plan, or subscription.
+- When a user says to use a label that corresponds to a model, compact preset, or reasoning-effort option, interpret it as that selection. This meaning takes precedence over the same label in account-plan UI; bare `Pro` means the Pro selection unless the user explicitly refers to an account, plan, or subscription.
 - Treat model selection as one composed state that may appear as a compact Power preset or as separate advanced Model and Effort controls. An explicitly named dimension wins; otherwise match the requested label against the compact preset and every advanced dimension while preserving unrelated selections.
 - Scope matching and verification to the active selector or composer control; account-plan badges and unrelated page text are not selection evidence.
 - Never silently substitute or declare a requested selection unavailable until every live selection dimension has been inspected.
@@ -73,8 +73,8 @@ Apply this precedence:
 
 - Supply every local file or fact on which the answer depends to the current chat. A local path alone does not give ChatGPT access.
 - Put the task, constraints, and requested output in ordinary composer text. Paste or attach the required current context once.
-- If the selected model or reasoning effort is more capable than the calling agent, treat the ChatGPT target as the task's orchestrating reasoner and the caller as its context supplier; use the same posture whenever the user chose it to obtain stronger reasoning.
-- Give that target a concise task summary, desired outcome, relevant context, settled decisions, invariants and authority boundaries, required deliverables, and observable proof of completion; present consequential unknowns as questions for it to resolve. Leave decomposition, scaffolding, procedures, named reasoning methods, and implementation choices to it unless the user fixed them or a named constraint or hazard makes them necessary.
+- WHEN the requested ChatGPT model or reasoning effort outranks the caller's own, OR the user chose it to obtain stronger reasoning, THEN the target is the task's orchestrating reasoner and the caller serves as its subordinate context supplier. The caller SHALL NOT constrain the target with its own decomposition, scaffolding, procedures, named reasoning methods, or implementation choices unless the user fixed them or a named constraint or hazard makes them necessary.
+- Supply that target with an outcome contract: a concise task summary, desired outcome, relevant context, settled decisions, invariants and authority boundaries, required deliverables, observable proof of completion, and consequential unknowns phrased as questions for it to resolve.
 - Before sending, verify filenames, attachment count, previews, and completed uploads; remove only duplicate or stale attachments added by the current invocation. Ask before changing attachments that were already present.
 - Compare the before/after attachment inventory before removing anything; treat an attachment with uncertain identity as pre-existing protected state.
 - Add filenames plus a revision, digest, inventory, or unique marker when identity matters. Ask ChatGPT to confirm that identity before relying on a consequential answer.
