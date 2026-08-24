@@ -58,9 +58,11 @@ Apply this precedence:
 
 ## Select models, apps, and GPTs
 
-- Preserve the current model and reasoning level when the user does not specify them.
-- When requested, choose the exact currently available model and reasoning level, then verify the visible selection before sending.
-- Never silently substitute. If the requested selection is unavailable, report the live available state and ask for direction.
+- Unless the user explicitly requests a different selection or asks not to maximize capability, choose the live UI's most capable model and highest reasoning effort compatible with the requested app, GPT, tools, and context. Report any compatibility constraint that prevents this default.
+- Treat model selection as one composed state that may appear as a compact Power preset or as separate advanced Model and Effort controls. An explicitly named dimension wins; otherwise match the requested label against the compact preset and every advanced dimension while preserving unrelated selections.
+- Scope matching and verification to the active selector or composer control; account-plan badges and unrelated page text are not selection evidence.
+- Never silently substitute or declare a requested selection unavailable until every live selection dimension has been inspected.
+- Before sending, require positive visible evidence of the intended selection. If verification is absent or inconclusive, do not send.
 - Discover available ChatGPT apps, tools, connectors, and custom GPTs from the live UI.
 - Select the exact requested app or GPT and verify its active identity before adding context. Report restrictions it imposes on models, tools, or context.
 - Never silently replace an unavailable app or GPT.
@@ -88,6 +90,7 @@ Apply this precedence:
 - Recognize that sending can permanently retain the prompt and attachments.
 - Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
 - Send once, then confirm one live-derived signal that this generation is active in the same tab, chat, and turn. Do not resend merely because a wait ends.
+- Never activate a control that offers to answer sooner while a reasoning run is active, currently familiar as `Answer now` or any equivalent. Preserve the selected model and effort through normal completion; the control's presence is evidence of activity, not completion.
 - Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use separate tabs and preferably separate chats, or serialize the cycle. A shared worktree does not establish browser ownership; never coordinate browser use through repository files, temporary files, page globals, or shared locks.
 - Treat partial streaming and pauses as active work while the confirmed signal remains. Treat failed or timed-out browser operations, ambiguous predicates, navigation, tab closure, and execution-context loss as inconclusive rather than complete.
 
