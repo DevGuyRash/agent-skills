@@ -31,6 +31,7 @@ Treat effects separately:
 - Existing Projects, chats, drafts, files, credentials, grants, and history are protected state. Never delete, rename, move, edit, or archive them without explicit authority.
 - Before leaving any chat, resolve the loss risk from its unsent draft, pending attachments, or active generation. Do not clear or overwrite pre-existing composer state to make room for the new task.
 - If a current tab contains a draft, pending attachment, or active generation, perform fresh work in a different tab object. Verify the tab identities differ before navigation, retain the protected tab unchanged, and stop for direction if separation cannot be established.
+- Before creating a tab, inventory the host-owned identities of existing tabs. Track the host-owned identity returned for every tab created by this invocation; active-tab position, variable names, worktree identity, URLs, and page labels do not establish ownership.
 
 ## Orient before acting
 
@@ -69,158 +70,42 @@ Apply this precedence:
 - Never silently replace an unavailable app or GPT.
 - Treat installation, connection, third-party sign-in, consent, permission grants, purchases, publication, messages, and other outward actions as separate authorization boundaries. Ask the user to perform authentication or consent personally.
 
+## Frame and maintain the consultation
+
+- Keep the user's current task-level outcome and requested deliverable as the governing mission throughout the consultation. Transfer, as it becomes available, the decision-relevant reality ChatGPT cannot safely supply for itself: material observations and evidence; assumptions marked as assumptions; uncertainty; settled decisions and their authority; unsettled value choices; boundaries and invariants; interface requirements; and proportionate observable success evidence. Include anything that could materially change judgment, authority, or verification; this is semantic content, not a mandatory template.
+- Preserve the authority status of material across turns. An unsettled objective, frame, taxonomy, decomposition, candidate set, intermediate question, method, proposed answer, or interpretation of an earlier response remains provisional; imperative wording, repetition, summarization, or incorporation into a later prompt does not by itself settle it. Do not make such material the operative problem, route, or answer space unless an authorized decision, an external interface, or a named and evidenced material hazard requires it. Bind it only to that extent. Otherwise present it as provisional and non-exhaustive; naming options or steps does not close the set or fix the route.
+- Constrain acceptable results and required interfaces, not analysis. Leave ChatGPT able to revise the objective or frame, reject premises, add alternatives, choose its decomposition, investigation, tools, and methods, and surface consequences that could change the decision. Presentation requirements may organize the deliverable but must not silently define the analysis space. Execute a sound settled frame directly; correct or surface material defects within authority rather than preserving them or staging unnecessary review.
+- For unsettled structure, ChatGPT must be able to replace the caller's categories, decomposition, or framing and still fully comply with the prompt unless an authorized source expressly fixed that structure. Removing provisional material must still leave an intelligible task-level mission.
+
+### Authority and custody
+
+- Model or reasoning selection does not change task authority; explicit user delegation may assign unsettled task judgment to ChatGPT. The browser-operating agent owns browser custody, context and provenance integrity, authority enforcement, and observable verification. It may correct failures in those functions but must not silently settle unresolved task judgment or user values. When ChatGPT owns the relevant task judgment, return verification mismatches as observations and evidence for reconsideration; any suggested repair remains a proposal unless applicable authority makes it binding.
+
 ## Supply reliable context
 
-- Supply every local file or fact on which the answer depends to the current chat. A local path alone does not give ChatGPT access.
-- Put the task, constraints, and requested output in ordinary composer text. Paste or attach the required current context once.
-- WHEN the user's model or reasoning-effort request identifies ChatGPT as a higher-reasoning destination, OR the user otherwise chooses ChatGPT to obtain stronger reasoning, THEN, subject to the user's instructions and applicable authority boundaries, the target is the task's orchestrating reasoner. The caller SHALL NOT re-rank itself above that target; it serves as the subordinate context supplier and verifier of observable results. If verification exposes a mismatch, return that observation to the target for reconsideration rather than prescribing a caller-authored repair.
-- Transfer only decision-relevant WHAT as a concise outcome contract: task summary, desired outcome, relevant context, user-set or externally fixed decisions, invariants and authority boundaries, required deliverables, proportionate observable evidence of completion, and consequential unknowns as questions. These are semantic content, not a mandatory template; omit anything that cannot change the target's decision, authority, or completion evidence.
-- The target owns the HOW—analysis, decomposition, investigation, scaffolding, tool and method choice, and implementation choices—within the stated tool and authority boundaries. By default, omit caller-authored approaches. Include one only as a clearly non-binding question or proposal when omission would hide an observed result or material risk. A method is binding only if the user fixed it or an applicable constraint or evidenced material hazard makes that specific method necessary; state why.
+- Supply or attach every authorized, decision-relevant local input that ChatGPT cannot inspect; a local path alone does not grant access. Avoid duplicate copies of the same current context in one turn.
 - Before sending, verify filenames, attachment count, previews, and completed uploads; remove only duplicate or stale attachments added by the current invocation. Ask before changing attachments that were already present.
 - Compare the before/after attachment inventory before removing anything; treat an attachment with uncertain identity as pre-existing protected state.
-- Add filenames plus a revision, digest, inventory, or unique marker when identity matters. Ask ChatGPT to confirm that identity before relying on a consequential answer.
+- When identity matters, add a filename plus revision, digest, inventory, or unique marker and verify it from the attachment surface. For consequential work, ask ChatGPT to echo the marker only as corroboration, never as the sole proof of identity.
 - Keep short text inline. Long pasted text may appear as an attachment-like pill, currently familiar as `Pasted text`; this still supplies the text, so do not repaste it merely because it left the visible composer body.
 - Inspect the whole composer and attachment tray; an unchanged editable text body does not prove that a paste or attachment failed.
 - Expect images and documents to appear as thumbnails, filename pills, or previews. Wait for processing to finish before sending.
 - If an input limit or unsupported type blocks context, split or bundle it while preserving identity and order.
-- Start a fresh chat with the complete current baseline needed for the task.
-- Send later changes as patches only while that baseline remains reliable. Identify each patch's base revision and affected files.
-- When the thread grows long, patches accumulate, or ChatGPT loses state, resend the current complete files instead of extending the historical patch chain.
-- When moving to another chat, resend all relevant current files.
+- When starting or moving to a fresh chat, supply the complete current baseline. Use patches only while that baseline remains reliable, identifying each patch's base revision and affected files. When patches accumulate, files are substantially replaced, or state is lost, resend the complete current baseline rather than extend the patch history.
 - Exclude credentials, secrets, browser data, generated dependencies, build outputs, and irrelevant history.
 
 ## Send, wait, and return the result
 
 - Recognize that sending can permanently retain the prompt and attachments.
 - Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
-- Send once, then confirm one live-derived signal that this generation is active in the same tab, chat, and turn. Do not resend merely because a wait ends.
-- Never activate a control that offers to answer sooner while a reasoning run is active, currently familiar as `Answer now` or any equivalent. Preserve the selected model and effort through normal completion; the control's presence is evidence of activity, not completion.
-- Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use separate tabs and preferably separate chats, or serialize the cycle. A shared worktree does not establish browser ownership; never coordinate browser use through repository files, temporary files, page globals, or shared locks.
-- Treat partial streaming and pauses as active work while the confirmed signal remains. Treat failed or timed-out browser operations, ambiguous predicates, navigation, tab closure, and execution-context loss as inconclusive rather than complete.
-
-### Choose a waiting path
-
-Prefer a native semantic conditional wait only when the current host and version have demonstrated that it honors the required condition and duration. Its completion signal must belong to the same tab, chat, turn, and generation; it must be impossible to satisfy while generation remains active; and it must mean settled completion. A documented timeout parameter or an active control becoming hidden does not prove those properties.
-
-The following is host-side JavaScript shape, not code for execution inside the page. Derive every locator and state from the current semantic or accessibility UI.
-
-```js
-async function waitWithVerifiedNativeLocator({
-  active,
-  activeState,
-  settledCompletion,
-  completionState,
-  readActive,
-  activeTimeoutMs,
-  completionTimeoutMs,
-}) {
-  try {
-    await active.waitFor({
-      state: activeState,
-      timeoutMs: activeTimeoutMs,
-    });
-
-    await settledCompletion.waitFor({
-      state: completionState,
-      timeoutMs: completionTimeoutMs,
-    });
-
-    const activeNow = await readActive();
-
-    return activeNow === false
-      ? { status: "complete" }
-      : { status: "inconclusive", reason: "postcondition_failed" };
-  } catch {
-    return { status: "inconclusive", reason: "native_wait_failed" };
-  }
-}
-```
-
-If native waiting is unavailable or ends prematurely, use the longest external host wait demonstrated to be reliable, then resume and perform exactly one immediate active-state check. Keep only `{ seenActive, settling }` in current task context. If the host supplies a continuation or wait handle, continue that handle instead of re-entering the model. Without one, sparse resumptions cannot be eliminated; keep them silent and minimal.
-
-The following is also host-side JavaScript shape, never page-executed code:
-
-```js
-const initialWaitState = Object.freeze({
-  seenActive: true,
-  settling: false,
-});
-
-async function nextSparseWaitStep(
-  state,
-  readActive,
-  { sparseSleepMs, settleSleepMs },
-) {
-  if (
-    !Number.isFinite(sparseSleepMs) ||
-    !Number.isFinite(settleSleepMs) ||
-    sparseSleepMs <= 0 ||
-    settleSleepMs <= 0
-  ) {
-    return {
-      status: "inconclusive",
-      reason: "invalid_wait_duration",
-      state,
-    };
-  }
-
-  let active;
-
-  try {
-    active = await readActive();
-  } catch {
-    return {
-      status: "inconclusive",
-      reason: "state_check_failed",
-      state,
-    };
-  }
-
-  if (active !== true && active !== false) {
-    return {
-      status: "inconclusive",
-      reason: "state_check_inconclusive",
-      state,
-    };
-  }
-
-  if (active) {
-    return {
-      status: "waiting",
-      state: { seenActive: true, settling: false },
-      sleepMs: sparseSleepMs,
-    };
-  }
-
-  if (!state.seenActive) {
-    return {
-      status: "inconclusive",
-      reason: "active_not_confirmed",
-      state,
-    };
-  }
-
-  if (!state.settling) {
-    return {
-      status: "waiting",
-      state: { seenActive: true, settling: true },
-      sleepMs: settleSleepMs,
-    };
-  }
-
-  return {
-    status: "complete",
-    state: { seenActive: true, settling: true },
-  };
-}
-```
-
-- Initialize `initialWaitState` only after positively confirming active generation.
-- Make `readActive()` return `true` or `false` only for an unambiguous inspection of the same live signal in the same tab and chat; make ambiguity return another value or throw.
-- When a step returns `waiting`, invoke the external host wait for `sleepMs`. On resumption, do not inspect or explain anything else; run the next step with the returned state.
-- Reset settling when activity reappears. Two absent endpoint samples separated by the settle wait are the strongest fallback available from sparse sampling. If literal continuous-absence proof is required, return inconclusive instead of claiming completion.
-- Do not impose a short overall deadline. Generations lasting 23 minutes or longer can be ordinary active work. Continue bounded waits without narrating unchanged state.
-- The sparse host-side loop above is the only polling pattern permitted here. Never build the wait inside page execution or replace that loop with in-page observers, timer promises, polling, network requests, DOM mutation, clicks, event dispatch, or persisted scripts.
+- Send once, identify the resulting user turn, and bind every later wait and read check to the same tab, chat, turn, and generation. Confirm either unambiguous live activity or a newly completed response surface belonging to that turn. Do not resend merely because a host wait or browser operation ends.
+- Treat an enabled same-turn stop, cancel, or interrupt action—and any live thinking, searching, tool use, streaming, or continuation status—as activity. Identify controls from their current semantic role and state, not a fixed label, icon, class, or coordinate. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user has explicitly supplied you with mid-turn instructions.
+- Do not infer a stall or completion from elapsed time, unchanged response text or DOM length, repeated activity wording, an operation timeout, a substantial-looking response, or completed-looking controls.
+- Prefer a native semantic wait only when the current host has demonstrated that it tracks the same turn and cannot report completion while activity persists. Otherwise use bounded external host waits; after each resumption, inspect only the same activity signal. Continue a host-provided wait or continuation handle when available.
+- Claim natural completion only when the new same-turn response surface is present, no live activity or continuation status remains, and the activity signal is unambiguously absent on two checks separated by a settle wait. If activity reappears, restart settling. If activity was never observed, require independent positive identification of the new same-turn response; absence alone is not completion evidence.
+- An explicit stopped or interrupted state is not natural completion. Any ambiguous check, failed operation, navigation, tab closure, execution-context loss, or inability to associate state with the same turn is inconclusive. Two endpoint samples do not prove literal continuous absence; when such proof is required, report inconclusive.
+- Keep waiting in the host. Do not implement waiting through page-executed observers, timers, polling, network requests, persisted scripts, DOM mutation, clicks, or event dispatch, because those create uncontrolled page state and can outlive browser custody. Do not impose a short overall deadline; continue bounded waits without narrating unchanged state.
+- Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use separate tabs and preferably separate chats, or serialize the cycle. Never coordinate browser ownership through repository files, temporary files, page globals, or shared locks.
 
 ### Read the complete response
 
@@ -231,6 +116,5 @@ async function nextSparseWaitStep(
 - Verify each requested artifact in the surface that carries its payload. A completed response shell, label, control, or extracted text does not establish that a file, image, diagram, citation, or app result is usable; if applicable processing or materialization still leaves it unavailable, report inconclusive without assigning a cause.
 - Return the actual findings to the calling task. Preserve a useful durable chat and return its identity or URL when helpful.
 - Extract a temporary-chat result before leaving. Avoid abandoned drafts, pending uploads, and duplicate attachments.
-- Before creating a tab, inventory the host-owned identities of existing tabs. Track the host-owned identity returned for each tab the invocation creates; active-tab position, variable names, worktree identity, URLs, and page labels do not establish ownership.
 - After extracting a result and resolving its draft, uploads, attachments, dialogs, and generation state, close only a tab whose tracked created identity still resolves unambiguously. Closing it does not delete a durable chat; return the chat identity or URL when that is the retained artifact.
 - Treat uncertain or rebound tab identity as pre-existing protected state and do not close it. Keep a verified created tab open only when the user asked for the live page or unresolved state requires a handoff, and make that disposition explicit.
