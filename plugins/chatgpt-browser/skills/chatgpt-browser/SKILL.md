@@ -16,7 +16,7 @@ Use ChatGPT through the user's authorized interactive browser while preserving c
 
 ## Respect ownership and authority
 
-- Use the host's authorized interactive-browser control capability for browser selection, navigation, inspection, clicks, typing, screenshots, and recovery mechanics. If no such capability is available, report that limitation; do not install or improvise one without authority.
+- The user's explicit browser choice SHALL win. Otherwise you SHALL use the host's `Browser` capability when available, then another suitable host-provided interactive browser that can reuse the user's authorized session. You SHALL NOT select standalone or external Playwright while a suitable built-in browser capability exists. Standalone automation MAY be used when no suitable built-in capability exists. You SHALL follow the selected capability's own mechanics and SHALL NOT install or improvise browser control without authority. Playwright-compatible methods exposed inside the selected built-in browser surface are part of that surface, not standalone or external Playwright.
 - Use this skill only for ChatGPT-specific conversation judgment. Leave generic browser work, browser testing, OpenAI API work, and generic second-model review to their owners.
 - Reuse the signed-in browser and useful ChatGPT tabs when available.
 - If ChatGPT is signed out, ask the user to sign in manually in that browser and continue after confirmation.
@@ -72,19 +72,22 @@ Apply this precedence:
 
 ## Frame and maintain the consultation
 
-- Preserve an intelligible user request instead of replacing it with a caller-authored persona, rubric, decomposition, or answer plan. Add only authorized decision-relevant context ChatGPT cannot safely recover, and preserve the difference between facts, assumptions, proposals, settled decisions, and user values wherever it could change the result.
-- Bind only the user's outcome, user-set or externally required interfaces, authority boundaries, material hazards, and proportionate success evidence. A deliverable is a usable result, not permission to design ChatGPT's answer. Do not invent roles, word limits, numbered return inventories, verdict menus, taxonomies, focus directives, negative checklists, required conclusions, reasoning steps, methods, emphasis, or presentation.
+- Every outbound prompt you send SHALL state only the user's desired result, authorized decision-relevant reality, genuine fixed requirements, and the inputs needed for the task.
+- You SHALL NOT prescribe or constrain how ChatGPT derives or expresses the result. ChatGPT owns every task judgment between the supplied reality and the required result.
+- Your own work SHALL retain its actual authority. An unsettled plan, proposal, analysis, or interpretation SHALL NOT be presented for confirmation, completion, implementation, or operationalization as the presumed path.
+- You SHALL NOT add a persona, assignment, agenda, success rubric, answer structure, or expected conclusion that the user or a real consumer interface did not require.
 
 ### Authority and custody
 
-- When the user delegates the task judgment to higher-reasoning ChatGPT, act as its context supplier, browser custodian, and observable-results verifier rather than the task's orchestrator. Leave ChatGPT free to challenge the premise, replace the frame, add alternatives, and choose its decomposition, investigation, methods, emphasis, and presentation.
+- When the user delegates judgment to higher-reasoning ChatGPT, you SHALL own only context integrity, browser custody, authority preservation, and observable verification. ChatGPT SHALL own the task judgment.
 
 ## Supply reliable context
 
 - Supply or attach every authorized, decision-relevant local input that ChatGPT cannot inspect; a local path alone does not grant access. Avoid duplicate copies of the same current context in one turn.
+- When a plan or artifact is under review, you SHALL supply the complete current artifact. You SHALL NOT replace the reviewed object with a summary, selected questions, or a template for ChatGPT's response.
 - Before sending, verify filenames, attachment count, previews, and completed uploads; remove only duplicate or stale attachments added by the current invocation. Ask before changing attachments that were already present.
 - Compare the before/after attachment inventory before removing anything; treat an attachment with uncertain identity as pre-existing protected state.
-- When identity matters, add a filename plus revision, digest, inventory, or unique marker and verify it from the attachment surface. For consequential work, ask ChatGPT to echo the marker only as corroboration, never as the sole proof of identity.
+- When identity matters, add a filename plus revision, digest, inventory, or unique marker and verify it from the attachment surface.
 - Keep short text inline. Long pasted text may appear as an attachment-like pill, currently familiar as `Pasted text`; this still supplies the text, so do not repaste it merely because it left the visible composer body.
 - Inspect the whole composer and attachment tray; an unchanged editable text body does not prove that a paste or attachment failed.
 - Expect images and documents to appear as thumbnails, filename pills, or previews. Wait for processing to finish before sending.
@@ -98,7 +101,7 @@ Apply this precedence:
 - Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
 - Send once, identify the resulting user turn, and bind every later wait and read check to the same tab, chat, turn, and generation. Confirm either unambiguous live activity or a newly completed response surface belonging to that turn. Do not resend merely because a host wait or browser operation ends.
 - Treat an enabled same-turn stop, cancel, or interrupt action—and any live thinking, searching, tool use, streaming, or continuation status—as activity. Identify controls from their current semantic role and state, not a fixed label, icon, class, or coordinate. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user has explicitly supplied you with mid-turn instructions.
-- After completion, follow up only for a user-supplied change, a material clarification, corrected or omitted decision-relevant reality, or an observably missing user-set or external interface. State the new fact or mismatch without prescribing the reasoning or repair. If the answer serves the user's task, return it.
+- After completion, you SHALL NOT steer, reshape, shorten, expand, or reframe an answer that already serves the user's task. You MAY follow up only with new or corrected decision-relevant reality or an observably unmet user-set or external interface.
 - Do not infer a stall or completion from elapsed time, unchanged response text or DOM length, repeated activity wording, an operation timeout, a substantial-looking response, or completed-looking controls.
 - Prefer a native semantic wait only when the current host has demonstrated that it tracks the same turn and cannot report completion while activity persists. Otherwise use bounded external host waits; after each resumption, inspect only the same activity signal. Continue a host-provided wait or continuation handle when available.
 - Claim natural completion only when the new same-turn response surface is present, no live activity or continuation status remains, and the activity signal is unambiguously absent on two checks separated by a settle wait. If activity reappears, restart settling. If activity was never observed, require independent positive identification of the new same-turn response; absence alone is not completion evidence.
