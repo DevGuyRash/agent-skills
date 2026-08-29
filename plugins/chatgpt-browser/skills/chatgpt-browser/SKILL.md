@@ -70,16 +70,13 @@ Apply this precedence:
 - Never silently replace an unavailable app or GPT.
 - Treat installation, connection, third-party sign-in, consent, permission grants, purchases, publication, messages, and other outward actions as separate authorization boundaries. Ask the user to perform authentication or consent personally.
 
-## Frame and maintain the consultation
+## Maintain a reasoning conversation
 
-- Every outbound prompt you send SHALL state only the user's desired result, authorized decision-relevant reality, genuine fixed requirements, and the inputs needed for the task.
-- You SHALL NOT prescribe or constrain how ChatGPT derives or expresses the result. ChatGPT owns every task judgment between the supplied reality and the required result.
-- Your own work SHALL retain its actual authority. An unsettled plan, proposal, analysis, or interpretation SHALL NOT be presented for confirmation, completion, implementation, or operationalization as the presumed path.
-- You SHALL NOT add a persona, assignment, agenda, success rubric, answer structure, or expected conclusion that the user or a real consumer interface did not require.
-
-### Authority and custody
-
-- When the user delegates judgment to higher-reasoning ChatGPT, you SHALL own only context integrity, browser custody, authority preservation, and observable verification. ChatGPT SHALL own the task judgment.
+- These invariants govern every message you send to ChatGPT, including the opening, questions, corrections, disagreements, and follow-ups. The conversation SHALL remain a continuation of the user's task; it SHALL NOT become a sequence of tasks authored by you.
+- Speak with ChatGPT conversationally as a reasoning collaborator with independent judgment. Use the conversation for genuine inquiry, brainstorming, feedback, disagreement, and exploration. You SHALL NOT address ChatGPT as an executor receiving a work order or turn your message into an instruction brief or specification unless that form is itself required by the user or a real consumer interface.
+- Carry forward the user's desired result, authorized decision-relevant reality, genuine fixed requirements, and needed inputs. You MAY state what you observe, think, doubt, or disagree with and ask genuine questions that arise from the work. Those contributions SHALL retain their actual authority: your perspective is not a user requirement, settled decision, or task boundary.
+- A question, proposed direction, downstream need, or anticipated next step that originates with you SHALL remain evidence about the state of the work. You SHALL NOT convert it into ChatGPT's assignment, required deliverable, scope, agenda, decomposition, completion standard, answer form, or presumed direction.
+- You SHALL own context integrity, browser custody, authority preservation, observable verification, and truthful representation of your perspective. When judgment is delegated to higher-reasoning ChatGPT, ChatGPT SHALL own every task judgment left open by the user and any real consumer interface, including whether your framing is sound, which open issues matter, and what response best advances the user's outcome. You SHALL NOT prescribe or constrain how it derives or expresses that response beyond requirements actually set by the user or a real consumer interface.
 
 ## Supply reliable context
 
@@ -101,7 +98,7 @@ Apply this precedence:
 - Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
 - Send once, identify the resulting user turn, and bind every later wait and read check to the same tab, chat, turn, and generation. Confirm either unambiguous live activity or a newly completed response surface belonging to that turn. Do not resend merely because a host wait or browser operation ends.
 - Treat an enabled same-turn stop, cancel, or interrupt action—and any live thinking, searching, tool use, streaming, or continuation status—as activity. Identify controls from their current semantic role and state, not a fixed label, icon, class, or coordinate. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user has explicitly supplied you with mid-turn instructions.
-- After completion, you SHALL NOT steer, reshape, shorten, expand, or reframe an answer that already serves the user's task. You MAY follow up only with new or corrected decision-relevant reality or an observably unmet user-set or external interface.
+- After a response, you SHALL NOT request a rewrite, refinement, expansion, reduction, or reorganization merely to make the answer fit your preferred next step. You MAY continue with new or corrected decision-relevant reality, an observably unmet user-set or external interface, or a genuine material question, disagreement, or uncertainty that could change the user's outcome or the correctness of work serving it. Preserve its actual authority and leave the response judgment to ChatGPT.
 - Do not infer a stall or completion from elapsed time, unchanged response text or DOM length, repeated activity wording, an operation timeout, a substantial-looking response, or completed-looking controls.
 - Prefer a native semantic wait only when the current host has demonstrated that it tracks the same turn and cannot report completion while activity persists. Otherwise use bounded external host waits; after each resumption, inspect only the same activity signal. Continue a host-provided wait or continuation handle when available.
 - Claim natural completion only when the new same-turn response surface is present, no live activity or continuation status remains, and the activity signal is unambiguously absent on two checks separated by a settle wait. If activity reappears, restart settling. If activity was never observed, require independent positive identification of the new same-turn response; absence alone is not completion evidence.
