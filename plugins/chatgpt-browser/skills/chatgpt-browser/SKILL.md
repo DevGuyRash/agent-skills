@@ -53,7 +53,7 @@ Apply this precedence:
 - Prefer multiple focused chats in one Project over one indefinitely growing thread.
 - Do not assume another Project chat's discussion or files are active context.
 - Prefer a fresh chat to repurposing an existing thread unless the user chose that thread.
-- Verify temporary mode before sending. Treat it as disposable and potentially unrecoverable; extract the needed result before leaving.
+- When—and only when—using a temporary chat, select the live option that permits plugins and custom instructions (currently `Personalized`) and positively verify both temporary mode and that selection before sending. If selection or verification fails, do not send. Do not change this setting for an ordinary chat. Treat the temporary chat as disposable and potentially unrecoverable; extract the needed result before leaving.
 - Do not claim temporary-chat Project inheritance, file persistence, or recoverability without current visible evidence.
 - Start a fresh chat when the subject changes materially, patch history becomes long, files are substantially replaced, stale assumptions repeat, context becomes confused, or answer quality declines. Do not impose a universal turn count.
 
