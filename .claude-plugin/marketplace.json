@@ -62,14 +62,14 @@
     {
       "name": "skill-auditor",
       "source": "./plugins/skill-auditor",
-      "description": "Audit existing skills and plugins with concrete evidence",
-      "version": "3.3.2"
+      "description": "Audit skills; delegate new comparisons when available",
+      "version": "4.0.0"
     },
     {
       "name": "split-testing",
       "source": "./plugins/split-testing",
-      "description": "Run flexible blind comparisons across alternatives",
-      "version": "1.0.1"
+      "description": "Least-cost defensible evidence for consequential comparisons",
+      "version": "2.0.0"
     },
     {
       "name": "chatgpt-browser",

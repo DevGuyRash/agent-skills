@@ -1,9 +1,18 @@
 #!/usr/bin/env sh
 set -eu
 
-if ! command -v just >/dev/null 2>&1; then
-  echo "error: just is required for this repo's managed pre-push hook" >&2
-  exit 1
-fi
+zero=0000000000000000000000000000000000000000
+verified=""
 
-just ci
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  [ -n "${local_sha:-}" ] || continue
+  [ "$local_sha" != "$zero" ] || continue
+  case " $verified " in
+    *" $local_sha "*) continue ;;
+  esac
+  python3 scripts/package_skills.py verify-dist-receipt \
+    --source "commit:$local_sha" \
+    --platform-set required \
+    --skill split-testing
+  verified="$verified $local_sha"
+done

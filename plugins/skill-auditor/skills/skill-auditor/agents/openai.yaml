@@ -1,4 +1,4 @@
 interface:
   display_name: "Skill Auditor"
-  short_description: "Audit existing skills and plugins with concrete evidence"
+  short_description: "Audit skills; delegate new comparisons when available"
   default_prompt: "Use $skill-auditor to audit this skill or plugin."

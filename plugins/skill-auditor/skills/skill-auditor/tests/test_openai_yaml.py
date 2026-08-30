@@ -23,7 +23,7 @@ class OpenAiYamlTests(unittest.TestCase):
         self.assertEqual(read_interface_value("display_name"), "Skill Auditor")
         self.assertEqual(
             read_interface_value("short_description"),
-            "Audit existing skills and plugins with concrete evidence",
+            "Audit skills; delegate new comparisons when available",
         )
         self.assertEqual(
             read_interface_value("default_prompt"),

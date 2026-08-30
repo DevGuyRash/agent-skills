@@ -123,7 +123,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools",
-      "description": "Audit existing skills and plugins with concrete evidence"
+      "description": "Audit skills; delegate new comparisons when available"
     },
     {
       "name": "split-testing",
@@ -136,7 +136,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Testing",
-      "description": "Run flexible blind comparisons across alternatives"
+      "description": "Least-cost defensible evidence for consequential comparisons"
     },
     {
       "name": "chatgpt-browser",

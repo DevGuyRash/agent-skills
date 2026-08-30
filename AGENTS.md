@@ -4,7 +4,69 @@ This file contains cross-cutting constraints that apply regardless of language o
 
 Skills in this repo follow the portable core defined by the [Open Agent Skills standard](https://agentskills.io/specification). Host-specific packaging, catalog visibility, shortening, omission, activation, and execution behavior remain governed by the exact supported host surface.
 
-For Agent Skill and plugin quality, apply the canonical repository authority in `plugins/skill-auditor/skills/skill-auditor/references/repo-overlay.md`; local contracts state only scope-specific commitments.
+For Agent Skill and plugin quality, apply repository-level authorities only where they are genuinely cross-cutting. Keep plugin-local contracts scoped to the plugin that ships them.
+
+## Governing Architecture
+
+These rules apply only when you create or revise instructions for another AI. They govern the instruction system, not the surrounding answer.
+
+The executor's intelligence is the resource. Supply only what it cannot safely provide: mission, environment, relevant reality and authority, decision-relevant state, loop limits, success evidence, precedence, and interfaces. Leave reasoning and methods open unless the route itself carries a named hazard.
+
+Treat the deliverable as an instruction system, not necessarily one prompt. Put stable intent in instructions; changing facts in context; mutable decisions in state; authority in permissions, tools, and schemas; persistence and stopping in the loop; correctness in tests; and handoff in the output contract. Do not duplicate controls.
+
+Completeness means coverage of every material control need, not every possible concern. Remove anything whose absence would not weaken mission, authority, material hazards, continuity, verification, or handoff.
+
+These functions are semantic contracts, not a reasoning sequence, template, or closed ontology. Omit, combine, or add as needed.
+
+### Mission
+
+Define the outcome, whom it serves, the current decision horizon, and what distinguishes done from plausible. Separate required properties from suggested methods. Keep later commitments conditional when earlier evidence could change them.
+
+A mechanism chosen by the author remains a proposal unless the maker fixed it, the task delegates that decision, or a named requirement cannot otherwise be met. Binding force attaches to the required property and hazard. Preserve alternatives satisfying the same mission, boundaries, evidence, and interfaces.
+
+### Environment
+
+Supply what the executor cannot safely infer, inspect, or rediscover: resources, limits, permissions, dependencies, hazards, external effects, and consequential gaps. Explain non-obvious hazards through consequences; mark consequential gaps rather than guessing.
+
+Keep consequential information's source and authority unambiguous. Preserve observation, assumption, proposal, commitment, and evidence distinctions wherever collapsing them could change truth, authorization, or verification. Do not surface the taxonomy merely to prove it exists. Encode any mandatory consequence once.
+
+### State
+
+Keep action-changing state recoverable across turns and handoffs: objective, settled decisions, assumptions, evidence, dependencies, blockers, alternatives, progress, and reopening conditions.
+
+Choose prose, tables, logs, graphs, Mermaid, or another fitting representation. Every representation is a revisable projection, not canonical truth or a closed ontology. Replace it when understanding changes; absence from a view never excludes a possibility.
+
+### Boundaries
+
+Define prohibited outcomes, authority limits, approvals, and constraints whose violation would cause material harm, invalidate the work, or exceed the mandate. Prefer external enforcement where more reliable. State each boundary once.
+
+### Loop
+
+Define progress, continuation, stopping, completion, retry, escalation, handoff, budgets, and blocked behavior. Loop controls govern persistence and commitment, not internal reasoning. Bind only the current evidence horizon. A probe must be able to reopen what it tests; later commitments remain conditional while earlier evidence could invalidate them.
+
+### Verification
+
+Define observable evidence of completion, correctness, safety, and handoff. Prefer executable checks and/or observable evidence. Assertion alone is not evidence. Match verification strength to consequence.
+
+### Precedence
+
+Resolve foreseeable collisions among mission, authority, safety, correctness, scope, and reversibility. Do not invent exhaustive branches for unknown space. Where no safe residual is known, preserve uncertainty and stop or escalate.
+
+### Output Contract
+
+Specify audience, destination, interface or format, completion evidence, and conditions for claiming success. Impose structure or style only when it improves use.
+
+### Binding Language
+
+Use natural prose for purpose, facts, rationale, definitions, and open judgment. Address obligations directly to the executor. SHALL means required, SHALL NOT prohibited, SHOULD a strong default, and MAY permitted.
+
+Use formal clauses only when literal compliance or auditability is part of the outcome: invariants, hard boundaries, recognizable triggers, necessary sequences, and precedence. A clause earns binding force only when it transfers a maker requirement, non-inferable constraint, or compensation for a demonstrated model weakness, and compliance can be checked.
+
+Bind outcomes, not pathways. Prescribe sequence only when order carries a named hazard. Say each obligation once. Keep model-specific compensation separate from stable governance and tie it to an observed failure, evaluation, and removal condition.
+
+Instructions must stand alone, preserve compliant routes, keep consequential information unambiguous, and place controls where it is most reliable.
+
+Do not require private chain-of-thought, named reasoning methods, visible compliance theater, or proof that judgment occurred. Do not promote an inference, recommendation, or assumption into a maker-set requirement. Do not name this architecture or copy its structure unless doing so materially improves the produced artifact.
 
 ---
 
@@ -429,31 +491,13 @@ This pattern is demonstrated by the code-review skill's `mpcr` protocol CLI. Use
 
 ## Skill authoring: subagent dispatch prompt design
 
-When a skill dispatches work to subagents, the dispatch prompt is the single most important artifact. A worker subagent has NO access to the skill's SKILL.md, reference docs, or conversation history — the dispatch prompt IS their entire instruction set.
+Before claiming what a delegated worker does or does not receive, inspect the selected host's actual inheritance, mounted files, ambient instructions, tools, permissions, and conversation behavior. A fresh context may still inherit consequential state, while an isolated worker may still need complete authoritative sources.
 
-### Self-containment
+Give each delegated function a role-complete instruction: its mission, legitimate authoritative inputs, environment, authority and effect boundaries, observable completion evidence, and the narrowest real output interface. Transfer what the role cannot safely infer; do not pass controller hypotheses, preferred methods, sibling outputs, hidden resolution logic, or broader orchestration state unless they are legitimately part of the role or tested deployment.
 
-The dispatch prompt SHALL contain everything the worker needs:
+Do not impose a semantic response template solely for controller convenience. Preserve native artifacts and free-form judgment when they are the real interface. Require fields, files, identifiers, or structure only when an actual downstream consumer, deterministic transport, custody boundary, or demonstrated failure makes them necessary; keep raw payloads when a normalizer or extractor is used.
 
-- What to do (task description)
-- What to work on (file list, scope boundaries)
-- What NOT to do (forbidden actions, scope limits)
-- What to return (output format template)
-- How to identify themselves (IDs, session info)
-
-If the prompt says "follow the reviewer protocol" without including the protocol, the worker is stuck.
-
-### Scope containment
-
-The dispatch prompt SHALL explicitly list forbidden actions. Workers that can accidentally run orchestrator-level commands (registration, spawning children, finalization) will corrupt session state.
-
-### Output contracts
-
-The dispatch prompt SHALL include an explicit output template — not prose describing what to return, but a fill-in-the-blank structure. This ensures the orchestrator can reliably parse and synthesize results from multiple workers.
-
-### Cross-role consistency
-
-When a skill has multiple dispatch roles, keep their interfaces consistent enough for the orchestrator to dispatch and synthesize them reliably. Judge role depth by whether it transfers the mission, boundaries, evidence, and output contract the role actually needs—not by relative prompt size.
+Prevent delegated functions from invoking controller-only mutations or expanding scope. State prohibitions that are materially reachable in the selected host, and enforce them through permissions or isolated workspaces when that is more reliable than prose.
 
 ---
 

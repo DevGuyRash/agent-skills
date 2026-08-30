@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+verify_release() {
+  python3 scripts/package_skills.py verify-dist-receipt \
+    --source index \
+    --platform-set required \
+    --skill split-testing
+}
+
+release_workstation=$(git config --bool --get agent-tooling.releaseWorkstation 2>/dev/null || true)
+if [ "$release_workstation" = "true" ]; then
+  if ! verify_release; then
+    python3 scripts/package_skills.py dist-refresh \
+      --source index \
+      --platform-set required \
+      --stage \
+      --skill split-testing
+    echo "error: refreshed and staged Split Testing release artifacts; review them, then commit again" >&2
+    exit 1
+  fi
+else
+  verify_release
+fi
+
+python3 scripts/package_skills.py verify-target-matrix --platform-set required

@@ -5,6 +5,7 @@ members = [
   "crates/docker-architect-compose",
   "crates/docker-architect-image",
   "crates/render-table",
+  "crates/split-test",
 ]
 resolver = "2"
 

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "comparative-evidence-request.v1.schema.json",
+  "title": "Comparative Evidence Request v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "claim_id",
+    "target_ref",
+    "authority_ref",
+    "claim",
+    "decision_context",
+    "existing_evidence_refs",
+    "closure_conditions",
+    "unresolved_consequence",
+    "prohibited_effects"
+  ],
+  "properties": {
+    "schema": {"const": "comparative-evidence-request.v1"},
+    "claim_id": {"type": "string", "minLength": 1},
+    "target_ref": {},
+    "authority_ref": {},
+    "claim": {"type": "string", "minLength": 1},
+    "decision_context": {},
+    "existing_evidence_refs": {"type": "array"},
+    "closure_conditions": {
+      "type": "array",
+      "description": "Condition IDs are stable and unique within this request.",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["id", "statement"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": true
+      }
+    },
+    "unresolved_consequence": {},
+    "prohibited_effects": {},
+    "extensions": {"type": "object"}
+  },
+  "additionalProperties": true
+}

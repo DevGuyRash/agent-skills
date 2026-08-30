@@ -1,0 +1,52 @@
+{
+  "artifacts": [
+    {
+      "artifact": "split-test",
+      "cargo_target": "aarch64-unknown-linux-musl",
+      "dev_cache_cas_digest": "0e385fb60cda530cda440a15c046ef490b96eab2bb41866ea2cf802f66b20e15",
+      "output_digest": "sha256:1325d9eac7621aedef847dc46134ac4ab571620fad640902628291cb16d1989f",
+      "platform": "linux-aarch64",
+      "recipe": "cargo-zigbuild",
+      "recipe_version": "0.23.3"
+    },
+    {
+      "artifact": "split-test",
+      "cargo_target": "x86_64-unknown-linux-musl",
+      "dev_cache_cas_digest": "4ac54f9c247f20c152de7f10e3bf0bdda23b62cf3631072d3bc109cedb8ee929",
+      "output_digest": "sha256:de3f1e63924788da03ce3dd554c90510494402438f68f4782b0b0375caad9e65",
+      "platform": "linux-x86_64",
+      "recipe": "cargo-zigbuild",
+      "recipe_version": "0.23.3"
+    },
+    {
+      "artifact": "split-test.exe",
+      "cargo_target": "aarch64-pc-windows-msvc",
+      "dev_cache_cas_digest": "dcc72262d9515f3e0aa9db5fecd99e87f0564154ed57286ce773074b7793b973",
+      "output_digest": "sha256:cb42ed489a41ab2132b980efad7b095ea78e9aac44e1c28aa8f7d9367865623d",
+      "platform": "windows-aarch64",
+      "recipe": "cargo-xwin",
+      "recipe_version": "0.23.1"
+    },
+    {
+      "artifact": "split-test.exe",
+      "cargo_target": "x86_64-pc-windows-msvc",
+      "dev_cache_cas_digest": "4a4833836b372f8012e0c6a9871e2fba53e98df48460bf2c6d0afc05920d096e",
+      "output_digest": "sha256:ef425a9021c71c07356b639a39461c3df0935d7fc3411d38a81a3c82a38030ae",
+      "platform": "windows-x86_64",
+      "recipe": "cargo-xwin",
+      "recipe_version": "0.23.1"
+    }
+  ],
+  "build_recipe_digest": "sha256:19e63fad88172ed807dcbc8f0c8860005c4e2dd4c9e57145c7bcb537d01baa25",
+  "schema": "agent-tooling-skill-dist-receipt.v2",
+  "skill": "split-testing",
+  "source": {
+    "cargo_lock_digest": "sha256:ade32f7c6b644b1ad4da409cb0d2e936d8c5a52a84e945084cabd367961c6f05",
+    "digest": "sha256:abdbf736d5c4e1ae3e8fde9ed776efe98fd7e027b9648784cbebe56bc5df6b89",
+    "packaging_config_digest": "sha256:28bc5e7fa0b510291668520949c132dd46818136a75888f56032f28c183c66e8",
+    "rust_toolchain_digest": "sha256:7dbcd3c9663e0120a47fdc32fa56cdcc3dbc075e3b8a1a8377036a9af1dec578"
+  },
+  "toolchain": {
+    "channel": "1.94.1"
+  }
+}

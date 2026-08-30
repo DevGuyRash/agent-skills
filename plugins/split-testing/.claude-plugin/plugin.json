@@ -1,8 +1,8 @@
 {
   "name": "split-testing",
   "displayName": "Split Testing",
-  "version": "1.0.1",
-  "description": "Design and run blinded comparative tests of any alternatives with variable conditions, runs, rounds, models, agents, and reviewers, including when a decision has no ready-made test tasks. Use for split testing, A/B or multi-way comparisons, repeated trials, blind evaluation, or evidence that one option performs better than another.",
+  "version": "2.0.0",
+  "description": "Determine the least-cost defensible basis for a live, consequential comparative decision or material claim across artifacts, people, systems, processes, or agent runs. Use for consequential A/B, split, benchmark, blind or unblinded, repeated, audience, or N-way comparisons when existing evidence, rightful preference, or new observations must be assessed, checked, or arranged.",
   "author": {
     "name": "Agent Tooling Contributors"
   },
@@ -11,8 +11,8 @@
     "blind-evaluation",
     "claude",
     "codex",
-    "comparative-testing",
-    "experiments",
+    "comparative-evidence",
+    "decision-evidence",
     "split-testing"
   ]
 }

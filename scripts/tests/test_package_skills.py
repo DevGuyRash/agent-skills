@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import platform
 import subprocess
@@ -264,6 +265,7 @@ class PackageSkillsTests(unittest.TestCase):
         package_skills.REPO_ROOT = Path("/workspace/repo")
         os.environ["CARGO_HOME"] = "/custom/cargo"
         os.environ["RUSTUP_HOME"] = "/custom/rustup"
+        os.environ["PATH"] = "/tmp/bin:/dev-cache/intercepts:/usr/bin"
         os.environ["RUSTFLAGS"] = "-C target-cpu=native"
         self.addCleanup(setattr, package_skills, "REPO_ROOT", original_repo_root)
         self.addCleanup(os.environ.clear)
@@ -274,7 +276,30 @@ class PackageSkillsTests(unittest.TestCase):
         self.assertIn("--remap-path-prefix=/workspace/repo=/workspace", env["RUSTFLAGS"])
         self.assertIn("--remap-path-prefix=/custom/cargo=/cargo-home", env["RUSTFLAGS"])
         self.assertIn("--remap-path-prefix=/custom/rustup=/rustup-home", env["RUSTFLAGS"])
-        self.assertTrue(env["RUSTFLAGS"].endswith("-C target-cpu=native"))
+        self.assertNotIn("target-cpu=native", env["RUSTFLAGS"])
+        self.assertIn("-Cstrip=symbols", env["RUSTFLAGS"])
+        self.assertNotIn("/Brepro", env["RUSTFLAGS"])
+        self.assertEqual(env["PATH"], "/tmp/bin:/usr/bin")
+        self.assertEqual(env["CARGO_INCREMENTAL"], "0")
+        self.assertEqual(env["SOURCE_DATE_EPOCH"], "1")
+
+    def test_windows_release_env_adds_reproducible_linker_flag(self) -> None:
+        original_env = os.environ.copy()
+        os.environ["CARGO_HOME"] = "/custom/cargo"
+        os.environ["RUSTUP_HOME"] = "/custom/rustup"
+        self.addCleanup(os.environ.clear)
+        self.addCleanup(os.environ.update, original_env)
+
+        env = package_skills.build_env_for_root(
+            Path("/workspace/repo"), "x86_64-pc-windows-msvc"
+        )
+
+        self.assertIn("--remap-path-prefix=/workspace/repo=/workspace", env["RUSTFLAGS"])
+        self.assertIn("--remap-path-prefix=/custom/cargo=/cargo-home", env["RUSTFLAGS"])
+        self.assertIn("--remap-path-prefix=/custom/rustup=/rustup-home", env["RUSTFLAGS"])
+        self.assertIn("-Clink-arg=/Brepro", env["RUSTFLAGS"])
+        self.assertIn("-Clink-arg=/DEBUG:NONE", env["RUSTFLAGS"])
+        self.assertIn("-Clink-arg=/timestamp:1", env["RUSTFLAGS"])
 
     def test_container_rustflags_use_fixed_container_prefixes(self) -> None:
         original_env = os.environ.copy()
@@ -421,6 +446,507 @@ class PackageSkillsTests(unittest.TestCase):
                 include_tests=True,
             )
         )
+
+    def test_tracked_dist_paths_follow_each_skill_target_matrix_and_binary_name(self) -> None:
+        write(
+            package_skills.CONFIG_PATH,
+            textwrap.dedent(
+                """
+                [skills.tool]
+                package = "tool"
+                binary = "tool"
+                skill_dir = "plugins/tool/skills/tool"
+                launcher = "scripts/tool"
+                required_platforms = ["linux-x86_64"]
+                ci_platforms = ["linux-x86_64"]
+
+                [skills."split-testing"]
+                package = "split-test"
+                binary = "split-test"
+                skill_dir = "plugins/split-testing/skills/split-testing"
+                launcher = "scripts/split-test"
+                required_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
+                ci_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
+
+                [skills."split-testing".targets."linux-x86_64"]
+                artifact = "split-test"
+                cargo_target = "x86_64-unknown-linux-gnu"
+
+                [skills."split-testing".targets."linux-aarch64"]
+                artifact = "split-test"
+                cargo_target = "aarch64-unknown-linux-gnu"
+
+                [skills."split-testing".targets."windows-x86_64"]
+                artifact = "split-test.exe"
+                cargo_target = "x86_64-pc-windows-msvc"
+
+                [skills."split-testing".targets."windows-aarch64"]
+                artifact = "split-test.exe"
+                cargo_target = "aarch64-pc-windows-msvc"
+                """
+            ).strip()
+            + "\n",
+        )
+        config = package_skills.load_config()
+
+        tracked = {
+            path.relative_to(self.repo).as_posix()
+            for path in package_skills.tracked_dist_paths(config, "required")
+        }
+
+        self.assertEqual(
+            tracked,
+            {
+                "plugins/tool/skills/tool/dist/linux-x86_64/tool",
+                "plugins/split-testing/skills/split-testing/dist/linux-x86_64/split-test",
+                "plugins/split-testing/skills/split-testing/dist/linux-aarch64/split-test",
+                "plugins/split-testing/skills/split-testing/dist/windows-x86_64/split-test.exe",
+                "plugins/split-testing/skills/split-testing/dist/windows-aarch64/split-test.exe",
+            },
+        )
+
+    def test_sync_artifacts_is_transactional_when_any_expected_payload_is_missing(self) -> None:
+        write(
+            package_skills.CONFIG_PATH,
+            textwrap.dedent(
+                """
+                [skills.first]
+                package = "first"
+                binary = "first"
+                skill_dir = "plugins/first/skills/first"
+                launcher = "scripts/first"
+                required_platforms = ["linux-x86_64"]
+                ci_platforms = ["linux-x86_64"]
+
+                [skills.second]
+                package = "second"
+                binary = "second"
+                skill_dir = "plugins/second/skills/second"
+                launcher = "scripts/second"
+                required_platforms = ["linux-x86_64"]
+                ci_platforms = ["linux-x86_64"]
+                """
+            ).strip()
+            + "\n",
+        )
+        first_repo = self.repo / "plugins" / "first" / "skills" / "first" / "dist" / "linux-x86_64" / "first"
+        second_repo = self.repo / "plugins" / "second" / "skills" / "second" / "dist" / "linux-x86_64" / "second"
+        write(first_repo, "old first\n")
+        write(second_repo, "old second\n")
+        first_repo.chmod(0o755)
+        second_repo.chmod(0o755)
+
+        artifact_root = self.repo / "artifact-downloads"
+        artifact_first = artifact_root / "skill-dist-linux-x86_64" / "plugins" / "first" / "skills" / "first" / "dist" / "linux-x86_64" / "first"
+        write(artifact_first, "new first\n")
+
+        with self.assertRaises(SystemExit) as ctx:
+            package_skills.sync_artifacts(artifact_root, "required")
+        self.assertIn("missing artifact payload", str(ctx.exception))
+        self.assertEqual(first_repo.read_text(encoding="utf-8"), "old first\n")
+        self.assertEqual(second_repo.read_text(encoding="utf-8"), "old second\n")
+
+    def test_dist_refresh_uses_frozen_git_index_and_records_dev_cache_receipt(self) -> None:
+        write(
+            package_skills.CONFIG_PATH,
+            textwrap.dedent(
+                """
+                [skills."split-testing"]
+                package = "split-test"
+                binary = "split-test"
+                skill_dir = "plugins/split-testing/skills/split-testing"
+                launcher = "scripts/split-test"
+                required_platforms = ["windows-x86_64"]
+                ci_platforms = ["windows-x86_64"]
+                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/split-test", "packaging/skills.toml"]
+
+                [skills."split-testing".targets."windows-x86_64"]
+                artifact = "split-test.exe"
+                cargo_target = "x86_64-pc-windows-msvc"
+                recipe = "cargo-xwin"
+                recipe_version = "0.23.1"
+                """
+            ).strip()
+            + "\n",
+        )
+        write(self.repo / "Cargo.lock", "# locked\n")
+        write(self.repo / "Cargo.toml", "[workspace]\nresolver = \"2\"\n")
+        write(self.repo / "crates" / "split-test" / "src" / "main.rs", "fn main() {}\n")
+        write(self.repo / "crates" / "split-test" / "Cargo.toml", "[package]\nname = \"split-test\"\nversion = \"2.0.0\"\n")
+        write(
+            self.repo / "rust-toolchain.toml",
+            "[toolchain]\nchannel = \"stable\"\n",
+        )
+        write(self.repo / "plugins" / "split-testing" / "skills" / "split-testing" / "scripts" / "split-test", "#!/bin/sh\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+
+        original_run = package_skills.subprocess.run
+        original_stage_from_frozen_index = package_skills.stage_from_frozen_index
+        original_dev_cache_temp_root = package_skills.dev_cache_temp_root
+        calls: list[tuple[list[str], str | None]] = []
+        dev_cache_temp = self.repo / "dev-cache-temp"
+        dev_cache_temp.mkdir()
+        package_skills.dev_cache_temp_root = lambda: dev_cache_temp
+
+        def fake_run(cmd, *args, **kwargs):
+            calls.append((list(cmd), kwargs.get("cwd")))
+            if cmd[:3] == ["git", "write-tree", "--missing-ok"]:
+                return subprocess.CompletedProcess(cmd, 0, "tree123\n", "")
+            if cmd[:2] == ["git", "checkout-index"]:
+                return original_run(cmd, *args, **kwargs)
+            if cmd[:3] == ["git", "status", "--short"]:
+                return subprocess.CompletedProcess(cmd, 0, "M " + cmd[-1] + "\n", "")
+            if cmd[:3] == ["git", "add", "--"]:
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+            if cmd[:4] == ["dev-cache", "artifacts", "put", "--json"]:
+                payload = {"digest": "cache123"}
+                return subprocess.CompletedProcess(cmd, 0, json.dumps(payload), "")
+            raise AssertionError(f"unexpected command: {cmd}")
+
+        build_payloads: list[Path] = []
+
+        def fake_stage_from_frozen_index(selected_targets, frozen_root, artifacts_root):
+            self.assertTrue(frozen_root.is_dir())
+            self.assertTrue(artifacts_root.is_dir())
+            self.assertEqual(len(selected_targets), 1)
+            skill_name, _, platform_id = selected_targets[0]
+            self.assertEqual(skill_name, "split-testing")
+            self.assertEqual(platform_id, "windows-x86_64")
+            payload = (
+                artifacts_root
+                / "plugins"
+                / "split-testing"
+                / "skills"
+                / "split-testing"
+                / "dist"
+                / "windows-x86_64"
+                / "split-test.exe"
+            )
+            write(payload, "windows payload\n")
+            payload.chmod(0o755)
+            build_payloads.append(payload)
+
+        package_skills.subprocess.run = fake_run
+        package_skills.stage_from_frozen_index = fake_stage_from_frozen_index
+        self.addCleanup(setattr, package_skills, "subprocess", package_skills.subprocess)
+        self.addCleanup(setattr, package_skills, "stage_from_frozen_index", original_stage_from_frozen_index)
+        self.addCleanup(setattr, package_skills, "dev_cache_temp_root", original_dev_cache_temp_root)
+        self.addCleanup(setattr, package_skills.subprocess, "run", original_run)
+
+        changed = package_skills.dist_refresh("index", "required", skill_names=["split-testing"], git_stage=True)
+
+        self.assertEqual(len(build_payloads), 2, "release refresh must compare two independent builds")
+        self.assertTrue(
+            all(str(payload).startswith(str(dev_cache_temp)) for payload in build_payloads),
+            "release build roots must be owned by dev-cache",
+        )
+        self.assertEqual(
+            set(changed),
+            {
+                "plugins/split-testing/skills/split-testing/dist/windows-x86_64/split-test.exe",
+                "plugins/split-testing/skills/split-testing/dist/receipt.json",
+            },
+        )
+        receipt = self.repo / "plugins/split-testing/skills/split-testing/dist/receipt.json"
+        self.assertTrue(receipt.is_file())
+        payload = json.loads(receipt.read_text(encoding="utf-8"))
+        self.assertEqual(payload["schema"], "agent-tooling-skill-dist-receipt.v2")
+        self.assertRegex(payload["source"]["digest"], r"^sha256:[0-9a-f]{64}$")
+        self.assertRegex(payload["source"]["cargo_lock_digest"], r"^sha256:[0-9a-f]{64}$")
+        self.assertRegex(payload["build_recipe_digest"], r"^sha256:[0-9a-f]{64}$")
+        self.assertEqual(payload["artifacts"][0]["platform"], "windows-x86_64")
+        self.assertEqual(payload["artifacts"][0]["artifact"], "split-test.exe")
+        self.assertEqual(payload["artifacts"][0]["recipe"], "cargo-xwin")
+        self.assertEqual(payload["artifacts"][0]["recipe_version"], "0.23.1")
+        self.assertEqual(payload["artifacts"][0]["dev_cache_cas_digest"], "cache123")
+        self.assertEqual(
+            sum(1 for cmd, _ in calls if cmd[:2] == ["git", "checkout-index"]),
+            2,
+        )
+        self.assertTrue(
+            any(
+                cmd[:4] == ["dev-cache", "artifacts", "put", "--json"]
+                and cmd[-1]
+                == str(
+                    self.repo
+                    / "plugins"
+                    / "split-testing"
+                    / "skills"
+                    / "split-testing"
+                    / "dist"
+                    / "windows-x86_64"
+                    / "split-test.exe"
+                )
+                for cmd, _ in calls
+            )
+        )
+
+    def test_release_tool_versions_use_the_plugin_executables_directly(self) -> None:
+        calls: list[tuple[list[str], str]] = []
+        original_command_version = package_skills.command_version
+        original_which = package_skills.shutil.which
+
+        def fake_command_version(command: list[str], label: str) -> str:
+            calls.append((command, label))
+            if command == ["cargo-zigbuild", "--version"]:
+                return "cargo-zigbuild 0.23.3"
+            if command == ["zig", "version"]:
+                return "0.16.0"
+            if command == ["cargo-xwin", "--version"]:
+                return "cargo-xwin 0.23.1"
+            if command == ["clang", "--version"]:
+                return "clang version 22.1.8"
+            raise AssertionError(f"unexpected version command: {command}")
+
+        package_skills.command_version = fake_command_version
+        package_skills.shutil.which = lambda command: "/usr/bin/lld-link" if command == "lld-link" else original_which(command)
+        self.addCleanup(setattr, package_skills, "command_version", original_command_version)
+        self.addCleanup(setattr, package_skills.shutil, "which", original_which)
+
+        package_skills.verify_release_tool(
+            {
+                "targets": {
+                    "linux-x86_64": {
+                        "recipe": "cargo-zigbuild",
+                        "recipe_version": "0.23.3",
+                        "zig_version": "0.16.0",
+                    }
+                }
+            },
+            "linux-x86_64",
+        )
+        package_skills.verify_release_tool(
+            {
+                "targets": {
+                    "windows-x86_64": {
+                        "recipe": "cargo-xwin",
+                        "recipe_version": "0.23.1",
+                        "llvm_version": "22.1.8",
+                    }
+                }
+            },
+            "windows-x86_64",
+        )
+
+        self.assertIn((["cargo-zigbuild", "--version"], "cargo-zigbuild"), calls)
+        self.assertIn((["cargo-xwin", "--version"], "cargo-xwin"), calls)
+
+    def test_dev_cache_temp_root_uses_explicit_repo_routing(self) -> None:
+        routed = self.repo / "owned-temp"
+        original_run = package_skills.subprocess.run
+        calls: list[list[str]] = []
+
+        def fake_run(command, *args, **kwargs):
+            calls.append(list(command))
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"adapter": "temp", "path": str(routed)}),
+                "",
+            )
+
+        package_skills.subprocess.run = fake_run
+        self.addCleanup(setattr, package_skills.subprocess, "run", original_run)
+
+        self.assertEqual(package_skills.dev_cache_temp_root(), routed)
+        self.assertTrue(routed.is_dir())
+        self.assertEqual(
+            calls,
+            [["dev-cache", "path", "temp", "--repo", str(self.repo), "--json"]],
+        )
+
+    def test_verify_dist_receipt_is_pure_and_detects_source_or_binary_drift(self) -> None:
+        write(
+            package_skills.CONFIG_PATH,
+            textwrap.dedent(
+                """
+                [skills."split-testing"]
+                package = "split-test"
+                binary = "split-test"
+                skill_dir = "plugins/split-testing/skills/split-testing"
+                launcher = "scripts/split-test"
+                required_platforms = ["linux-x86_64"]
+                ci_platforms = ["linux-x86_64"]
+                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/split-test", "packaging/skills.toml"]
+
+                [skills."split-testing".targets."linux-x86_64"]
+                artifact = "split-test"
+                cargo_target = "x86_64-unknown-linux-musl"
+                recipe = "cargo-zigbuild"
+                recipe_version = "0.23.3"
+                """
+            ).strip()
+            + "\n",
+        )
+        write(self.repo / "Cargo.toml", "[workspace]\nresolver = \"2\"\n")
+        write(self.repo / "Cargo.lock", "# locked\n")
+        write(self.repo / "rust-toolchain.toml", "[toolchain]\nchannel = \"1.94.1\"\n")
+        original_source = "fn main() {}\n"
+        write(self.repo / "crates/split-test/src/main.rs", original_source)
+        write(self.repo / "crates/split-test/Cargo.toml", "[package]\nname = \"split-test\"\nversion = \"2.0.0\"\n")
+        artifact = self.repo / "plugins/split-testing/skills/split-testing/dist/linux-x86_64/split-test"
+        write(artifact, "binary\n")
+        artifact.chmod(0o755)
+
+        config = package_skills.load_config()
+        skill = config["split-testing"]
+        source = package_skills.source_receipt(skill, self.repo)
+        receipt = {
+            "schema": "agent-tooling-skill-dist-receipt.v2",
+            "skill": "split-testing",
+            "source": source,
+            "toolchain": {"channel": "1.94.1"},
+            "build_recipe_digest": package_skills.build_recipe_digest(skill, ["linux-x86_64"]),
+            "artifacts": [{
+                "platform": "linux-x86_64",
+                "artifact": "split-test",
+                "cargo_target": "x86_64-unknown-linux-musl",
+                "recipe": "cargo-zigbuild",
+                "recipe_version": "0.23.3",
+                "output_digest": package_skills.sha256_file(artifact),
+                "dev_cache_cas_digest": "cache123",
+            }],
+        }
+        receipt_path = self.repo / "plugins/split-testing/skills/split-testing/dist/receipt.json"
+        write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+
+        original_stage = package_skills.stage_from_frozen_index
+        package_skills.stage_from_frozen_index = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("verification must never build")
+        )
+        self.addCleanup(setattr, package_skills, "stage_from_frozen_index", original_stage)
+
+        package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+
+        missing_toolchain = json.loads(json.dumps(receipt))
+        del missing_toolchain["toolchain"]
+        write(receipt_path, json.dumps(missing_toolchain, sort_keys=True) + "\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        with self.assertRaises(SystemExit) as toolchain_error:
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+        self.assertIn("toolchain", str(toolchain_error.exception))
+        write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+
+        missing_cache_binding = json.loads(json.dumps(receipt))
+        del missing_cache_binding["artifacts"][0]["dev_cache_cas_digest"]
+        write(receipt_path, json.dumps(missing_cache_binding, sort_keys=True) + "\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        with self.assertRaises(SystemExit) as cache_error:
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+        self.assertIn("dev-cache CAS digest", str(cache_error.exception))
+        write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+
+        write(self.repo / "crates/split-test/src/main.rs", "fn main() { println!(\"changed\"); }\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", "crates/split-test/src/main.rs"], check=True)
+        with self.assertRaises(SystemExit) as source_error:
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+        self.assertIn("source digest", str(source_error.exception))
+
+        write(self.repo / "crates/split-test/src/main.rs", original_source)
+        subprocess.run(["git", "-C", str(self.repo), "add", "crates/split-test/src/main.rs"], check=True)
+        write(artifact, "mutated\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", str(artifact.relative_to(self.repo))], check=True)
+        with self.assertRaises(SystemExit) as artifact_error:
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+        self.assertIn("artifact digest", str(artifact_error.exception))
+
+
+class HookTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory(prefix="package-skills-hook-test-")
+        self.root = Path(self.tmpdir.name)
+
+    def tearDown(self) -> None:
+        self.tmpdir.cleanup()
+
+    def _run_hook(
+        self,
+        hook_name: str,
+        *,
+        release_workstation: bool,
+        verify_fails: bool = False,
+        stdin: str = "",
+    ) -> tuple[subprocess.CompletedProcess[str], str]:
+        bin_dir = self.root / "bin"
+        log_path = self.root / "log.txt"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        python3 = bin_dir / "python3"
+        git = bin_dir / "git"
+        just = bin_dir / "just"
+        python3.write_text(
+            "#!/bin/sh\nprintf 'python3 %s\\n' \"$*\" >> \"$HOOK_LOG\"\n"
+            "case \"$*\" in *verify-dist-receipt*) [ \"${HOOK_VERIFY_FAIL:-}\" = 1 ] && exit 1;; esac\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        git.write_text(
+            "#!/bin/sh\nprintf 'git %s\\n' \"$*\" >> \"$HOOK_LOG\"\n"
+            "case \"$*\" in 'config --bool --get agent-tooling.releaseWorkstation')"
+            " [ \"${HOOK_RELEASE:-}\" = 1 ] && printf 'true\\n';; esac\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        just.write_text(
+            "#!/bin/sh\nprintf 'just %s\\n' \"$*\" >> \"$HOOK_LOG\"\n",
+            encoding="utf-8",
+        )
+        python3.chmod(0o755)
+        git.chmod(0o755)
+        just.chmod(0o755)
+
+        env = os.environ.copy()
+        env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+        env["HOOK_LOG"] = str(log_path)
+        env["HOOK_RELEASE"] = "1" if release_workstation else "0"
+        env["HOOK_VERIFY_FAIL"] = "1" if verify_fails else "0"
+
+        result = subprocess.run(
+            [str(MODULE_PATH.parents[1] / "githooks" / hook_name)],
+            check=False,
+            cwd=MODULE_PATH.parents[1],
+            env=env,
+            input=stdin,
+            text=True,
+            capture_output=True,
+        )
+        return result, log_path.read_text(encoding="utf-8")
+
+    def test_pre_commit_refreshes_stages_and_aborts_first_release_commit(self) -> None:
+        result, log = self._run_hook(
+            "pre-commit",
+            release_workstation=True,
+            verify_fails=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review them, then commit again", result.stderr)
+        self.assertIn("python3 scripts/package_skills.py dist-refresh --source index --platform-set required --stage --skill split-testing", log)
+
+    def test_pre_commit_second_release_invocation_is_pure_when_receipt_matches(self) -> None:
+        result, log = self._run_hook("pre-commit", release_workstation=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("verify-dist-receipt --source index", log)
+        self.assertNotIn("dist-refresh", log)
+
+    def test_pre_commit_verifies_only_on_normal_clone(self) -> None:
+        result, log = self._run_hook("pre-commit", release_workstation=False)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("python3 scripts/package_skills.py verify-dist-receipt --source index --platform-set required --skill split-testing", log)
+        self.assertNotIn("dist-refresh", log)
+
+    def test_pre_push_is_pure_and_verifies_each_pushed_commit_object(self) -> None:
+        sha = "a" * 40
+        result, log = self._run_hook(
+            "pre-push",
+            release_workstation=True,
+            stdin=f"refs/heads/main {sha} refs/heads/main {'b' * 40}\n",
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(f"verify-dist-receipt --source commit:{sha} --platform-set required --skill split-testing", log)
+        self.assertNotIn("git add", log)
+        self.assertNotIn("dist-refresh", log)
 
 
 class VendorCopyTests(unittest.TestCase):
