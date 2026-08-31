@@ -1,6 +1,6 @@
 # Software Development
 
-`software-development` v1.0.0 is a dual-host, skills-only plugin for focused language guidance and engineering methods. It is instruction-first: the only runtime helper is the Rust panic-audit runner, which may write Cargo build cache but does not modify tracked repository files.
+`software-development` v1.1.0 is a dual-host, skills-only plugin for focused language guidance and engineering methods. It is instruction-first: the only runtime helper is the Rust panic-audit runner.
 
 ## Catalog
 
@@ -16,14 +16,14 @@ Engineering-method skills:
 
 - `test-driven-development`, `systematic-debugging`, `refactoring`
 - `performance-engineering`, `trunk-based-development`
-- `behavior-preserving-migration`
+- `behavior-preserving-migration`, `concurrency-engineering`
 
 Focused specialists:
 
 - `nodejs-development`
 - `async-rust`, `unsafe-rust`, `rust-panic-audit`
 
-There is no umbrella development skill. Language skills activate only for maintained artifacts they substantively affect. Method skills activate from intent or evidence. Node.js composes with JavaScript or TypeScript; Rust specialists compose with Rust; embedded SQL composes with its host language. Routine Git/GitHub operations and conceptual questions activate none of these skills.
+There is no umbrella development skill. Language skills activate only for maintained artifacts they substantively affect. Method skills activate from intent or evidence. Concurrency engineering composes with language/runtime owners only when lifecycle, pressure, synchronization, or parallel execution materially shapes behavior; `async-rust` remains the focused owner for Rust async work. Node.js composes with JavaScript or TypeScript; Rust specialists compose with Rust; embedded SQL composes with its host language. Routine Git/GitHub operations and conceptual questions activate none of these skills.
 
 Codex exposes the skills through its native picker and invocations such as `$rust-development`. Claude Code exposes namespaced invocations such as `/software-development:rust-development`.
 

@@ -2,7 +2,7 @@
 
 These rules apply only under `plugins/software-development/`.
 
-The public catalog is exactly the 25 skill directories listed in this plugin's README. Keep them independently retrievable; do not add an umbrella skill, router skill, shared runtime reference, hook, agent, command, MCP server, LSP, CI template, Git wrapper, or bundled language server.
+The public catalog is the skill directories listed in this plugin's README and enforced by its contract test. Keep them independently retrievable; do not add an umbrella skill, router skill, shared runtime reference, hook, agent, command, MCP server, LSP, CI template, Git wrapper, or bundled language server.
 
 Every `SKILL.md` SHALL use a lowercase `name` slug that exactly matches its directory. The H1 and `agents/openai.yaml` display name SHALL be title-cased.
 

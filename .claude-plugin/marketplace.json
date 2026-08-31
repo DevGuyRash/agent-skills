@@ -56,8 +56,8 @@
     {
       "name": "software-development",
       "source": "./plugins/software-development",
-      "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
-      "version": "1.0.1"
+      "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including concurrency and runtime-specific guidance.",
+      "version": "1.1.0"
     },
     {
       "name": "skill-auditor",

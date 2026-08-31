@@ -1,8 +1,8 @@
 {
   "name": "software-development",
   "displayName": "Software Development",
-  "version": "1.0.1",
-  "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including specialized Node.js and Rust guidance.",
+  "version": "1.1.0",
+  "description": "Focused, progressively disclosed language and engineering-method skills for repository-adaptive software development, including concurrency and runtime-specific guidance.",
   "author": {
     "name": "Agent Tooling Contributors"
   },

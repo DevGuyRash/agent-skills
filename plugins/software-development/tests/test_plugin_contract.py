@@ -43,6 +43,7 @@ EXPECTED_SKILLS = {
     "performance-engineering",
     "trunk-based-development",
     "behavior-preserving-migration",
+    "concurrency-engineering",
     "nodejs-development",
     "async-rust",
     "unsafe-rust",
@@ -70,7 +71,7 @@ EXPECTED_LANGUAGE_SKILLS = {
 LANGUAGE_EVAL_FIXTURES = {
     "rust-development": ("eval-panic-resistant-boundary", "evals/files/panic_boundary.rs", ("parse()", "unwrap()")),
     "python-development": (
-        "eval-async-resource-lifetime",
+        "eval-async-bounded-lifecycle",
         "evals/files/async_worker.py",
         ("client_factory()", "asyncio.create_task", "await asyncio.Event().wait()"),
     ),
@@ -83,13 +84,19 @@ LANGUAGE_EVAL_FIXTURES = {
     "c-development": ("eval-overflow-before-allocation", "evals/files/packet_items.c", ("size_t count", "count * sizeof")),
     "cpp-development": ("eval-dangling-view", "evals/files/dangling_view.cpp", ("std::string name", "return name")),
     "swift-development": ("eval-force-unwrap-boundary", "evals/files/JSONNameDecoder.swift", ("try!", "as! String")),
-    "ruby-development": ("eval-worker-lifetime", "evals/files/worker.rb", ("begin_transaction", "rescue Exception")),
+    "ruby-development": ("eval-queue-worker-lifetime", "evals/files/worker.rb", ("Thread::Queue", "workers.map(&:join)")),
     "php-development": ("eval-worker-resource-lifetime", "evals/files/Worker.php", ("beginTransaction", "__destruct")),
     "shell-development": ("eval-posix-routing", "evals/files/deploy.sh", ("#!/bin/sh", "targets=(")),
     "sql-development": ("eval-nullable-not-in", "evals/files/exclusion.sql", ("NOT IN", "blocked_customers")),
 }
 
 REQUIRED_QUALITY_EVALS = {
+    "concurrency-engineering": {
+        "eval-eager-admission",
+        "eval-cancel-join-cleanup",
+        "eval-failure-unblocks-submitters",
+        "eval-parallel-scaling",
+    },
     "refactoring": {
         "eval-large-cohesive-file",
         "eval-small-real-boundary",
@@ -106,6 +113,11 @@ REQUIRED_QUALITY_EVALS = {
 }
 
 REQUIRED_TRIGGER_PROBES = {
+    "concurrency-engineering": {
+        "implicit-callback-pressure",
+        "composition-java-workers",
+        "composition-parallel-performance",
+    },
     "c-development": {"implicit-c-worker-race"},
     "cpp-development": {"implicit-cpp-worker-race"},
     "java-development": {
@@ -141,8 +153,16 @@ CANONICAL_COMPOSITION_ROUTES = {
         frozenset(),
     ),
     "sync-rust-worker-shutdown": (
-        frozenset({"rust-development"}),
+        frozenset({"rust-development", "concurrency-engineering"}),
         frozenset({"async-rust", "unsafe-rust", "rust-panic-audit"}),
+    ),
+    "java-worker-lifecycle": (
+        frozenset({"java-development", "concurrency-engineering"}),
+        frozenset({"async-rust"}),
+    ),
+    "bounded-parallel-performance": (
+        frozenset({"concurrency-engineering", "performance-engineering"}),
+        frozenset({"systematic-debugging"}),
     ),
     "node-module-resolution": (
         frozenset({"nodejs-development", "javascript-development"}),
@@ -232,6 +252,14 @@ class PluginContractTests(unittest.TestCase):
     def test_exact_catalog_and_portable_frontmatter(self) -> None:
         directories = self.skill_dirs()
         self.assertEqual(EXPECTED_SKILLS, {path.name for path in directories})
+        maintainer_notes = (PLUGIN_ROOT / "MAINTAINERS.md").read_text(encoding="utf-8")
+        self.assertIn(f"all {len(EXPECTED_SKILLS)} skills remain discoverable", maintainer_notes)
+        agent_contract = (PLUGIN_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "The public catalog is the skill directories listed in this plugin's README and enforced by its contract test.",
+            agent_contract,
+        )
+        self.assertNotRegex(agent_contract, r"public catalog is exactly the \d+ skill")
         for directory in directories:
             skill_file = directory / "SKILL.md"
             data = frontmatter(skill_file)
@@ -439,10 +467,12 @@ class PluginContractTests(unittest.TestCase):
         )
         self.assertEqual("software-development", codex["name"])
         self.assertEqual(codex["name"], claude["name"])
-        self.assertEqual("1.0.1", codex["version"])
+        self.assertEqual("1.1.0", codex["version"])
         self.assertEqual(codex["version"], claude["version"])
         self.assertEqual(codex["description"], claude["description"])
         self.assertTrue((PLUGIN_ROOT / "LICENSE").is_file())
+        readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"`software-development` v{codex['version']}", readme)
 
         codex_marketplace = json.loads(
             (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8")
@@ -454,7 +484,7 @@ class PluginContractTests(unittest.TestCase):
         claude_entry = next(item for item in claude_marketplace["plugins"] if item["name"] == codex["name"])
         self.assertEqual("./plugins/software-development", codex_entry["source"]["path"])
         self.assertEqual("./plugins/software-development", claude_entry["source"])
-        self.assertEqual("1.0.1", claude_entry["version"])
+        self.assertEqual("1.1.0", claude_entry["version"])
         for marketplace in (codex_marketplace, claude_marketplace):
             names = [item["name"] for item in marketplace["plugins"]]
             self.assertEqual(len(names), len(set(names)))
