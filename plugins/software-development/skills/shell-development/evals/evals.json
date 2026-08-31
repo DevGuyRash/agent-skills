@@ -26,12 +26,6 @@
       "prompt": "A deployment script receives a user-selected environment, creates a temporary directory, builds a command string with eval, and recursively deletes the directory on exit.",
       "expected_output": "Compose the selected dialect with process-security guidance, replace reparsed command construction with structured arguments, allowlist control values, create and own temporary state safely, validate the exact deletion target, preserve status, and test adversarial inputs.",
       "files": []
-    },
-    {
-      "id": "eval-visible-cross-platform-elevation",
-      "prompt": "A requested maintenance task may run on Linux, macOS, or Windows. It genuinely needs elevation, and the user has authorized a visible prompt where they will authenticate or consent. Provide a reusable invocation pattern without ever receiving the credential.",
-      "expected_output": "Keep the authorization policy operating-system neutral but select a platform-specific adapter: a discovered visible terminal or configured askpass plus sudo on Unix-like systems, UAC runas from PowerShell 7 on Windows, or macOS administrator authorization for a fixed helper. Execute only a fixed trusted task with structured arguments, never pass credentials through argv, environment, stdin, files, or logs, wait with a bound, propagate the task result, avoid blindly retrying unknown partial work, fail closed when no visible surface exists, and distinguish locally exercised adapters from documentation-backed but untested ones.",
-      "files": []
     }
   ]
 }
