@@ -30,6 +30,30 @@
       "prompt": "A representative profile shows independent CPU transforms consume 72% of an image pipeline and miss its throughput target. Design and validate a parallel implementation without unbounded work or behavioral drift.",
       "expected_output": "Define concurrency and queue bounds, result ordering, cancellation, backpressure, cleanup, worker failure propagation, and correctness/resource guardrails; then compare before-and-after representative measurements with variability and reject the change if end-to-end benefit does not justify the complexity.",
       "files": []
+    },
+    {
+      "id": "eval-open-loop-useful-work",
+      "prompt": "A service benchmark reports lower p99 after an optimization, but the driver is closed-loop and the candidate begins rejecting requests during overload. Determine whether the change is a real performance win.",
+      "expected_output": "The analysis separates offered, admitted, completed, rejected, timed-out, and failed work; identifies coordinated omission and queue state; preserves the service's shedding contract; and compares equivalent useful work before accepting the latency result.",
+      "files": []
+    },
+    {
+      "id": "eval-parallel-scaling-ceiling",
+      "prompt": "A language-agnostic data pipeline gets faster from one to four workers, is flat at eight, and has worse tail latency at sixteen. Optimize it without assuming more async or parallel work is always better.",
+      "expected_output": "The work measures several worker levels, accounts for scheduling and merge cost, identifies the saturated or contended resource, budgets nested concurrency, and selects the smallest supported worker policy with terminal ownership and correctness evidence.",
+      "files": []
+    },
+    {
+      "id": "eval-shifted-resource-cost",
+      "prompt": "A new cache cuts CPU time in half while resident memory grows without bound and stale entries survive configuration changes. Decide whether and how to retain the optimization.",
+      "expected_output": "The work validates the cache key against every result-changing input, measures hit rate and retained memory, defines invalidation and bounds, compares caller-visible performance and correctness, and rejects or narrows the cache if the shifted resource and staleness costs violate guardrails.",
+      "files": []
+    },
+    {
+      "id": "eval-loss-biased-percentile",
+      "prompt": "Under overload, a candidate reports a much lower p99 because timed-out operations are omitted and queue rejections have no latency. Repair the measurement and decision contract without inventing latency values for work that never entered service.",
+      "expected_output": "The work names each statistic's population, retains caller-observed timeout outcomes where defined, reports pre-service rejection separately, makes the decision fail or remain undefined when loss/error guardrails are exceeded, and proves that dropping slow work cannot turn the overall performance conclusion into a false win.",
+      "files": []
     }
   ]
 }

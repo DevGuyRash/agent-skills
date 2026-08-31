@@ -29,6 +29,8 @@ A passing characterization baseline is correct for refactoring. Do not alter the
 
 State the structural problem and the intended improvement: for example, separating responsibilities, removing duplication, clarifying data flow, shrinking coupling, or creating a stable seam. Prefer a change that can be reviewed and reversed independently.
 
+Choose observable evidence for that improvement as well as behavior preservation. Depending on the problem, this may be a removed dependency edge, one remaining authority for a fact, a narrower lifecycle owner, eliminated duplicated decision logic, or a consumer that no longer depends on an internal representation. Line count, file count, or a passing test suite alone does not establish structural value.
+
 Use repository and language idioms. Do not introduce a design pattern, abstraction, dependency, class, or new file merely to display modularity. A smaller or more local solution is often the better refactor.
 
 ## Transform under evidence
@@ -59,6 +61,7 @@ Stop and reclassify the work when the desired result requires changing a public 
 Claim the refactor complete only when:
 
 - the structural objective is achieved without unrelated redesign;
+- concrete evidence observes the intended dependency, authority, ownership, or duplication improvement rather than only a smaller diff or green behavior tests;
 - the declared behavior surfaces have equivalent before-and-after evidence;
 - relevant checks pass and the diff contains no unexplained behavior change;
 - unverified surfaces, downstream coordination, and follow-up work are explicit.

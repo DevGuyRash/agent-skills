@@ -26,7 +26,7 @@ Prefer increments that are:
 - independently buildable and testable;
 - reviewable as one coherent purpose;
 - backward compatible with adjacent deployed or in-flight code;
-- safe to revert without removing later unrelated work;
+- equipped with a dependency-visible recovery route—revert when later work does not depend on it, otherwise containment or a small forward repair;
 - small enough to integrate before assumptions drift.
 
 Read [small-batch-patterns.md](<skills-file-root>/references/small-batch-patterns.md) when a feature, refactor, or migration appears too large to merge safely in one short-lived line of work.
@@ -46,7 +46,7 @@ Give transitional code and flags an owner and removal condition. Do not require 
 
 Route branch, commit, push, review, and merge operations through the repository's normal Git and hosting capabilities. Select merge, rebase, squash, or queue behavior from repository policy rather than imposing a universal history style.
 
-When the branch has diverged, first preserve user changes and determine its dependencies. Prefer reslicing or updating against current trunk before adding more work. If integrated code breaks trunk, prioritize a small repair when it is immediately clear and verifiable; otherwise use the repository's authorized revert or containment path.
+When the branch has diverged, first preserve user changes and determine its dependencies. Prefer reslicing or updating against current trunk before adding more work. If integrated code breaks trunk, inspect dependent integrations before choosing a response: use a small forward repair when clear and verifiable, an authorized revert when it will not invalidate dependent work, or containment when neither is immediately safe.
 
 ## Compose with neighboring skills
 

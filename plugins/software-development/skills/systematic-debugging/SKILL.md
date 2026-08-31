@@ -29,14 +29,16 @@ Read [difficult-failures.md](<skills-file-root>/references/difficult-failures.md
 
 ## Test hypotheses
 
-1. State a falsifiable cause and the evidence that makes it plausible.
+1. State a falsifiable cause or interacting causal set and the evidence that makes it plausible.
 2. Choose the smallest safe observation or change that distinguishes it from the leading alternative.
 3. Predict the result before running the probe.
-4. Run the probe once under controlled conditions where possible.
+4. Run the probe under a controlled exposure sufficient to distinguish the live alternatives.
 5. Record whether the result supports, weakens, or leaves the hypothesis open.
 6. Remove temporary changes or deliberately retain useful instrumentation.
 
 Change one decision-relevant variable at a time when attribution matters. A negative result is progress when it removes a plausible cause. Revisit the system model when successive probes fail to discriminate; no fixed attempt count proves that the architecture is wrong.
+
+For intermittent or probabilistic failures, record the attempted exposures—runs, operations, schedules, seeds, duration, or load—and what a clean result excludes. One non-occurrence is not proof of repair unless the probe is deterministically discriminating.
 
 Continue only while a safe probe can change the next decision within scope. Stop when no such probe remains, required authority is absent, or evidence cost exceeds the task's consequence; report the blocker and the evidence needed.
 
@@ -60,9 +62,10 @@ When retry, timeout, validation, or fallback is the correct response to an exter
 
 ## Stop and report
 
-Claim resolution only when the original failure no longer occurs under a faithful check and relevant regressions pass. Otherwise report the issue as mitigated, narrowed, blocked, or unverified, with:
+Claim resolution only when the supported cause or causal set is corrected, the original failure no longer occurs under a faithful and sufficiently discriminating exposure, and relevant regressions pass. Otherwise report the issue as mitigated, narrowed, blocked, or unverified, with:
 
 - observations and reproduction status;
+- exposure count or conditions and the detection limit of a clean run when non-occurrence is probabilistic;
 - supported and rejected hypotheses;
 - changes or mitigations applied;
 - the remaining uncertainty and next discriminating evidence needed.

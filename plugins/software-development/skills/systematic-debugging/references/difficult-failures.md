@@ -6,11 +6,15 @@ Read this reference when a normal focused reproducer cannot faithfully expose th
 
 Preserve a stable failure signature: assertion, error class, affected request, state transition, or trace span. Compare occurrence against time, load, order, seed, host, dependency version, and shared state. Increase repetition only when it preserves the production-relevant conditions and has a bounded stop.
 
+Define the exposure unit before interpreting a clean run: one request, one lifecycle, one contested schedule, one failover, or another opportunity for the defect. Report attempted exposures and detection limits; a lower observed rate is not equivalent to absence.
+
 Replace timing sleeps in a reproducer with observable conditions when possible. A timeout may bound the test, but elapsed time alone rarely identifies which condition failed to arrive.
 
 ## Concurrency failures
 
 Separate ordering, visibility, atomicity, ownership, and resource-exhaustion hypotheses. Capture the synchronization events needed to distinguish them. Stress can improve reproduction probability, but it is not causal evidence by itself. Use deterministic scheduling, barriers, fixed seeds, tracing, or race detectors when the environment supports them.
+
+Allow causes to be conjunctive. A defect can require a particular ordering plus resource pressure or a retry plus stale authority; do not force one component to be the sole root when removing either is necessary and the evidence supports the interaction.
 
 Avoid adding locks or serialization until evidence identifies the violated invariant; a broad lock can hide the race while introducing latency or deadlock.
 

@@ -24,6 +24,8 @@ Do not encode every incidental quirk. Preserve behavior that is declared, extern
 
 Before trusting a test, name a plausible production change that would make it fail. When practical, briefly remove or invert the behavior, or otherwise prove the assertion observes the production path. Restore the code before continuing.
 
+Use a counterexample that changes the promised behavior, not a test-only marker, injected function name, environment fingerprint, or mutation mechanism the test can detect directly. Run the test through the same authoritative entrypoint that normally protects the repository; a manually runnable file outside that selection is useful evidence only when its separate invocation is an explicit contract.
+
 A passing test is weak evidence when it:
 
 - never reaches production code;

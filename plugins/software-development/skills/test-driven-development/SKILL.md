@@ -10,17 +10,19 @@ Use a discriminating test to define one behavior increment, demonstrate that the
 ## Establish the next behavior
 
 1. Inspect the repository's existing test layout, commands, naming, and helpers.
-2. Express one observable outcome and the conditions under which it holds.
-3. Choose the cheapest test boundary that can disprove the desired behavior.
-4. Identify the production change that would make the test pass.
+2. Resolve the expected outcome from the governing requirement, public contract, consumer, or authorized decision when tickets, current code, tests, and documentation disagree; do not let the implementation under repair define its own oracle.
+3. Express one observable outcome and the conditions under which it holds.
+4. Choose the cheapest test boundary that can disprove the desired behavior.
+5. Identify the production change that would make the test pass.
 
 Prefer a stable public seam over private implementation details. Include a negative or error case when it materially distinguishes the contract, rather than satisfying a fixed test-count rule.
 
 ## Demonstrate the gap
 
 - Add the smallest test that expresses the selected behavior.
-- Run the narrowest repository-native command that executes it.
+- Run the narrowest authoritative repository command that executes it, and prove the test reaches its decisive assertion rather than merely compiling or exiting successfully.
 - Confirm it fails because the behavior is absent or incorrect.
+- When practical, show the test accepts a known conforming implementation and rejects the unchanged defect or a controller-independent counterexample; a red caused by setup, a test hook, or an evaluator fingerprint is not behavioral discrimination.
 - Repair test setup, compilation, or environment errors before interpreting the result as a meaningful failure.
 - If the test passes, determine whether the behavior already exists, the test is non-discriminating, or a different boundary is required.
 
@@ -65,6 +67,7 @@ Before claiming the increment complete, report:
 
 - the behavior proved and the test boundary used;
 - the observed pre-change failure and why it was relevant, or why no honest red was available;
+- when claiming test-first execution, evidence that the meaningful red occurred before the production change rather than only a green final artifact;
 - the focused and surrounding passing checks;
 - any unverified behavior, test limitation, or intentionally deferred case.
 

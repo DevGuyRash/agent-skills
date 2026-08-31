@@ -38,4 +38,4 @@ Typical safe increments are expand, introduce compatibility handling, backfill o
 
 ## Evaluate a proposed slice
 
-Ask whether trunk remains healthy if later slices never arrive, whether deployed old and new versions can coexist as required, whether the slice has meaningful verification, and whether it can be reverted without undoing unrelated work. If not, split differently or make the compatibility mechanism explicit.
+Ask whether trunk remains healthy if later slices never arrive, whether deployed old and new versions can coexist as required, whether the slice has meaningful verification, and which revert, containment, or forward-repair path remains valid after dependent slices integrate. If no safe recovery path is visible, split differently or make the dependency and compatibility mechanism explicit.

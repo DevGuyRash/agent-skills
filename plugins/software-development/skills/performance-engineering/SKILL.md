@@ -14,6 +14,7 @@ Before changing implementation, establish:
 - the metric and unit, such as p99 latency, throughput, peak resident memory, allocations, artifact size, energy, or cost per operation;
 - the target or decision threshold;
 - the workload, input distribution, concurrency, scale, and steady-state or cold-start conditions that matter;
+- offered, admitted, completed, rejected, timed-out, and failed work when load or queues can change how much useful work is measured;
 - correctness, security, reliability, readability, and resource guardrails;
 - the environment and repository-native command used for comparison.
 
@@ -24,6 +25,8 @@ If the request is merely “make it faster,” derive a decision-relevant criter
 Run the unchanged system under the chosen workload. Preserve raw results and enough environment metadata to reproduce the comparison. Use repeated or interleaved measurements when noise could change the decision.
 
 Read [measurement-validity.md](<skills-file-root>/references/measurement-validity.md) before designing a new benchmark, comparing noisy results, measuring JIT or managed runtimes, or translating a microbenchmark result into a system-level claim. Read [complexity-and-data-structures.md](<skills-file-root>/references/complexity-and-data-structures.md) when the requested result depends on input growth, repeated passes, allocation shape, or choosing a data structure or algorithm.
+
+Read [load-parallelism-and-resources.md](<skills-file-root>/references/load-parallelism-and-resources.md) when the result involves queues, tail latency, async or parallel execution, worker counts, contention, topology, or a CPU, memory, storage, filesystem, or network ceiling. Read [optimization-mechanics.md](<skills-file-root>/references/optimization-mechanics.md) only after evidence localizes cost and the work needs language-neutral candidate mechanisms.
 
 ## Find the limiting path
 
@@ -36,8 +39,8 @@ Algorithmic complexity helps predict scaling, but an asymptotic improvement is n
 1. State the bottleneck hypothesis and predicted metric effect.
 2. Choose the smallest change that tests it without violating guardrails.
 3. Keep the benchmark and environment comparable to the baseline.
-4. Verify functional correctness before accepting the measurement.
-5. Compare magnitude, variability, and any shifted resource cost.
+4. Verify functional correctness and equivalent useful work before accepting the measurement.
+5. Compare magnitude, variability, queue or concurrency state, limiting-resource utilization, and any shifted resource cost.
 6. Keep the change only when the evidence justifies its complexity and tradeoffs.
 
 Re-profile after a meaningful win: the bottleneck may move. Stop when the target is met, the next opportunity is outside scope, uncertainty exceeds the apparent gain, or further cost is not justified.
@@ -59,6 +62,6 @@ Re-profile after a meaningful win: the bottleneck may move. Stop when the target
 
 ## Completion evidence
 
-Report the criterion, workload, environment, baseline, profile evidence, change, after measurements, variability, and guardrail results. State whether the target was met and name limitations that prevent a broader claim.
+Report the criterion, workload and load model, environment, useful-work counts, baseline, profile evidence, limiting resource, change, after measurements, variability, queue/concurrency state when relevant, and guardrail results. State whether the target was met and name limitations that prevent a broader claim.
 
 Do not promise improvement from Big-O analysis alone, require one statistical test or percentage threshold for every workload, optimize dead code, discard negative results, or hide memory, security, reliability, and maintenance costs.
