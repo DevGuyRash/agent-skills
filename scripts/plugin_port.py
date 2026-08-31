@@ -841,6 +841,20 @@ def prepare_output(source: Path, output: Path, *, overwrite: bool) -> None:
         symlinks=True,
         ignore=copytree_generated_junk_ignore(source),
     )
+    # Conversion rewrites active target-host surfaces. Frozen evaluation inputs
+    # and release artifacts may legitimately be read-only, but preserving that
+    # mode in the staging copy makes normalization fail before conversion can
+    # establish the target artifact. Preserve execute bits and never follow
+    # symlinks while adding only owner write authority to the copied tree.
+    for directory, _, filenames in os.walk(output):
+        directory_path = Path(directory)
+        if not directory_path.is_symlink():
+            directory_path.chmod(stat.S_IMODE(directory_path.stat().st_mode) | stat.S_IWUSR)
+        for filename in filenames:
+            path = directory_path / filename
+            if path.is_symlink():
+                continue
+            path.chmod(stat.S_IMODE(path.stat().st_mode) | stat.S_IWUSR)
 
 
 def read_skill_description(

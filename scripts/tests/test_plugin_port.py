@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import stat
 import sys
 import tempfile
 import textwrap
@@ -286,6 +287,20 @@ class PluginPortTests(unittest.TestCase):
         self.assertEqual(report.status, "success")
         self.assertEqual(report.support_level, "supported-with-preserved-surfaces")
         self.assertTrue(any(item["kind"] == "apps" for item in report.executable_surfaces))
+
+    def test_conversion_thaws_read_only_files_only_in_staging_output(self) -> None:
+        source = self.root / "goalspec"
+        out = self.root / "out"
+        self.write_codex_plugin(source)
+        skill = source / "skills" / "authoring-goals" / "SKILL.md"
+        skill.chmod(0o444)
+
+        plugin_port.convert_plugin(source, "claude", out, mode="strict", overwrite=False)
+
+        self.assertEqual(0o444, stat.S_IMODE(skill.stat().st_mode))
+        converted = out / "skills" / "authoring-goals" / "SKILL.md"
+        self.assertTrue(stat.S_IMODE(converted.stat().st_mode) & stat.S_IWUSR)
+        self.assertIn("disable-model-invocation: true", converted.read_text(encoding="utf-8"))
 
     def test_mcp_runtime_path_escape_is_rejected(self) -> None:
         source = self.root / "goalspec"
