@@ -1,8 +1,16 @@
 # Helper Contract
 
-Load this route only after deterministic custody or durable view packaging has been selected. The bundled `split-test` tool preserves mechanical commitments, native payloads, and package integrity; it does not define comparison policy, create observations, compose instructions, launch workers, choose reviewers, judge semantic validity, invent criteria or scores, aggregate evidence, render authored views, or select a winner.
+Load this route only after a versioned caller exchange, deterministic custody, or durable view packaging has been selected. The bundled `split-test` tool verifies mechanical exchange integrity, preserves mechanical commitments, native payloads, and package integrity; it does not define comparison policy, create observations, compose instructions, launch workers, choose reviewers, judge semantic validity, invent criteria or scores, aggregate evidence, render authored views, or select a winner.
 
 Use `<skills-file-root>/scripts/split-test` on POSIX hosts and `<skills-file-root>/scripts/split-test.ps1` from PowerShell. The launchers select a supported committed binary and fail concisely when the host is unsupported. Commands emit compact JSON or JSONL on success and short `error:` plus `hint:` lines on ordinary failure.
+
+## Caller exchange
+
+```text
+split-test exchange verify REQUEST.json RESULT.json
+```
+
+`exchange verify` binds the result to the exact UTF-8 request bytes and mechanically checks matching claim identity, unique request closure-condition IDs, unique result assessment IDs, allowed interface statuses, and exact one-to-one closure coverage. JSON Schema `uniqueItems` compares whole objects and cannot supply these cross-document guarantees. The command reads the envelopes without rewriting them and leaves unknown fields untouched. It does not decide whether the tested conditions, evidence, conclusion, scope, or downstream action are valid.
 
 ## Role-neutral custody
 

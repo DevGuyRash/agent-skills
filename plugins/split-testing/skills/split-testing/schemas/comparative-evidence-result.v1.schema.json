@@ -23,7 +23,7 @@
     "conclusion": {},
     "closure_assessment": {
       "type": "array",
-      "description": "Contains exactly one assessment for every requested closure-condition ID and no unrequested IDs.",
+      "description": "Contains exactly one assessment for every requested closure-condition ID and no unrequested IDs; this cross-document relation requires caller-side verification.",
       "minItems": 1,
       "uniqueItems": true,
       "items": {

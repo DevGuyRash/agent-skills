@@ -3,8 +3,8 @@
     {
       "artifact": "split-test",
       "cargo_target": "aarch64-unknown-linux-musl",
-      "dev_cache_cas_digest": "0e385fb60cda530cda440a15c046ef490b96eab2bb41866ea2cf802f66b20e15",
-      "output_digest": "sha256:1325d9eac7621aedef847dc46134ac4ab571620fad640902628291cb16d1989f",
+      "dev_cache_cas_digest": "a020fb49e2509f229c9e252ccf8179741442e224bdd6fdfdc32e597cb902f3b1",
+      "output_digest": "sha256:70a39a7864a9626c114770543d0954825ce834fd5c45624bb96c63c1e82be9aa",
       "platform": "linux-aarch64",
       "recipe": "cargo-zigbuild",
       "recipe_version": "0.23.3"
@@ -12,8 +12,8 @@
     {
       "artifact": "split-test",
       "cargo_target": "x86_64-unknown-linux-musl",
-      "dev_cache_cas_digest": "4ac54f9c247f20c152de7f10e3bf0bdda23b62cf3631072d3bc109cedb8ee929",
-      "output_digest": "sha256:de3f1e63924788da03ce3dd554c90510494402438f68f4782b0b0375caad9e65",
+      "dev_cache_cas_digest": "d98a23e53ea06daf66f995abe4bee11285b09fa2ec5cac3e8e1601eec7732042",
+      "output_digest": "sha256:d89e7e6e1bdc04fe2f5bed7bee4484634bd3d83c5eb99e9fe5faf24ecd2516c8",
       "platform": "linux-x86_64",
       "recipe": "cargo-zigbuild",
       "recipe_version": "0.23.3"
@@ -21,8 +21,8 @@
     {
       "artifact": "split-test.exe",
       "cargo_target": "aarch64-pc-windows-msvc",
-      "dev_cache_cas_digest": "dcc72262d9515f3e0aa9db5fecd99e87f0564154ed57286ce773074b7793b973",
-      "output_digest": "sha256:cb42ed489a41ab2132b980efad7b095ea78e9aac44e1c28aa8f7d9367865623d",
+      "dev_cache_cas_digest": "6d5c0c7e8988835aafc102179de2ed0148d29b06bf872205895dcc0b997868dc",
+      "output_digest": "sha256:fe5bb5111c6703f1185e4f9746df3312c71e6c841bdea14a837a101bc73d26c0",
       "platform": "windows-aarch64",
       "recipe": "cargo-xwin",
       "recipe_version": "0.23.1"
@@ -30,8 +30,8 @@
     {
       "artifact": "split-test.exe",
       "cargo_target": "x86_64-pc-windows-msvc",
-      "dev_cache_cas_digest": "4a4833836b372f8012e0c6a9871e2fba53e98df48460bf2c6d0afc05920d096e",
-      "output_digest": "sha256:ef425a9021c71c07356b639a39461c3df0935d7fc3411d38a81a3c82a38030ae",
+      "dev_cache_cas_digest": "ead4046e16352f670e5a05b89ea5d7696b23db4bcf297114fccc04ac1fa9eb98",
+      "output_digest": "sha256:2d5d0e8441e455728099ae6f789909a1019887304cbf61d715adef58c63801ea",
       "platform": "windows-x86_64",
       "recipe": "cargo-xwin",
       "recipe_version": "0.23.1"
@@ -42,7 +42,7 @@
   "skill": "split-testing",
   "source": {
     "cargo_lock_digest": "sha256:ade32f7c6b644b1ad4da409cb0d2e936d8c5a52a84e945084cabd367961c6f05",
-    "digest": "sha256:abdbf736d5c4e1ae3e8fde9ed776efe98fd7e027b9648784cbebe56bc5df6b89",
+    "digest": "sha256:b1172991cf880dca5e5d93a3f9494c02449afbde53b36acabd898fad047292a4",
     "packaging_config_digest": "sha256:28bc5e7fa0b510291668520949c132dd46818136a75888f56032f28c183c66e8",
     "rust_toolchain_digest": "sha256:7dbcd3c9663e0120a47fdc32fa56cdcc3dbc075e3b8a1a8377036a9af1dec578"
   },

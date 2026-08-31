@@ -324,6 +324,7 @@ fn help_exposes_only_role_neutral_commands() {
         "events",
         "receipt",
         "status",
+        "exchange",
         "view",
     ] {
         assert!(help.contains(command), "missing {command}");
@@ -331,6 +332,126 @@ fn help_exposes_only_role_neutral_commands() {
     for legacy in ["add-round", "prepare-run", "add-review-set", "anonymize"] {
         assert!(!help.contains(legacy), "legacy command {legacy}");
     }
+}
+
+#[test]
+fn exchange_verify_binds_exact_request_bytes_and_closure_accounting() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let request_path = temp.path().join("request.json");
+    let result_path = temp.path().join("result.json");
+    let request_bytes = concat!(
+        "{\"schema\":\"comparative-evidence-request.v1\",",
+        "\"claim_id\":\"claim-7\",\"target_ref\":{\"version\":\"v2\"},",
+        "\"authority_ref\":\"maker\",\"claim\":\"which condition supports release\",",
+        "\"decision_context\":{\"horizon\":\"now\"},\"existing_evidence_refs\":[],",
+        "\"closure_conditions\":[",
+        "{\"id\":\"safety\",\"statement\":\"closes the safety question\",\"future\":1},",
+        "{\"id\":\"fit\",\"statement\":\"closes the deployment-fit question\"}],",
+        "\"unresolved_consequence\":\"hold\",\"prohibited_effects\":[],",
+        "\"future_top_level\":{\"preserved\":true}}\n"
+    )
+    .as_bytes();
+    fs::write(&request_path, request_bytes).expect("write request bytes");
+    let digest = format!("{:x}", Sha256::digest(request_bytes));
+    let valid_result = json!({
+        "schema": "comparative-evidence-result.v1",
+        "claim_id": "claim-7",
+        "request_digest": digest,
+        "tested_conditions": ["a", "b"],
+        "conclusion": {"direction": "a"},
+        "closure_assessment": [
+            {"condition_id": "fit", "status": "narrows", "future": 2},
+            {"condition_id": "safety", "status": "closes"}
+        ],
+        "evidence_refs": ["native://evidence"],
+        "scope_and_limits": {},
+        "uncertainty": {},
+        "reopening_conditions": [],
+        "future_top_level": {"preserved": true}
+    });
+    write_json(&result_path, &valid_result);
+
+    let verified = success(&[
+        "exchange",
+        "verify",
+        &request_path.to_string_lossy(),
+        &result_path.to_string_lossy(),
+    ]);
+    assert_eq!(
+        verified["schema"],
+        "comparative-evidence-exchange-verification.v1"
+    );
+    assert_eq!(verified["claim_id"], "claim-7");
+    assert_eq!(verified["request_digest"], digest);
+    assert_eq!(verified["closure_condition_count"], 2);
+
+    let duplicate_request = json!({
+        "schema": "comparative-evidence-request.v1",
+        "claim_id": "claim-7",
+        "target_ref": {},
+        "authority_ref": {},
+        "claim": "claim",
+        "decision_context": {},
+        "existing_evidence_refs": [],
+        "closure_conditions": [
+            {"id": "same", "statement": "first"},
+            {"id": "same", "statement": "different object"}
+        ],
+        "unresolved_consequence": {},
+        "prohibited_effects": []
+    });
+    write_json(&request_path, &duplicate_request);
+    let rejected_request = run(&[
+        "exchange",
+        "verify",
+        &request_path.to_string_lossy(),
+        &result_path.to_string_lossy(),
+    ]);
+    assert!(!rejected_request.status.success());
+    assert!(stderr_text(&rejected_request).contains("duplicate closure-condition id"));
+
+    fs::write(&request_path, request_bytes).expect("restore request bytes");
+    let mut duplicate_result = valid_result.clone();
+    duplicate_result["closure_assessment"] = json!([
+        {"condition_id": "safety", "status": "closes"},
+        {"condition_id": "safety", "status": "narrows"}
+    ]);
+    write_json(&result_path, &duplicate_result);
+    let rejected_result = run(&[
+        "exchange",
+        "verify",
+        &request_path.to_string_lossy(),
+        &result_path.to_string_lossy(),
+    ]);
+    assert!(!rejected_result.status.success());
+    assert!(stderr_text(&rejected_result).contains("duplicate closure-assessment id"));
+
+    let mut incomplete_result = valid_result.clone();
+    incomplete_result["closure_assessment"] = json!([
+        {"condition_id": "safety", "status": "closes"}
+    ]);
+    write_json(&result_path, &incomplete_result);
+    let rejected_coverage = run(&[
+        "exchange",
+        "verify",
+        &request_path.to_string_lossy(),
+        &result_path.to_string_lossy(),
+    ]);
+    assert!(!rejected_coverage.status.success());
+    assert!(stderr_text(&rejected_coverage).contains("does not cover request exactly"));
+    assert!(stderr_text(&rejected_coverage).contains("fit"));
+
+    let mut mismatched_digest = valid_result;
+    mismatched_digest["request_digest"] = Value::String("0".repeat(64));
+    write_json(&result_path, &mismatched_digest);
+    let rejected_digest = run(&[
+        "exchange",
+        "verify",
+        &request_path.to_string_lossy(),
+        &result_path.to_string_lossy(),
+    ]);
+    assert!(!rejected_digest.status.success());
+    assert!(stderr_text(&rejected_digest).contains("exact request bytes"));
 }
 
 #[test]

@@ -80,6 +80,8 @@ class ComparativeHandoffTests(unittest.TestCase):
         self.assertIn("stable ID that is unique within the request", text)
         self.assertIn("exactly one entry for every request closure-condition ID", text)
         self.assertIn("no unrequested IDs", text)
+        self.assertIn("split-test exchange verify REQUEST.json RESULT.json", text)
+        self.assertIn("JSON Schema alone cannot establish", text)
 
     def test_unavailable_paths_do_not_recreate_a_local_comparison(self) -> None:
         text = HANDOFF.read_text(encoding="utf-8")

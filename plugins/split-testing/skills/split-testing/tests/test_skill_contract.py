@@ -39,6 +39,7 @@ EXPECTED_COMMANDS = {
     "add-work-set",
     "close-work-set",
     "events",
+    "exchange",
     "init",
     "prepare-work",
     "publish",

@@ -130,7 +130,7 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
             auditor = AUDITOR_ROOT / "skills" / "skill-auditor" / "schemas" / name
             self.assertEqual(auditor.read_bytes(), split.read_bytes(), name)
 
-    def test_caller_schemas_require_nonempty_unique_closure_entries(self) -> None:
+    def test_caller_schemas_are_honest_about_cross_document_verification(self) -> None:
         schema_root = SPLIT_ROOT / "skills" / "split-testing" / "schemas"
         request = json.loads(
             (schema_root / "comparative-evidence-request.v1.schema.json").read_text(
@@ -147,8 +147,16 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
         for contract in (request_conditions, result_assessments):
             self.assertEqual(contract["minItems"], 1)
             self.assertIs(contract["uniqueItems"], True)
-        self.assertIn("unique", request_conditions["description"])
-        self.assertIn("exactly one", result_assessments["description"])
+            self.assertIn("caller-side verification", contract["description"])
+        caller = (
+            SPLIT_ROOT
+            / "skills"
+            / "split-testing"
+            / "references"
+            / "caller-interface.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("split-test exchange verify REQUEST.json RESULT.json", caller)
+        self.assertIn("JSON Schema cannot express", caller)
 
     def test_repo_delegation_guidance_is_generic_and_not_template_locked(self) -> None:
         agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")

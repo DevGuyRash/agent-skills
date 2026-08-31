@@ -1,4 +1,4 @@
-//! Deterministic custody and derived-view packaging for decision-grounded comparisons.
+//! Deterministic exchange verification, custody, and derived-view packaging.
 #![allow(
     clippy::multiple_crate_versions,
     clippy::print_stderr,
@@ -8,6 +8,7 @@
 )]
 
 pub(crate) mod custody;
+pub(crate) mod exchange;
 pub(crate) mod util;
 pub(crate) mod view;
 
@@ -23,7 +24,7 @@ use std::process::ExitCode;
     name = "split-test",
     version,
     disable_help_subcommand = true,
-    about = "Role-neutral comparative-evidence custody and derived-view packaging"
+    about = "Role-neutral exchange verification, custody, and derived-view packaging"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -87,11 +88,23 @@ enum Command {
     },
     /// Verify custody state and every retained sealed payload.
     Status { root: PathBuf },
+    /// Verify exact request binding and one-to-one closure accounting.
+    Exchange {
+        #[command(subcommand)]
+        command: ExchangeCommand,
+    },
     /// Seal, verify, checkpoint, or serve a derived evidence view.
     View {
         #[command(subcommand)]
         command: ViewCommand,
     },
+}
+
+#[derive(Subcommand, Debug)]
+#[command(disable_help_subcommand = true)]
+enum ExchangeCommand {
+    /// Verify a caller-neutral request/result pair without judging its evidence.
+    Verify { request: PathBuf, result: PathBuf },
 }
 
 #[derive(Subcommand, Debug)]
@@ -163,6 +176,11 @@ fn execute(cli: Cli) -> Result<()> {
         )?),
         Command::Receipt { root, scope_id } => emit(&custody::receipt(&root, scope_id.as_deref())?),
         Command::Status { root } => emit(&custody::status(&root)?),
+        Command::Exchange { command } => match command {
+            ExchangeCommand::Verify { request, result } => {
+                emit(&exchange::verify(&request, &result)?)
+            }
+        },
         Command::View { command } => match command {
             ViewCommand::Seal { root, spec } => emit(&view::seal(&root, &spec)?),
             ViewCommand::Verify { root } => emit(&view::verify(&root)?),

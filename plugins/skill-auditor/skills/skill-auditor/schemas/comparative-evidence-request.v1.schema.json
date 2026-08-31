@@ -25,7 +25,7 @@
     "existing_evidence_refs": {"type": "array"},
     "closure_conditions": {
       "type": "array",
-      "description": "Condition IDs are stable and unique within this request.",
+      "description": "Whole entries are structurally unique here; condition IDs must also be unique and require caller-side verification.",
       "minItems": 1,
       "uniqueItems": true,
       "items": {

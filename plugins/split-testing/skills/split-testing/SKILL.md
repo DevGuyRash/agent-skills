@@ -41,7 +41,7 @@ Open only the references whose non-inferable detail can change the current decis
 | [Evidence view](references/evidence-view.md) | Only after evidence exists, when the user requests a visual result or a persistent visual projection would materially improve inspection, communication, or reuse. |
 | [Digital execution](references/digital-execution.md) | Agents, commands, processes, sandboxes, hosts, workspaces, or persistent digital artifacts will be used. |
 | [Caller interface](references/caller-interface.md) | A versioned external comparative-evidence request or result must be exchanged. |
-| [Helper contract](references/helper-contract.md) | Only after digital custody or a durable derived-view package has been selected and its deterministic interface is needed. |
+| [Helper contract](references/helper-contract.md) | Only after a versioned caller exchange, digital custody, or a durable derived-view package has been selected and its deterministic interface is needed. |
 
 ## Completion
 
