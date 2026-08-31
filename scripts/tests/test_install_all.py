@@ -10,6 +10,8 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from scripts.install_all import hash_tree
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INSTALL_ALL = REPO_ROOT / "scripts" / "install-all"
@@ -25,16 +27,122 @@ def write_fake_cli(path: Path, command_name: str) -> None:
             import json
             import os
             import sys
+            from pathlib import Path
+
+            state_path = Path(__file__).with_name(".{command_name}.state.json")
+            if state_path.exists():
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+            else:
+                configured = json.loads(os.environ.get("AGENT_TOOLING_FAKE_MARKETPLACES", "{{}}"))
+                state = {{"marketplaces": [{{"name": name}} for name in configured.get({command_name!r}, [])], "installed": []}}
+
+            def save():
+                state_path.write_text(json.dumps(state), encoding="utf-8")
 
             with open(os.environ["AGENT_TOOLING_FAKE_CLI_LOG"], "a", encoding="utf-8") as handle:
                 handle.write(json.dumps({{"command": {command_name!r}, "args": sys.argv[1:]}}) + "\\n")
             if sys.argv[1:] == ["plugin", "marketplace", "list", "--json"]:
-                configured = json.loads(os.environ.get("AGENT_TOOLING_FAKE_MARKETPLACES", "{{}}"))
-                names = configured.get({command_name!r}, [])
-                payload = [{{"name": name}} for name in names]
+                payload = state["marketplaces"]
                 if {command_name!r} == "codex":
                     payload = {{"marketplaces": payload}}
                 print(json.dumps(payload))
+            elif sys.argv[1:] == ["plugin", "list", "--json"]:
+                payload = state["installed"]
+                print(json.dumps({{"installed": payload}} if {command_name!r} == "codex" else payload))
+            elif sys.argv[1:4] == ["plugin", "marketplace", "add"]:
+                args = sys.argv[1:]
+                source = args[-1] if {command_name!r} == "codex" else args[args.index("--scope") + 2]
+                state["marketplaces"] = [{{"name": "agent-tooling", "source": source, "path": source}}]
+                save()
+            elif sys.argv[1:4] == ["plugin", "marketplace", "remove"]:
+                state["marketplaces"] = []
+                save()
+            elif sys.argv[1:4] in (["plugin", "marketplace", "upgrade"], ["plugin", "marketplace", "update"]):
+                pass
+            elif sys.argv[1:3] in (["plugin", "add"], ["plugin", "install"], ["plugin", "update"]):
+                args = sys.argv[1:]
+                selector = next(value for value in args[2:] if "@" in value)
+                versions = json.loads(os.environ["AGENT_TOOLING_FAKE_VERSIONS"])
+                current = next((item for item in state["installed"] if item["pluginId"] == selector), None)
+                if current is None:
+                    state["installed"].append({{"pluginId": selector, "version": versions[selector], "enabled": True}})
+                else:
+                    current["version"] = versions[selector]
+                save()
+            else:
+                raise SystemExit("unexpected arguments: " + " ".join(sys.argv[1:]))
+            """
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def write_fake_git(path: Path) -> None:
+    path.write_text(
+        textwrap.dedent(
+            f"""\
+            #!{sys.executable}
+            import os
+            import shutil
+            import sys
+            from pathlib import Path
+
+            if sys.argv[1] != "clone":
+                raise SystemExit("only clone is supported")
+            shutil.copytree(Path(os.environ["AGENT_TOOLING_FAKE_GIT_SOURCE"]), Path(sys.argv[-1]))
+            """
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def write_stateful_fake_cli(path: Path, command_name: str, state_path: Path) -> None:
+    path.write_text(
+        textwrap.dedent(
+            f"""\
+            #!{sys.executable}
+            import json
+            import os
+            import sys
+            from pathlib import Path
+
+            state_path = Path({str(state_path)!r})
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            args = sys.argv[1:]
+            with open(os.environ["AGENT_TOOLING_FAKE_CLI_LOG"], "a", encoding="utf-8") as handle:
+                handle.write(json.dumps({{"command": {command_name!r}, "args": args}}) + "\\n")
+
+            def save():
+                state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            if args == ["plugin", "marketplace", "list", "--json"]:
+                items = state["marketplaces"]
+                print(json.dumps({{"marketplaces": items}} if {command_name!r} == "codex" else items))
+            elif args == ["plugin", "list", "--json"]:
+                installed = state["installed"]
+                print(json.dumps({{"installed": installed}} if {command_name!r} == "codex" else installed))
+            elif args[:3] == ["plugin", "marketplace", "add"]:
+                source = next(value for value in args[3:] if not value.startswith("-") and value not in ("user", "project", "local", ".agents/plugins", ".claude-plugin", "plugins", "main"))
+                state["marketplaces"] = [{{"name": "agent-tooling", "source": source, "path": source}}]
+                save()
+            elif args[:3] in (["plugin", "marketplace", "upgrade"], ["plugin", "marketplace", "update"]):
+                pass
+            elif args[:2] in (["plugin", "add"], ["plugin", "install"], ["plugin", "update"]):
+                selector = next(value for value in args[2:] if "@" in value)
+                version = os.environ["AGENT_TOOLING_FAKE_VERSION"]
+                found = next((item for item in state["installed"] if item["pluginId"] == selector), None)
+                if found is None:
+                    state["installed"].append({{"pluginId": selector, "version": version, "enabled": True}})
+                else:
+                    found["version"] = version
+                save()
+            elif args[:3] == ["plugin", "marketplace", "remove"]:
+                state["marketplaces"] = []
+                save()
+            else:
+                raise SystemExit("unexpected arguments: " + " ".join(args))
             """
         ),
         encoding="utf-8",
@@ -46,12 +154,41 @@ def load_calls(log_path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
 
 
+def mutation_calls(calls: list[dict[str, object]]) -> list[dict[str, object]]:
+    mutations = {
+        ("plugin", "marketplace", "add"),
+        ("plugin", "marketplace", "remove"),
+        ("plugin", "marketplace", "upgrade"),
+        ("plugin", "marketplace", "update"),
+        ("plugin", "add"),
+        ("plugin", "install"),
+        ("plugin", "update"),
+    }
+    return [
+        call
+        for call in calls
+        if any(tuple(call["args"][:length]) in mutations for length in (2, 3))
+    ]
+
+
 def marketplace_plugin_selectors(path: Path) -> list[str]:
     data = json.loads(path.read_text(encoding="utf-8"))
     return [f'{entry["name"]}@{data["name"]}' for entry in data["plugins"]]
 
 
 class InstallAllTests(unittest.TestCase):
+    def test_artifact_digest_ignores_client_and_vcs_metadata(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="install-all-digest-") as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / "payload").write_text("stable", encoding="utf-8")
+            (root / ".git" / "index").write_text("first", encoding="utf-8")
+            (root / ".in_use").write_text("first", encoding="utf-8")
+            first = hash_tree(root)
+            (root / ".git" / "index").write_text("second", encoding="utf-8")
+            (root / ".in_use").write_text("second", encoding="utf-8")
+            self.assertEqual(first, hash_tree(root))
+
     def _run_install_all_process(
         self,
         repo_root: Path,
@@ -66,12 +203,24 @@ class InstallAllTests(unittest.TestCase):
         log_path.touch()
         write_fake_cli(bin_dir / "codex", "codex")
         write_fake_cli(bin_dir / "claude", "claude")
+        write_fake_git(bin_dir / "git")
+        versions: dict[str, str] = {}
+        for host, manifest_name in (("codex", ".codex-plugin/plugin.json"), ("claude", ".claude-plugin/plugin.json")):
+            catalog_path = repo_root / (".agents/plugins/marketplace.json" if host == "codex" else ".claude-plugin/marketplace.json")
+            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+            for item in catalog["plugins"]:
+                plugin_manifest = json.loads((repo_root / "plugins" / item["name"] / manifest_name).read_text(encoding="utf-8"))
+                versions[f'{item["name"]}@{catalog["name"]}'] = plugin_manifest["version"]
         path_value = os.environ.get("PATH", os.defpath)
         env = {
             **os.environ,
-            "PATH": f"{bin_dir}{os.pathsep}{path_value}",
+            "PATH": f"{bin_dir}{os.pathsep}{path_value}{os.pathsep}{os.defpath}",
             "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
             "AGENT_TOOLING_FAKE_MARKETPLACES": json.dumps(fake_marketplaces or {}),
+            "AGENT_TOOLING_FAKE_VERSIONS": json.dumps(versions),
+            "AGENT_TOOLING_FAKE_GIT_SOURCE": str(repo_root),
+            "AGENT_TOOLING_GIT_COMMAND": str(bin_dir / "git"),
+            "XDG_STATE_HOME": str(temp_root / "state"),
         }
         proc = subprocess.run(
             [str(install_all), *args],
@@ -112,11 +261,17 @@ class InstallAllTests(unittest.TestCase):
             (repo_root / ".agents" / "plugins").mkdir(parents=True)
             (repo_root / ".claude-plugin").mkdir(parents=True)
             shutil.copy2(INSTALL_ALL, repo_root / "scripts" / "install-all")
+            shutil.copy2(REPO_ROOT / "scripts" / "install_all.py", repo_root / "scripts" / "install_all.py")
+            for name in sorted(set(codex_plugins) | set(claude_plugins)):
+                for manifest_dir in (".codex-plugin", ".claude-plugin"):
+                    manifest = repo_root / "plugins" / name / manifest_dir / "plugin.json"
+                    manifest.parent.mkdir(parents=True, exist_ok=True)
+                    manifest.write_text(json.dumps({"name": name, "version": "1.0.0"}), encoding="utf-8")
             (repo_root / ".agents" / "plugins" / "marketplace.json").write_text(
                 json.dumps(
                     {
                         "name": "agent-tooling",
-                        "plugins": [{"name": name} for name in codex_plugins],
+                        "plugins": [{"name": name, "source": {"source": "local", "path": f"./plugins/{name}"}} for name in codex_plugins],
                     }
                 ),
                 encoding="utf-8",
@@ -125,7 +280,7 @@ class InstallAllTests(unittest.TestCase):
                 json.dumps(
                     {
                         "name": "agent-tooling",
-                        "plugins": [{"name": name} for name in claude_plugins],
+                        "plugins": [{"name": name, "source": f"./plugins/{name}"} for name in claude_plugins],
                     }
                 ),
                 encoding="utf-8",
@@ -140,40 +295,107 @@ class InstallAllTests(unittest.TestCase):
     def test_installs_all_plugins_to_codex_and_claude_with_sparse_marketplaces(self) -> None:
         calls = self.run_install_all("--source", "DevGuyRash/agent-tooling", "--ref", "main", "--claude-scope", "local")
 
-        codex_calls = [call["args"] for call in calls if call["command"] == "codex"]
-        claude_calls = [call["args"] for call in calls if call["command"] == "claude"]
+        mutations = mutation_calls(calls)
+        codex_calls = [call["args"] for call in mutations if call["command"] == "codex"]
+        claude_calls = [call["args"] for call in mutations if call["command"] == "claude"]
 
         self.assertEqual(
             ["plugin", "marketplace", "add", "--ref", "main", "--sparse", ".agents/plugins", "--sparse", "plugins", "DevGuyRash/agent-tooling"],
             codex_calls[0],
         )
-        self.assertEqual(["plugin", "marketplace", "upgrade", "agent-tooling"], codex_calls[1])
         self.assertEqual(
             ["plugin", "marketplace", "add", "--scope", "local", "DevGuyRash/agent-tooling", "--sparse", ".claude-plugin", "plugins"],
             claude_calls[0],
         )
-        self.assertEqual(["plugin", "marketplace", "update", "agent-tooling"], claude_calls[1])
 
-        codex_installs = codex_calls[2:]
-        claude_installs = [args for args in claude_calls[2:] if args[:2] == ["plugin", "install"]]
-        # 'install' no-ops on an already-installed plugin, so each install is
-        # followed by 'update' to advance the installed_plugins.json record.
-        claude_updates = [args for args in claude_calls[2:] if args[:2] == ["plugin", "update"]]
+        codex_installs = codex_calls[1:]
+        claude_installs = [args for args in claude_calls[1:] if args[:2] == ["plugin", "install"]]
         codex_plugins = [args[-1] for args in codex_installs]
         claude_plugins = [args[-1] for args in claude_installs]
         self.assertEqual(marketplace_plugin_selectors(CODEX_MARKETPLACE), codex_plugins)
         self.assertEqual(marketplace_plugin_selectors(CLAUDE_MARKETPLACE), claude_plugins)
-        self.assertEqual(claude_plugins, [args[-1] for args in claude_updates])
+        self.assertFalse(any(args[:2] == ["plugin", "update"] for args in claude_calls))
+
+    def test_second_local_install_invokes_no_mutating_client_commands(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="install-all-idempotency-") as tmp:
+            tmp_path = Path(tmp)
+            bin_dir = tmp_path / "bin"
+            bin_dir.mkdir()
+            log_path = tmp_path / "cli.jsonl"
+            log_path.touch()
+            state_paths = {
+                host: tmp_path / f"{host}.json" for host in ("codex", "claude")
+            }
+            for host, state_path in state_paths.items():
+                state_path.write_text(json.dumps({"marketplaces": [], "installed": []}), encoding="utf-8")
+                write_stateful_fake_cli(bin_dir / host, host, state_path)
+            goalspec = json.loads(
+                (REPO_ROOT / "plugins" / "goalspec" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+            env = {
+                **os.environ,
+                "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', os.defpath)}{os.pathsep}{os.defpath}",
+                "XDG_STATE_HOME": str(tmp_path / "state"),
+                "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
+                "AGENT_TOOLING_FAKE_VERSION": goalspec["version"],
+            }
+            command = [str(INSTALL_ALL), "--source", str(REPO_ROOT), "--include", "goalspec"]
+
+            first = subprocess.run(command, cwd=REPO_ROOT, env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+            log_path.write_text("", encoding="utf-8")
+            second = subprocess.run(command, cwd=REPO_ROOT, env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(0, second.returncode, second.stdout + second.stderr)
+
+            mutating = {
+                ("plugin", "marketplace", "add"),
+                ("plugin", "marketplace", "upgrade"),
+                ("plugin", "marketplace", "update"),
+                ("plugin", "marketplace", "remove"),
+                ("plugin", "add"),
+                ("plugin", "install"),
+                ("plugin", "update"),
+            }
+            second_calls = load_calls(log_path)
+            self.assertFalse(
+                any(tuple(call["args"][:length]) in mutating for call in second_calls for length in (2, 3))
+            )
+
+            log_path.write_text("", encoding="utf-8")
+            forced = subprocess.run([*command, "--force"], cwd=REPO_ROOT, env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(0, forced.returncode, forced.stdout + forced.stderr)
+            forced_mutations = mutation_calls(load_calls(log_path))
+            self.assertEqual(
+                [
+                    {"command": "codex", "args": ["plugin", "add", "goalspec@agent-tooling"]},
+                    {"command": "claude", "args": ["plugin", "update", "--scope", "user", "goalspec@agent-tooling"]},
+                ],
+                forced_mutations,
+            )
+
+    def test_source_mismatch_fails_before_any_client_mutation(self) -> None:
+        proc, calls = self.run_install_all_process(
+            "--source",
+            str(REPO_ROOT),
+            "--include",
+            "goalspec",
+            fake_marketplaces={"codex": ["agent-tooling"], "claude": ["agent-tooling"]},
+        )
+
+        self.assertNotEqual(0, proc.returncode)
+        self.assertIn("source mismatch", proc.stderr)
+        self.assertEqual([], mutation_calls(calls))
 
     def test_local_source_omits_sparse_and_ref_flags(self) -> None:
         calls = self.run_install_all("--source", str(REPO_ROOT), "--codex-only")
 
+        mutations = mutation_calls(calls)
         self.assertEqual(
             {"command": "codex", "args": ["plugin", "marketplace", "add", str(REPO_ROOT)]},
-            calls[0],
+            mutations[0],
         )
         self.assertFalse(any(call["command"] == "claude" for call in calls))
-        self.assertEqual(1 + len(marketplace_plugin_selectors(CODEX_MARKETPLACE)), len(calls))
+        self.assertEqual(1 + len(marketplace_plugin_selectors(CODEX_MARKETPLACE)), len(mutations))
 
     def test_replace_marketplace_removes_existing_source_before_local_add(self) -> None:
         proc, calls = self.run_install_all_process(
@@ -188,17 +410,14 @@ class InstallAllTests(unittest.TestCase):
 
         self.assertEqual(
             [
-                {"command": "codex", "args": ["plugin", "marketplace", "list", "--json"]},
                 {"command": "codex", "args": ["plugin", "marketplace", "remove", "agent-tooling"]},
                 {"command": "codex", "args": ["plugin", "marketplace", "add", str(REPO_ROOT)]},
                 {"command": "codex", "args": ["plugin", "add", "goalspec@agent-tooling"]},
-                {"command": "claude", "args": ["plugin", "marketplace", "list", "--json"]},
                 {"command": "claude", "args": ["plugin", "marketplace", "remove", "--scope", "user", "agent-tooling"]},
                 {"command": "claude", "args": ["plugin", "marketplace", "add", "--scope", "user", str(REPO_ROOT)]},
                 {"command": "claude", "args": ["plugin", "install", "--scope", "user", "goalspec@agent-tooling"]},
-                {"command": "claude", "args": ["plugin", "update", "--scope", "user", "goalspec@agent-tooling"]},
             ],
-            calls,
+            mutation_calls(calls),
         )
 
     def test_replace_marketplace_skips_removal_when_already_absent(self) -> None:
@@ -214,7 +433,7 @@ class InstallAllTests(unittest.TestCase):
         self.assertFalse(
             any(call["args"][:3] == ["plugin", "marketplace", "remove"] for call in calls)
         )
-        self.assertIn("already absent; skipping removal", proc.stderr)
+        self.assertEqual([], [call for call in mutation_calls(calls) if call["args"][:3] == ["plugin", "marketplace", "remove"]])
 
     def test_rejects_invalid_claude_scope_before_cli_mutation(self) -> None:
         proc, calls = self.run_install_all_process("--claude-scope", "workspace")
@@ -235,18 +454,10 @@ class InstallAllTests(unittest.TestCase):
                 },
                 {
                     "command": "claude",
-                    "args": ["plugin", "marketplace", "update", "agent-tooling"],
-                },
-                {
-                    "command": "claude",
                     "args": ["plugin", "install", "--scope", "user", "goalspec@agent-tooling"],
                 },
-                {
-                    "command": "claude",
-                    "args": ["plugin", "update", "--scope", "user", "goalspec@agent-tooling"],
-                },
             ],
-            calls,
+            mutation_calls(calls),
         )
 
     def test_exclude_accepts_csv_globs_and_removes_matching_plugins(self) -> None:
@@ -313,11 +524,9 @@ class InstallAllTests(unittest.TestCase):
                     ".claude-plugin",
                     "plugins",
                 ],
-                ["plugin", "marketplace", "update", "agent-tooling"],
                 ["plugin", "install", "--scope", "user", "claude-only@agent-tooling"],
-                ["plugin", "update", "--scope", "user", "claude-only@agent-tooling"],
             ],
-            [call["args"] for call in calls],
+            [call["args"] for call in mutation_calls(calls)],
         )
 
 if __name__ == "__main__":

@@ -54,7 +54,7 @@ test-plugin-port:
 test-plugin-port-live:
   PLUGIN_PORT_LIVE=1 python3 -m unittest scripts.tests.test_plugin_port_live
 
-# Add the sparse agent-tooling marketplace to Codex and Claude Code, then install matching plugins
+# Reconcile selected agent-tooling plugins in Codex and Claude Code by artifact identity
 install-all *args:
   scripts/install-all {{args}}
 
