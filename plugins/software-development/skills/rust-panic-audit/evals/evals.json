@@ -24,6 +24,22 @@
       "expected_result": "Exit 2 and preserve any partial lexical evidence as incomplete rather than clean.",
       "expected_output": "Name the unavailable evidence and a repository-compatible next check.",
       "files": []
+    },
+    {
+      "id": "eval-member-manifest-and-lexical-edge",
+      "prompt": "Audit a non-default workspace member whose production graph includes src/tests/mod.rs with panic_any and resume_unwind calls suppressed from Clippy.",
+      "expected_decision": "Select the package identified by the member manifest, retain nested production modules despite their directory name, and treat direct-function matches as lexical candidates.",
+      "expected_result": "Exit 1 for the selected member without substituting workspace_default_members or reporting unwrap_unchecked as a direct-panic construct.",
+      "expected_output": "Name the exact member, nested source paths, candidate evidence class, and lexical limitations.",
+      "files": []
+    },
+    {
+      "id": "eval-build-side-effect-incomplete",
+      "prompt": "Audit a clean crate whose build script creates an untracked file outside Cargo's target directory.",
+      "expected_decision": "Execute only with the caller's authorized repository effects or external isolation, compare worktree state, and refuse a clean conclusion after the mutation.",
+      "expected_result": "Exit 2 with the changed non-ignored untracked path named; do not delete an unknown side effect or call the repository read-only.",
+      "expected_output": "Report incomplete evidence, the side-effect boundary, cleanup responsibility, and the unchanged direct-panic conclusion boundary.",
+      "files": []
     }
   ]
 }

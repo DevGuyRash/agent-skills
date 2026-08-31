@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only Cargo/Clippy orchestrator for direct Rust panic-surface audits."""
+"""Bounded Cargo/Clippy orchestrator for direct Rust panic-surface audits."""
 
 from __future__ import annotations
 
@@ -8,9 +8,12 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
+import tempfile
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -20,6 +23,10 @@ EXIT_CLEAN = 0
 EXIT_FINDINGS = 1
 EXIT_INCOMPLETE = 2
 SCHEMA_VERSION = "1.0"
+DEFAULT_COMMAND_TIMEOUT_SECONDS = 600.0
+DEFAULT_MAX_COMMAND_OUTPUT_BYTES = 32 * 1024 * 1024
+PROCESS_SETTLEMENT_SECONDS = 2.0
+COMMAND_POLL_SECONDS = 0.05
 
 CORE_LINTS = (
     "clippy::unwrap_used",
@@ -42,6 +49,9 @@ ALWAYS_SKIP_DIRS = {
     ".hg",
     ".svn",
     "target",
+}
+
+ROOT_TEST_ONLY_SKIP_DIRS = {
     "test",
     "tests",
     "testdata",
@@ -61,7 +71,10 @@ RESIDUAL_RISK = (
     "indexing or custom trait behavior outside selected coverage",
     "allocation failure",
     "omitted features, targets, or cfg branches",
-    "build scripts and procedural macros",
+    "Cargo and Clippy execute repository build scripts and procedural macros; "
+    "the runner detects tracked changes and non-ignored untracked path-set changes "
+    "outside Cargo's target directory but cannot prevent side effects or detect "
+    "ignored paths or changes to the contents of an already-untracked file",
     "panicking destructors and unwinding interactions",
     "lock poisoning",
     "FFI unwind behavior",
@@ -117,20 +130,150 @@ def short_text(value: str, limit: int = 600) -> str:
     return compact[: limit - 1] + "…"
 
 
-def run_command(args: Sequence[str], cwd: Path) -> CommandResult:
+def process_group_exists(process_group: int) -> bool:
+    if os.name != "posix":
+        return False
     try:
-        proc = subprocess.run(
-            list(args),
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
+        os.killpg(process_group, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def terminate_process_tree(process: subprocess.Popen[bytes]) -> None:
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        deadline = time.monotonic() + PROCESS_SETTLEMENT_SECONDS
+        while time.monotonic() < deadline:
+            process.poll()
+            if not process_group_exists(process.pid):
+                return
+            time.sleep(COMMAND_POLL_SECONDS)
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=PROCESS_SETTLEMENT_SECONDS)
+        except subprocess.TimeoutExpired:
+            pass
+        return
+
+    taskkill = shutil.which("taskkill") if os.name == "nt" else None
+    if taskkill is not None:
+        try:
+            subprocess.run(
+                [taskkill, "/PID", str(process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=PROCESS_SETTLEMENT_SECONDS,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    if process.poll() is None:
+        process.kill()
+    try:
+        process.wait(timeout=PROCESS_SETTLEMENT_SECONDS)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+def run_command(
+    args: Sequence[str],
+    cwd: Path,
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
+) -> CommandResult:
+    if timeout_seconds <= 0:
+        raise AuditError("command timeout must be greater than zero")
+    if max_output_bytes <= 0:
+        raise AuditError("command output limit must be greater than zero")
+    command = list(args)
+    if not command:
+        raise AuditError("cannot execute an empty command")
+    popen_options: dict[str, Any] = {}
+    if os.name == "posix":
+        popen_options["start_new_session"] = True
+    elif os.name == "nt":
+        popen_options["creationflags"] = getattr(
+            subprocess, "CREATE_NEW_PROCESS_GROUP", 0
         )
+
+    try:
+        with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                **popen_options,
+            )
+            deadline = time.monotonic() + timeout_seconds
+            failure: str | None = None
+            try:
+                while process.poll() is None:
+                    output_bytes = (
+                        os.fstat(stdout_file.fileno()).st_size
+                        + os.fstat(stderr_file.fileno()).st_size
+                    )
+                    if output_bytes > max_output_bytes:
+                        failure = (
+                            f"{Path(command[0]).name} output exceeded "
+                            f"{max_output_bytes} bytes"
+                        )
+                        break
+                    if time.monotonic() >= deadline:
+                        failure = (
+                            f"{Path(command[0]).name} timed out after "
+                            f"{timeout_seconds:g} seconds"
+                        )
+                        break
+                    time.sleep(COMMAND_POLL_SECONDS)
+            except BaseException:
+                terminate_process_tree(process)
+                raise
+
+            if failure is not None:
+                terminate_process_tree(process)
+                raise AuditError(failure)
+
+            output_bytes = (
+                os.fstat(stdout_file.fileno()).st_size
+                + os.fstat(stderr_file.fileno()).st_size
+            )
+            if output_bytes > max_output_bytes:
+                terminate_process_tree(process)
+                raise AuditError(
+                    f"{Path(command[0]).name} output exceeded {max_output_bytes} bytes"
+                )
+
+            if os.name == "posix" and process_group_exists(process.pid):
+                settle_deadline = time.monotonic() + PROCESS_SETTLEMENT_SECONDS
+                while (
+                    time.monotonic() < settle_deadline
+                    and process_group_exists(process.pid)
+                ):
+                    time.sleep(COMMAND_POLL_SECONDS)
+                if process_group_exists(process.pid):
+                    terminate_process_tree(process)
+                    raise AuditError(
+                        f"{Path(command[0]).name} left running descendants"
+                    )
+
+            stdout_file.seek(0)
+            stderr_file.seek(0)
+            stdout = stdout_file.read().decode("utf-8", errors="replace")
+            stderr = stderr_file.read().decode("utf-8", errors="replace")
+            return CommandResult(command, int(process.returncode), stdout, stderr)
     except OSError as exc:
-        raise AuditError(f"cannot execute {args[0]}: {exc}") from exc
-    return CommandResult(list(args), proc.returncode, proc.stdout, proc.stderr)
+        raise AuditError(f"cannot execute {command[0]}: {exc}") from exc
 
 
 def file_digest(path: Path) -> str | None:
@@ -143,6 +286,16 @@ def file_digest(path: Path) -> str | None:
     return digest.hexdigest()
 
 
+def file_identity(path: Path) -> tuple[int, int] | None:
+    try:
+        status = path.stat()
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise AuditError(f"cannot inspect {path}: {exc}") from exc
+    return status.st_dev, status.st_ino
+
+
 def cargo_executable() -> str:
     cargo = shutil.which("cargo")
     if cargo is None:
@@ -150,7 +303,13 @@ def cargo_executable() -> str:
     return cargo
 
 
-def locate_workspace(manifest_path: Path, cargo: str = "cargo") -> Path:
+def locate_workspace(
+    manifest_path: Path,
+    cargo: str = "cargo",
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
+) -> Path:
     result = run_command(
         [
             cargo,
@@ -162,6 +321,8 @@ def locate_workspace(manifest_path: Path, cargo: str = "cargo") -> Path:
             str(manifest_path),
         ],
         manifest_path.parent,
+        timeout_seconds=timeout_seconds,
+        max_output_bytes=max_output_bytes,
     )
     if result.returncode != 0:
         raise AuditError(f"Cargo could not locate the workspace: {short_text(result.stderr or result.stdout)}")
@@ -171,10 +332,21 @@ def locate_workspace(manifest_path: Path, cargo: str = "cargo") -> Path:
     return root_manifest.parent
 
 
-def tracked_status(root: Path) -> str | None:
+def tracked_status(
+    root: Path,
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
+) -> str | None:
     if shutil.which("git") is None:
         return None
-    top_level = run_command(["git", "rev-parse", "--show-toplevel"], root)
+    limits = {
+        "timeout_seconds": timeout_seconds,
+        "max_output_bytes": max_output_bytes,
+    }
+    top_level = run_command(
+        ["git", "rev-parse", "--show-toplevel"], root, **limits
+    )
     if top_level.returncode != 0 or not top_level.stdout.strip():
         return None
     repository_root = Path(top_level.stdout.strip())
@@ -183,9 +355,10 @@ def tracked_status(root: Path) -> str | None:
     status = run_command(
         ["git", "status", "--porcelain=v1", "-z", "--untracked-files=no"],
         repository_root,
+        **limits,
     )
     tracked = run_command(
-        ["git", "ls-files", "--full-name", "-z"], repository_root
+        ["git", "ls-files", "--full-name", "-z"], repository_root, **limits
     )
     if status.returncode != 0 or tracked.returncode != 0:
         return None
@@ -213,6 +386,49 @@ def tracked_status(root: Path) -> str | None:
     return snapshot.hexdigest()
 
 
+def unignored_untracked_paths(
+    root: Path,
+    excluded_roots: Sequence[Path] = (),
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
+) -> set[str] | None:
+    if shutil.which("git") is None:
+        return None
+    limits = {
+        "timeout_seconds": timeout_seconds,
+        "max_output_bytes": max_output_bytes,
+    }
+    top_level = run_command(
+        ["git", "rev-parse", "--show-toplevel"], root, **limits
+    )
+    if top_level.returncode != 0 or not top_level.stdout.strip():
+        return None
+    repository_root = Path(top_level.stdout.strip())
+    if not repository_root.is_absolute():
+        repository_root = (root / repository_root).resolve()
+    result = run_command(
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+        repository_root,
+        **limits,
+    )
+    if result.returncode != 0:
+        return None
+    try:
+        excluded = tuple(path.resolve() for path in excluded_roots)
+    except OSError as exc:
+        raise AuditError(f"cannot resolve excluded repository path: {exc}") from exc
+    paths: set[str] = set()
+    for relative in result.stdout.split("\0"):
+        if not relative:
+            continue
+        candidate = (repository_root / relative).resolve()
+        if any(candidate == path or path in candidate.parents for path in excluded):
+            continue
+        paths.add(relative)
+    return paths
+
+
 def cargo_scope_args(args: argparse.Namespace, manifest_path: Path) -> list[str]:
     result = ["--manifest-path", str(manifest_path)]
     if args.package:
@@ -222,6 +438,10 @@ def cargo_scope_args(args: argparse.Namespace, manifest_path: Path) -> list[str]
         result.append("--workspace")
     if args.all_targets:
         result.append("--all-targets")
+    if args.no_default_features:
+        result.append("--no-default-features")
+    if args.target:
+        result.extend(["--target", args.target])
     if args.all_features:
         result.append("--all-features")
     elif args.features:
@@ -246,6 +466,10 @@ def metadata_args(
     ]
     if locked:
         result.append("--locked")
+    if args.no_default_features:
+        result.append("--no-default-features")
+    if args.target:
+        result.extend(["--filter-platform", args.target])
     if args.all_features:
         result.append("--all-features")
     elif args.features:
@@ -259,8 +483,16 @@ def load_metadata(
     cwd: Path,
     locked: bool,
     cargo: str = "cargo",
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
 ) -> dict[str, Any]:
-    result = run_command(metadata_args(args, manifest_path, locked, cargo), cwd)
+    result = run_command(
+        metadata_args(args, manifest_path, locked, cargo),
+        cwd,
+        timeout_seconds=timeout_seconds,
+        max_output_bytes=max_output_bytes,
+    )
     if result.returncode != 0:
         raise AuditError(f"Cargo metadata failed: {short_text(result.stderr or result.stdout)}")
     try:
@@ -272,7 +504,11 @@ def load_metadata(
     return payload
 
 
-def select_packages(metadata: dict[str, Any], args: argparse.Namespace) -> list[dict[str, Any]]:
+def select_packages(
+    metadata: dict[str, Any],
+    args: argparse.Namespace,
+    manifest_path: Path,
+) -> list[dict[str, Any]]:
     packages = [item for item in metadata.get("packages", []) if isinstance(item, dict)]
     by_id = {str(item.get("id")): item for item in packages}
     workspace_ids = [str(item) for item in metadata.get("workspace_members", [])]
@@ -289,6 +525,33 @@ def select_packages(metadata: dict[str, Any], args: argparse.Namespace) -> list[
 
     if args.workspace:
         return workspace_packages
+
+    workspace_root = metadata.get("workspace_root")
+    if workspace_root:
+        try:
+            selected_manifest = manifest_path.resolve()
+            workspace_manifest = Path(str(workspace_root)).resolve() / "Cargo.toml"
+        except OSError as exc:
+            raise AuditError(f"cannot resolve selected Cargo manifest: {exc}") from exc
+        if selected_manifest != workspace_manifest:
+            selected = []
+            for package in workspace_packages:
+                package_manifest = package.get("manifest_path")
+                if not package_manifest:
+                    continue
+                try:
+                    matches = Path(str(package_manifest)).resolve() == selected_manifest
+                except OSError as exc:
+                    raise AuditError(
+                        f"cannot resolve workspace package manifest {package_manifest}: {exc}"
+                    ) from exc
+                if matches:
+                    selected.append(package)
+            if len(selected) != 1:
+                raise AuditError(
+                    "selected member manifest did not identify exactly one workspace package"
+                )
+            return selected
 
     default_ids = [str(item) for item in metadata.get("workspace_default_members", [])]
     selected = [by_id[item] for item in default_ids if item in by_id]
@@ -307,12 +570,20 @@ def discover_lints(
     cwd: Path,
     locked: bool,
     cargo: str = "cargo",
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
 ) -> tuple[set[str], str | None]:
     command = [cargo, "clippy", *cargo_scope_args(args, manifest_path)]
     if locked:
         command.append("--locked")
     command.extend(["--message-format=json", "--", "-W", "help"])
-    result = run_command(command, cwd)
+    result = run_command(
+        command,
+        cwd,
+        timeout_seconds=timeout_seconds,
+        max_output_bytes=max_output_bytes,
+    )
     available = {
         normalize_lint(match.group(0))
         for match in re.finditer(r"clippy::[a-z0-9][a-z0-9_-]*", result.stdout + result.stderr)
@@ -702,7 +973,11 @@ def expectation_records(path: Path, source: str, sanitized: str) -> list[Expecta
 
 
 METHOD_PATTERN = re.compile(
-    r"\.\s*(?P<name>unwrap(?:_err|_unchecked)?|expect(?:_err)?)\s*\("
+    r"\.\s*(?P<name>unwrap(?:_err)?|expect(?:_err)?)\s*\("
+)
+PANIC_FUNCTION_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:(?:std|core)\s*::\s*panic\s*::\s*)?"
+    r"(?P<name>panic_any|resume_unwind)\s*\("
 )
 MACRO_PATTERN = re.compile(
     r"(?<![A-Za-z0-9_])(?P<name>panic|todo|unimplemented|unreachable)\s*!\s*[({\[]"
@@ -727,6 +1002,7 @@ def scan_source(path: Path, profile: str) -> tuple[list[Finding], list[Expectati
 
     patterns: list[tuple[re.Pattern[str], str]] = [
         (METHOD_PATTERN, "direct-method"),
+        (PANIC_FUNCTION_PATTERN, "direct-function"),
         (MACRO_PATTERN, "direct-macro"),
     ]
     if profile == "strict-boundary":
@@ -776,9 +1052,6 @@ def rust_files(
         raise AuditError(
             f"cannot resolve Cargo target directory for lexical scan {target_directory}: {exc}"
         ) from exc
-    skipped_dirs = set(ALWAYS_SKIP_DIRS)
-    if not all_targets:
-        skipped_dirs.update(CARGO_DEFAULT_ONLY_SKIP_DIRS)
     for root in roots:
         if not root.is_dir():
             raise AuditError(f"package root is unavailable for lexical scan: {root}")
@@ -795,7 +1068,15 @@ def rust_files(
             directory_path = Path(directory)
             retained_dirs: list[str] = []
             for dirname in dirnames:
-                if dirname in skipped_dirs:
+                if dirname in ALWAYS_SKIP_DIRS:
+                    continue
+                if directory_path == root and dirname in ROOT_TEST_ONLY_SKIP_DIRS:
+                    continue
+                if (
+                    not all_targets
+                    and directory_path == root
+                    and dirname in CARGO_DEFAULT_ONLY_SKIP_DIRS
+                ):
                     continue
                 candidate = directory_path / dirname
                 try:
@@ -936,6 +1217,9 @@ def run_clippy(
     locked: bool,
     active_lints: Sequence[str],
     cargo: str = "cargo",
+    *,
+    timeout_seconds: float = DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    max_output_bytes: int = DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
 ) -> tuple[CommandResult, list[Finding], list[str]]:
     command = [cargo, "clippy", *cargo_scope_args(args, manifest_path)]
     if locked:
@@ -944,7 +1228,12 @@ def run_clippy(
     command.append("--")
     for lint in active_lints:
         command.extend(["-D", lint])
-    result = run_command(command, cwd)
+    result = run_command(
+        command,
+        cwd,
+        timeout_seconds=timeout_seconds,
+        max_output_bytes=max_output_bytes,
+    )
     findings, non_policy_errors = parse_compiler_messages(result.stdout, set(active_lints))
     return result, findings, non_policy_errors
 
@@ -1107,20 +1396,36 @@ def render_text(report: dict[str, Any]) -> str:
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Audit direct Rust panic surfaces without modifying tracked repository files."
+        description="Audit direct Rust panic surfaces with bounded Cargo/Clippy execution."
     )
     parser.add_argument("--manifest-path", required=True, type=Path)
     parser.add_argument("--profile", required=True, choices=("core", "strict-boundary"))
     parser.add_argument("--workspace", action="store_true")
     parser.add_argument("--package", action="append", default=[])
     parser.add_argument("--all-targets", action="store_true")
+    parser.add_argument("--no-default-features", action="store_true")
+    parser.add_argument("--target")
     feature_group = parser.add_mutually_exclusive_group()
     feature_group.add_argument("--all-features", action="store_true")
     feature_group.add_argument("--features")
+    parser.add_argument(
+        "--timeout-seconds",
+        type=float,
+        default=DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    )
+    parser.add_argument(
+        "--max-command-output-bytes",
+        type=int,
+        default=DEFAULT_MAX_COMMAND_OUTPUT_BYTES,
+    )
     parser.add_argument("--json", action="store_true", dest="json_output")
     parsed = parser.parse_args(argv)
     if parsed.features is not None and not any(item.strip() for item in parsed.features.split(",")):
         parser.error("--features requires at least one non-empty feature name")
+    if parsed.timeout_seconds <= 0:
+        parser.error("--timeout-seconds must be greater than zero")
+    if parsed.max_command_output_bytes <= 0:
+        parser.error("--max-command-output-bytes must be greater than zero")
     return parsed
 
 
@@ -1138,7 +1443,13 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             "analyzed_targets": [],
             "target_mode": "all-targets" if args.all_targets else "cargo-defaults",
             "all_targets": bool(args.all_targets),
+            "target": args.target or "repository default",
+            "default_features": not args.no_default_features,
             "features": "all" if args.all_features else (args.features or "Cargo defaults"),
+        },
+        "execution_limits": {
+            "command_timeout_seconds": args.timeout_seconds,
+            "max_command_output_bytes": args.max_command_output_bytes,
         },
         "compiler_findings": [],
         "lexical_candidates": [],
@@ -1153,9 +1464,13 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         return base_report, EXIT_INCOMPLETE
 
     manifest_directory = manifest_path.parent
+    limits = {
+        "timeout_seconds": args.timeout_seconds,
+        "max_output_bytes": args.max_command_output_bytes,
+    }
     try:
         cargo = cargo_executable()
-        root = locate_workspace(manifest_path, cargo)
+        root = locate_workspace(manifest_path, cargo, **limits)
     except AuditError as exc:
         base_report["tooling_errors"].append(str(exc))
         return base_report, EXIT_INCOMPLETE
@@ -1163,11 +1478,15 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     lockfile = root / "Cargo.lock"
     initial_lock_digest = file_digest(lockfile)
     locked = initial_lock_digest is not None
-    initial_status = tracked_status(root)
-
+    initial_status: str | None = None
+    initial_untracked: set[str] | None = None
+    generated_lock_digest: str | None = None
+    generated_lock_identity: tuple[int, int] | None = None
     try:
-        metadata = load_metadata(args, manifest_path, manifest_directory, locked, cargo)
-        packages = select_packages(metadata, args)
+        metadata = load_metadata(
+            args, manifest_path, manifest_directory, locked, cargo, **limits
+        )
+        packages = select_packages(metadata, args, manifest_path)
         package_names, targets = package_summary(packages)
         base_report["scope"]["packages"] = package_names
         base_report["scope"]["declared_targets"] = targets
@@ -1183,11 +1502,36 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         base_report["lexical_candidates"] = [asdict(item) for item in lexical]
         base_report["intentional_expectations"] = [asdict(item) for item in expectations]
 
+        if initial_lock_digest is None:
+            lock_result = run_command(
+                [cargo, "generate-lockfile", "--manifest-path", str(manifest_path)],
+                manifest_directory,
+                **limits,
+            )
+            if lock_result.returncode != 0:
+                raise AuditError(
+                    "Cargo could not create the temporary audit lockfile: "
+                    f"{short_text(lock_result.stderr or lock_result.stdout)}"
+                )
+            generated_lock_digest = file_digest(lockfile)
+            generated_lock_identity = file_identity(lockfile)
+            if generated_lock_digest is None or generated_lock_identity is None:
+                raise AuditError(
+                    f"Cargo did not create the expected temporary lockfile: {lockfile}"
+                )
+            locked = True
+        initial_status = tracked_status(root, **limits)
+        initial_untracked = unignored_untracked_paths(
+            root,
+            (target_directory,) if target_directory else (),
+            **limits,
+        )
+
         requested = list(CORE_LINTS)
         if args.profile == "strict-boundary":
             requested.extend(STRICT_LINTS)
         available, discovery_error = discover_lints(
-            args, manifest_path, manifest_directory, locked, cargo
+            args, manifest_path, manifest_directory, locked, cargo, **limits
         )
         if discovery_error:
             base_report["unavailable_lints"] = requested
@@ -1197,7 +1541,7 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         base_report["unavailable_lints"] = [lint for lint in requested if lint not in active]
 
         clippy_result, compiler_findings, non_policy_errors = run_clippy(
-            args, manifest_path, manifest_directory, locked, active, cargo
+            args, manifest_path, manifest_directory, locked, active, cargo, **limits
         )
         base_report["compiler_findings"] = [asdict(item) for item in compiler_findings]
         analyzed_targets = analyzed_target_summary(
@@ -1234,10 +1578,26 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                     "Cargo Clippy did not complete the requested audit scope"
                 )
 
-        final_status = tracked_status(root)
+        final_status = tracked_status(root, **limits)
         if initial_status is not None and final_status is not None and final_status != initial_status:
             base_report["tooling_errors"].append(
                 "tracked working-tree state changed while Cargo/Clippy ran; audit integrity is incomplete"
+            )
+        final_untracked = unignored_untracked_paths(
+            root,
+            (target_directory,) if target_directory else (),
+            **limits,
+        )
+        if (
+            initial_untracked is not None
+            and final_untracked is not None
+            and final_untracked != initial_untracked
+        ):
+            changed = sorted(initial_untracked.symmetric_difference(final_untracked))
+            base_report["tooling_errors"].append(
+                "non-ignored untracked paths changed outside Cargo's target directory while "
+                f"Cargo/Clippy ran: {', '.join(changed[:20])}"
+                + (f" (+{len(changed) - 20} more)" if len(changed) > 20 else "")
             )
 
         if base_report["tooling_errors"] or base_report["unavailable_lints"]:
@@ -1252,10 +1612,25 @@ def audit(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         return base_report, EXIT_INCOMPLETE
     finally:
         if initial_lock_digest is None and lockfile.is_file():
-            try:
-                lockfile.unlink()
-            except OSError as exc:
-                base_report["tooling_errors"].append(f"could not remove Cargo.lock created by Cargo: {exc}")
+            current_lock_digest = file_digest(lockfile)
+            current_lock_identity = file_identity(lockfile)
+            if (
+                generated_lock_digest is not None
+                and generated_lock_identity is not None
+                and current_lock_digest == generated_lock_digest
+                and current_lock_identity == generated_lock_identity
+            ):
+                try:
+                    lockfile.unlink()
+                except OSError as exc:
+                    base_report["tooling_errors"].append(
+                        f"could not remove Cargo.lock created by Cargo: {exc}"
+                    )
+            else:
+                base_report["tooling_errors"].append(
+                    "Cargo.lock appeared or changed after metadata; it was left in place "
+                    "because runner ownership could not be established"
+                )
         elif initial_lock_digest is not None and file_digest(lockfile) != initial_lock_digest:
             base_report["tooling_errors"].append("Cargo.lock changed despite the locked audit")
 
@@ -1268,7 +1643,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         exit_code = EXIT_INCOMPLETE
     report["exit_code"] = exit_code
     if args.json_output:
-        print(json.dumps(report, indent=2, sort_keys=False))
+        print(json.dumps(report, separators=(",", ":"), sort_keys=False))
     else:
         sys.stdout.write(render_text(report))
     return exit_code

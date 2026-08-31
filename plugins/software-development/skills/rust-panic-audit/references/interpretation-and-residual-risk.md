@@ -4,9 +4,19 @@
 
 Compiler findings come from individually selected Clippy lints supported by the repository toolchain. They are authoritative for the construct and compiled configuration that produced the diagnostic. A configured deny level may make Cargo exit nonzero; when all errors are requested policy lints, that is a completed audit with findings rather than a tooling failure.
 
-Lexical findings are review candidates. The scanner removes comments, normal and raw strings, nested block comments, conventional test paths, `#[test]` items, and definitely test-only `#[cfg(test)]` items before matching direct constructs. It is not a Rust parser: macros, unusual attributes, generated source layouts, and conditional compilation can change meaning.
+Lexical findings are review candidates. The scanner removes comments, normal and raw strings, nested block comments, root conventional test/fixture paths, `#[test]` items, and definitely test-only `#[cfg(test)]` items before matching unwrap/expect calls, panic-family macros, `std::panic::panic_any`, `std::panic::resume_unwind`, and profile-specific assertions. A production module remains in scope merely because a nested directory is named `test` or `tests`. The scanner is not a Rust parser: aliases, shadowing, macros, unusual attributes, generated source layouts, and conditional compilation can change meaning.
 
 An unavailable lint means the requested compiler evidence could not be obtained from the repository toolchain. The lexical pass may cover direct unwrap, expect, panic-family, and assertion syntax, but it does not replace semantic indexing, arithmetic, or result-return analysis.
+
+## Panic and unwind boundaries
+
+Rust panics either unwind or abort according to the compiled panic strategy and target support. `catch_unwind` catches only unwinding Rust panics, is not a general exception mechanism, and does not establish that the called code cannot panic. The panic hook runs before a panic is caught; dropping the caught payload can itself panic; behavior for caught foreign exceptions is unspecified. Tests require unwinding on stable Rust, while build scripts and procedural macros ignore profile panic settings. At FFI boundaries, use the correct ABI and treat an unwind that crosses an ABI which does not permit it as a correctness and safety defect rather than evidence supplied by this direct-construct audit.
+
+## Execution effects and bounds
+
+Cargo and Clippy may compile and execute `build.rs` and procedural macros. Run the audit in a disposable worktree or externally enforced sandbox when those programs are untrusted or mutation prevention is required. The runner's before/after checks detect tracked-content changes and changes to the set of non-ignored untracked paths outside Cargo's target directory; they do not prevent execution, roll back side effects, observe newly ignored paths, or detect content changes to a path that was already untracked.
+
+A command deadline, output limit, surviving descendant, worktree mutation, or uncertain temporary-lockfile ownership makes the result incomplete. A retry is comparable evidence only when it preserves the declared scope; if a bound changes, record the new bound. Compact JSON changes representation, not evidence completeness.
 
 ## Expectations and invariants
 

@@ -39,14 +39,20 @@ python3 <skills-file-root>/scripts/panic_audit.py \
   --manifest-path <Cargo.toml> \
   --profile core|strict-boundary \
   [--workspace] [--package <name> ...] [--all-targets] \
-  [--all-features | --features <csv>] [--json]
+  [--no-default-features] [--all-features | --features <csv>] \
+  [--target <triple>] [--timeout-seconds <seconds>] \
+  [--max-command-output-bytes <bytes>] [--json]
 ```
 
-The runner invokes the repository's Cargo and Clippy, selects restriction lints individually, and performs an independent lexical candidate scan. Cargo build-cache writes are allowed; the runner does not edit tracked files, copy artifacts into the repository, or change lint and CI configuration. Even with `--all-targets`, the lexical pass excludes conventional test-only paths and items; report that limit separately from Cargo/Clippy target coverage.
+The runner invokes the repository's Cargo and Clippy, selects restriction lints individually, and performs an independent lexical candidate scan. It preserves a member `--manifest-path` rather than silently auditing workspace defaults. It creates and removes an absent `Cargo.lock` only while file identity and content prove runner ownership. Each child command has a deadline, an output limit, and process-tree cleanup; exceeding a bound makes the audit incomplete.
+
+The runner supports Cargo-default or `--all-targets` target selection. If the requested scope uses narrower Cargo target selectors such as `--lib`, `--bin`, or `--test`, run the exact repository-compatible Cargo and Clippy commands directly and mark the supplemental lexical result incomplete; do not broaden the scope and present it as equivalent. Even with `--all-targets`, the lexical pass excludes root conventional test/fixture directories and definitely test-only items; report that limit separately from compiler target coverage.
+
+Cargo and Clippy execute repository build scripts and procedural macros with the caller's authority. The runner does not intentionally edit tracked files and detects tracked changes plus non-ignored untracked path-set changes outside Cargo's target directory, but it cannot prevent side effects, observe new ignored paths, or detect edits to an already-untracked file. Use a disposable worktree or stronger external sandbox whenever build code is untrusted or no repository mutation is acceptable; cleanup that isolation after the audit.
 
 If Python is unavailable, run the equivalent repository-compatible Cargo and Clippy commands directly. State that the supplemental lexical pass was not available and keep the result incomplete wherever that gap matters.
 
-Compiler-supported `#[expect(..., reason = "...")]` is the preferred scoped rationale. Do not introduce magic suppression comments.
+Compiler-supported `#[expect(..., reason = "...")]` is the preferred scoped rationale. Do not introduce magic suppression comments. Retry a timed-out or output-limited command only after naming and correcting the cause or deliberately changing the corresponding bound; do not convert an incomplete run into clean evidence.
 
 ## Interpret the result
 
@@ -62,7 +68,7 @@ Treat compiler diagnostics as authoritative for supported direct lints. Treat le
 
 ## Completion evidence
 
-Report the profile and exact packages, targets, and features audited; compiler findings; lexical candidates; intentional expectations; unavailable lints; tooling gaps; and residual risk.
+Report the profile and exact manifest, packages, target mode or triple, default-feature choice, named features, and execution limits; compiler findings; lexical candidates; intentional expectations; unavailable lints; tooling gaps; worktree-side-effect evidence; and residual risk.
 
 You may conclude: “no forbidden direct constructs found in the audited scope.” Never conclude “panic-free.”
 

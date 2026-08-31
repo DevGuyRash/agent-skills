@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import textwrap
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -47,6 +49,7 @@ def cargo_clippy_available() -> bool:
 
 
 CARGO_CLIPPY_AVAILABLE = cargo_clippy_available()
+INTEGRATION_AUDIT_TIMEOUT_SECONDS = 240
 
 LEXICAL_TEST_EXCLUSION_RISK = (
     "conventional test-only paths and definitely test-only items remain outside "
@@ -89,6 +92,27 @@ class ScannerTests(unittest.TestCase):
         self.assertTrue(any("unwrap candidate" in item for item in messages))
         self.assertTrue(any("assert_eq candidate" in item for item in messages))
         self.assertTrue(any("debug_assert candidate" in item for item in messages))
+
+    def test_finds_direct_panic_functions_but_not_unsafe_unwrap_unchecked(self) -> None:
+        findings, _ = self.scan(
+            """
+            use std::panic::{panic_any, resume_unwind};
+
+            pub fn payload() { panic_any(17_u8); }
+            pub fn propagate(payload: Box<dyn std::any::Any + Send>) {
+                resume_unwind(payload);
+            }
+            pub unsafe fn unchecked(value: Option<u8>) -> u8 {
+                unsafe { value.unwrap_unchecked() }
+            }
+            """,
+            profile="core",
+        )
+
+        messages = [item.message for item in findings]
+        self.assertTrue(any("panic_any candidate" in item for item in messages))
+        self.assertTrue(any("resume_unwind candidate" in item for item in messages))
+        self.assertFalse(any("unwrap_unchecked" in item for item in messages))
 
     def test_masks_test_only_items_but_keeps_mixed_cfg_candidates(self) -> None:
         findings, _ = self.scan(
@@ -193,6 +217,7 @@ class ScannerTests(unittest.TestCase):
             manifest = root / "Cargo.toml"
             generated = root / "src" / "generated" / "bindings.rs"
             production_tests_file = root / "src" / "tests.rs"
+            production_tests_module = root / "src" / "tests" / "mod.rs"
             production_test_suffix_file = root / "src" / "worker_test.rs"
             test_file = root / "tests" / "integration.rs"
             example_file = root / "examples" / "demo.rs"
@@ -204,6 +229,7 @@ class ScannerTests(unittest.TestCase):
                 manifest,
                 generated,
                 production_tests_file,
+                production_tests_module,
                 production_test_suffix_file,
                 test_file,
                 example_file,
@@ -227,6 +253,7 @@ class ScannerTests(unittest.TestCase):
                     [
                         generated.resolve(),
                         production_tests_file.resolve(),
+                        production_tests_module.resolve(),
                         production_test_suffix_file.resolve(),
                     ]
                 ),
@@ -239,6 +266,7 @@ class ScannerTests(unittest.TestCase):
                         example_file.resolve(),
                         generated.resolve(),
                         production_tests_file.resolve(),
+                        production_tests_module.resolve(),
                         production_test_suffix_file.resolve(),
                     ]
                 ),
@@ -287,6 +315,37 @@ class ScannerTests(unittest.TestCase):
 
 
 class AuditStateTests(unittest.TestCase):
+    def test_member_manifest_selects_its_package_not_workspace_defaults(self) -> None:
+        workspace = Path("/repo")
+        root_manifest = workspace / "Cargo.toml"
+        service_manifest = workspace / "crates" / "service" / "Cargo.toml"
+        default_package = {
+            "id": "default 0.1.0",
+            "name": "default",
+            "manifest_path": str(workspace / "crates" / "default" / "Cargo.toml"),
+            "targets": [],
+        }
+        service_package = {
+            "id": "service 0.1.0",
+            "name": "service",
+            "manifest_path": str(service_manifest),
+            "targets": [],
+        }
+        metadata = {
+            "packages": [default_package, service_package],
+            "workspace_members": ["default 0.1.0", "service 0.1.0"],
+            "workspace_default_members": ["default 0.1.0"],
+            "workspace_root": str(workspace),
+        }
+        args = panic_audit.parse_args(
+            ["--manifest-path", str(service_manifest), "--profile", "core"]
+        )
+
+        selected = panic_audit.select_packages(metadata, args, service_manifest)
+
+        self.assertEqual([service_package], selected)
+        self.assertNotEqual(root_manifest, service_manifest)
+
     def test_unreadable_selected_source_makes_lexical_scope_incomplete(self) -> None:
         with tempfile.TemporaryDirectory(prefix="panic-audit-unreadable-") as temp:
             root = Path(temp)
@@ -498,6 +557,9 @@ class AuditStateTests(unittest.TestCase):
                 "--package",
                 "two",
                 "--all-targets",
+                "--no-default-features",
+                "--target",
+                "wasm32-unknown-unknown",
                 "--features",
                 "alpha,beta",
             ]
@@ -506,6 +568,8 @@ class AuditStateTests(unittest.TestCase):
         self.assertNotIn("--workspace", scope)
         self.assertEqual(2, scope.count("--package"))
         self.assertIn("--all-targets", scope)
+        self.assertIn("--no-default-features", scope)
+        self.assertEqual("wasm32-unknown-unknown", scope[scope.index("--target") + 1])
         self.assertEqual("alpha,beta", scope[-1])
         self.assertNotIn("--all-features", scope)
 
@@ -597,7 +661,7 @@ class AuditStateTests(unittest.TestCase):
         }
         calls: list[tuple[list[str], Path]] = []
 
-        def fake_run(command, cwd):
+        def fake_run(command, cwd, **kwargs):
             calls.append((list(command), cwd))
             if command[1] == "locate-project":
                 return panic_audit.CommandResult(list(command), 0, "/repo/Cargo.toml\n", "")
@@ -653,7 +717,7 @@ class AuditStateTests(unittest.TestCase):
             subprocess.run(["git", "config", "user.name", "Tests"], cwd=root, check=True)
             subprocess.run(["git", "add", "tracked.rs"], cwd=root, check=True)
             subprocess.run(
-                ["git", "-c", "commit.gpgsign=false", "commit", "-qm", "fixture"],
+                ["git", "commit", "--no-gpg-sign", "-qm", "fixture"],
                 cwd=root,
                 check=True,
             )
@@ -680,7 +744,7 @@ class AuditStateTests(unittest.TestCase):
             subprocess.run(["git", "config", "user.name", "Tests"], cwd=root, check=True)
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(
-                ["git", "-c", "commit.gpgsign=false", "commit", "-qm", "fixture"],
+                ["git", "commit", "--no-gpg-sign", "-qm", "fixture"],
                 cwd=root,
                 check=True,
             )
@@ -692,6 +756,21 @@ class AuditStateTests(unittest.TestCase):
             self.assertIsNotNone(before)
             self.assertIsNotNone(after)
             self.assertNotEqual(before, after)
+
+    def test_untracked_snapshot_detects_new_paths_outside_cargo_target(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="panic-audit-untracked-") as temp:
+            root = Path(temp)
+            target = root / "target"
+            target.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+
+            before = panic_audit.unignored_untracked_paths(root, (target,))
+            (root / "side-effect.txt").write_text("created\n", encoding="utf-8")
+            (target / "cache.bin").write_bytes(b"generated")
+            after = panic_audit.unignored_untracked_paths(root, (target,))
+
+            self.assertEqual(set(), before)
+            self.assertEqual({"side-effect.txt"}, after)
 
     def test_missing_requested_targets_respects_cargo_target_mode(self) -> None:
         declared = [
@@ -721,6 +800,46 @@ class AuditStateTests(unittest.TestCase):
             declared[1:4],
             panic_audit.missing_requested_targets(declared, analyzed, True),
         )
+
+
+class CommandExecutionTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "process-group assertion requires POSIX")
+    def test_timeout_terminates_the_command_and_its_descendants(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="panic-audit-timeout-") as temp:
+            root = Path(temp)
+            marker = root / "descendant-survived"
+            descendant = (
+                "import time; from pathlib import Path; "
+                f"time.sleep(0.8); Path({str(marker)!r}).write_text('survived')"
+            )
+            parent = (
+                "import subprocess, sys, time; "
+                f"subprocess.Popen([sys.executable, '-c', {descendant!r}]); "
+                "time.sleep(10)"
+            )
+
+            with self.assertRaisesRegex(panic_audit.AuditError, "timed out"):
+                panic_audit.run_command(
+                    [sys.executable, "-c", parent],
+                    root,
+                    timeout_seconds=0.2,
+                    max_output_bytes=1024 * 1024,
+                )
+
+            time.sleep(1.0)
+            self.assertFalse(marker.exists())
+
+    def test_output_limit_stops_unbounded_command_output(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="panic-audit-output-") as temp:
+            with self.assertRaisesRegex(
+                panic_audit.AuditError, "output exceeded"
+            ):
+                panic_audit.run_command(
+                    [sys.executable, "-c", "print('x' * 65536)"],
+                    Path(temp),
+                    timeout_seconds=5,
+                    max_output_bytes=1024,
+                )
 
 
 @unittest.skipUnless(
@@ -764,7 +883,7 @@ class RunnerIntegrationTests(unittest.TestCase):
         subprocess.run(["git", "config", "user.name", "Tests"], cwd=self.root, check=True)
         subprocess.run(["git", "add", "."], cwd=self.root, check=True)
         subprocess.run(
-            ["git", "-c", "commit.gpgsign=false", "commit", "-qm", "fixture"],
+            ["git", "commit", "--no-gpg-sign", "-qm", "fixture"],
             cwd=self.root,
             check=True,
         )
@@ -799,7 +918,7 @@ class RunnerIntegrationTests(unittest.TestCase):
             text=True,
             encoding="utf-8",
             check=False,
-            timeout=120,
+            timeout=INTEGRATION_AUDIT_TIMEOUT_SECONDS,
         )
 
     def run_audit(self, *extra: str) -> subprocess.CompletedProcess[str]:
@@ -839,12 +958,13 @@ class RunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(before, after)
 
     def test_scans_production_test_named_modules_and_source_files(self) -> None:
-        tests_file = self.root / "app" / "src" / "tests.rs"
+        tests_file = self.root / "app" / "src" / "tests" / "mod.rs"
         test_suffix_file = self.root / "app" / "src" / "worker_test.rs"
         self.source.write_text(
-            "pub mod tests;\npub mod worker_test;\n",
+            '#[path = "tests/mod.rs"]\npub mod production_tests;\npub mod worker_test;\n',
             encoding="utf-8",
         )
+        tests_file.parent.mkdir()
         tests_file.write_text(
             '#[allow(clippy::panic)]\npub fn production() { panic!("tests module"); }\n',
             encoding="utf-8",
@@ -857,9 +977,8 @@ class RunnerIntegrationTests(unittest.TestCase):
         subprocess.run(
             [
                 "git",
-                "-c",
-                "commit.gpgsign=false",
                 "commit",
+                "--no-gpg-sign",
                 "-qm",
                 "production modules",
             ],
@@ -881,6 +1000,40 @@ class RunnerIntegrationTests(unittest.TestCase):
             lexical_paths,
         )
         self.assertEqual(before, after)
+
+    def test_build_script_worktree_side_effect_makes_audit_incomplete(self) -> None:
+        build_script = self.root / "app" / "build.rs"
+        build_script.write_text(
+            textwrap.dedent(
+                """
+                fn main() -> Result<(), Box<dyn std::error::Error>> {
+                    let root = std::env::var("CARGO_MANIFEST_DIR")?;
+                    std::fs::write(
+                        std::path::Path::new(&root).join("side-effect.txt"),
+                        "created",
+                    )?;
+                    Ok(())
+                }
+                """
+            ).lstrip(),
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "app/build.rs"], cwd=self.root, check=True)
+        subprocess.run(
+            ["git", "commit", "--no-gpg-sign", "-qm", "build script"],
+            cwd=self.root,
+            check=True,
+        )
+
+        proc = self.run_audit("--json")
+
+        self.assertEqual(2, proc.returncode, proc.stdout + proc.stderr)
+        payload = json.loads(proc.stdout)
+        self.assertEqual("incomplete", payload["status"])
+        self.assertTrue(
+            any("untracked paths changed" in item for item in payload["tooling_errors"]),
+            payload["tooling_errors"],
+        )
 
     def test_default_and_all_target_reports_distinguish_declared_and_analyzed(self) -> None:
         default_proc = self.run_audit("--json")
@@ -925,7 +1078,7 @@ class RunnerIntegrationTests(unittest.TestCase):
         )
         subprocess.run(["git", "add", "."], cwd=self.root, check=True)
         subprocess.run(
-            ["git", "-c", "commit.gpgsign=false", "commit", "-qm", "target fixtures"],
+            ["git", "commit", "--no-gpg-sign", "-qm", "target fixtures"],
             cwd=self.root,
             check=True,
         )
