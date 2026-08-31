@@ -1,6 +1,6 @@
 {
   "skill_name": "shell-development",
-  "comment": "Boundary probes for maintained POSIX sh, Bash, and PowerShell artifacts; zsh, fish, and incidental commands are excluded.",
+  "comment": "Boundary probes for maintained POSIX sh, Bash, and PowerShell artifacts plus user-visible elevation flows; zsh, fish, incidental commands, and conceptual privilege questions are excluded.",
   "queries": [
     {
       "id": "implicit-posix-change",
@@ -26,6 +26,16 @@
       "query": "Harden the Bash run block in this GitHub Actions job that passes a secret and user-selected deployment target to a CLI."
     },
     {
+      "id": "implicit-visible-sudo",
+      "should_trigger": true,
+      "query": "This requested workstation repair needs sudo. Open a visible terminal or operating-system prompt so I can approve it; do not ask me to send you the password."
+    },
+    {
+      "id": "implicit-powershell-uac",
+      "should_trigger": true,
+      "query": "Use PowerShell 7 to run this fixed maintenance script through a visible Windows UAC prompt, wait for it, and propagate its exit code."
+    },
+    {
       "id": "negative-zsh",
       "should_trigger": false,
       "query": "Update my maintained zsh plugin to use zsh associative arrays and completion widgets."
@@ -39,6 +49,11 @@
       "id": "negative-incidental",
       "should_trigger": false,
       "query": "Run a single ls command so you can see which files are present; do not create a script."
+    },
+    {
+      "id": "negative-conceptual-uac",
+      "should_trigger": false,
+      "query": "What does UAC stand for on Windows?"
     }
   ]
 }

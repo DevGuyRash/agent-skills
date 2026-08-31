@@ -1,14 +1,14 @@
 ---
 name: shell-development
 description: >-
-  Use for substantive POSIX sh, Bash, or PowerShell artifacts, selecting rules by interpreter. Covers process and error boundaries; exclude zsh, fish, and one-liners.
+  Use for substantive POSIX sh, Bash, or PowerShell artifacts and for user-visible sudo, Windows UAC, or macOS authorization flows. Select rules by interpreter and operating system; exclude zsh, fish, incidental commands, and conceptual privilege questions.
 ---
 
 # Shell Development
 
 ## Purpose
 
-Produce maintainable POSIX sh, Bash, or PowerShell changes that preserve the repository's execution environment, command interfaces, stream behavior, failure semantics, and security boundaries. This skill does not cover zsh or fish.
+Produce maintainable POSIX sh, Bash, or PowerShell changes that preserve the repository's execution environment, command interfaces, stream behavior, failure semantics, and security boundaries. Route necessary elevation through the current operating system's user-visible authentication or consent surface without handling credentials. This skill does not cover zsh or fish.
 
 ## Resolve the dialect first
 
@@ -29,6 +29,7 @@ Route zsh and fish work to their own language guidance. Do not treat them as Bas
 - Read `<skills-file-root>/references/bash.md` for artifacts explicitly executed by Bash.
 - Read `<skills-file-root>/references/powershell.md` for PowerShell scripts, modules, manifests, functions, or pipeline behavior.
 - Also read `<skills-file-root>/references/process-security.md` when the task handles untrusted values, secrets, privileges, destructive paths, temporary files, remote input, or external process construction.
+- Read `<skills-file-root>/references/interactive-elevation.md` whenever the requested task needs sudo, administrator privileges, UAC, macOS authorization, a graphical askpass helper, or a visible terminal prompt.
 
 Load one dialect reference per changed artifact. A multi-dialect task may require more than one, but do not merge their syntax or error models.
 

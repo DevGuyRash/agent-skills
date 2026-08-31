@@ -1,6 +1,6 @@
 interface:
   display_name: "Shell Development"
-  short_description: "Build safe, dialect-correct shell code"
-  default_prompt: "Use $shell-development to implement or review this repository's POSIX sh, Bash, or PowerShell code under its declared interpreter."
+  short_description: "Build safe shell code and visible elevation flows"
+  default_prompt: "Use $shell-development to implement or review POSIX sh, Bash, or PowerShell code, or to launch a user-visible operating-system elevation flow without handling credentials."
 policy:
   allow_implicit_invocation: true
