@@ -103,6 +103,7 @@ REQUIRED_QUALITY_EVALS = {
     "c-development": {"eval-worker-shutdown-race"},
     "cpp-development": {"eval-worker-shutdown-race"},
     "typescript-development": {"eval-browser-worker-cancellation"},
+    "shell-development": {"eval-visible-cross-platform-elevation"},
 }
 
 REQUIRED_TRIGGER_PROBES = {
@@ -121,6 +122,10 @@ REQUIRED_TRIGGER_PROBES = {
         "composition-defined-performance",
     },
     "typescript-development": {"implicit-browser-worker-cancellation"},
+    "shell-development": {
+        "implicit-visible-sudo",
+        "implicit-powershell-uac",
+    },
 }
 
 CANONICAL_COMPOSITION_ROUTES = {
