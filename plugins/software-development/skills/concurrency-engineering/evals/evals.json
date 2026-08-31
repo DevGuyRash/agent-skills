@@ -1,0 +1,53 @@
+{
+  "skill_name": "concurrency-engineering",
+  "evals": [
+    {
+      "id": "eval-eager-admission",
+      "prompt": "A cross-language worker limiter receives operations after every promise, future, or request has already started. Enforce an exact in-flight bound without changing required result order.",
+      "expected_output": "Admission moves before operation invocation, executing and queued work are bounded separately, ordering and failure policy stay explicit, and a handshake-based test rejects eager start.",
+      "files": []
+    },
+    {
+      "id": "eval-cancel-join-cleanup",
+      "prompt": "A timeout wakes the caller while an owned operation can still mutate shared state, and cleanup may either fulfill or fail differently after cancellation.",
+      "expected_output": "The solution records the winning timeout or cancellation outcome, issues the actual unblock action, joins terminal cleanup separately, publishes the declared primary reason, retains secondary cleanup evidence, and proves no owned work remains.",
+      "files": []
+    },
+    {
+      "id": "eval-pressure-policy",
+      "prompt": "A callback producer fills an unbounded queue faster than an async consumer and remains registered after early consumer exit.",
+      "expected_output": "The adapter declares backpressure or bounded loss, accounts for dropped/rejected items, unregisters the producer on terminal consumer paths, owns completion once, and tests slow plus early-exit consumers.",
+      "files": []
+    },
+    {
+      "id": "eval-failure-unblocks-submitters",
+      "prompt": "One worker fails while producers are blocked on a full bounded queue and surviving workers can continue executing queued side effects indefinitely.",
+      "expected_output": "The design closes admission, wakes blocked participants, preserves the selected primary failure, stops new execution unless drain-by-execution is contractual, accounts for discarded work, and joins every worker.",
+      "files": []
+    },
+    {
+      "id": "eval-lock-join-cycle",
+      "prompt": "Shutdown holds a state lock while joining a worker whose final callback needs that same lock.",
+      "expected_output": "The repair identifies the terminal dependency cycle, separates state transition from join, preserves the invariant and callback lifetime, and uses deterministic coordination to prove shutdown completes without detached work.",
+      "files": []
+    },
+    {
+      "id": "eval-parallel-scaling",
+      "prompt": "A CPU pipeline creates one task per item and uses every core, but throughput stops scaling while memory traffic and tail latency rise.",
+      "expected_output": "The work composes performance evidence, measures equivalent useful work across worker levels, accounts for scheduling/merge/contention costs, bounds tasks, selects the supported scaling point, and preserves correctness and terminal ownership.",
+      "files": []
+    },
+    {
+      "id": "eval-process-descendants",
+      "prompt": "A concurrent process supervisor reaps the leader and sees pipe EOF, then returns while an owned descendant continues after closing inherited descriptors.",
+      "expected_output": "The solution defines the real execution-domain owner, keeps termination authority valid, drains bounded output, escalates independently of leader/pipe settlement, joins drainers, preserves status, and tests a surviving descriptor-closing descendant.",
+      "files": []
+    },
+    {
+      "id": "eval-deterministic-race-test",
+      "prompt": "A flaky concurrency regression currently uses a 50 ms sleep and passes once. Replace it with evidence that can distinguish the intended ordering and state what a clean run proves.",
+      "expected_output": "The test uses barriers, handshakes, controlled scheduling, or another observable condition, reaches the decisive assertion, records exposure for residual probabilistic checks, and avoids claiming universal race freedom from non-occurrence.",
+      "files": []
+    }
+  ]
+}

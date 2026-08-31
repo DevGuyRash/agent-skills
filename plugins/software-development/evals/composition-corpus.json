@@ -28,8 +28,20 @@
     {
       "id": "sync-rust-worker-shutdown",
       "prompt": "Repair a synchronous Rust std::thread worker pool built entirely on the standard library. Its bounded channel must apply backpressure, its Arc<Mutex<State>> must not deadlock shutdown, every worker must wake and join, and failures must reach the owner.",
-      "expected_skills": ["rust-development"],
+      "expected_skills": ["rust-development", "concurrency-engineering"],
       "excluded_skills": ["async-rust", "unsafe-rust", "rust-panic-audit"]
+    },
+    {
+      "id": "java-worker-lifecycle",
+      "prompt": "Repair this Java worker pool: bound admission, unblock submitters after failure, preserve the interruption contract, and join every worker before close returns.",
+      "expected_skills": ["java-development", "concurrency-engineering"],
+      "excluded_skills": ["async-rust"]
+    },
+    {
+      "id": "bounded-parallel-performance",
+      "prompt": "The bottleneck is already localized. Select a bounded parallel worker count that raises throughput while preserving p99, memory, complete work accounting, and clean shutdown.",
+      "expected_skills": ["concurrency-engineering", "performance-engineering"],
+      "excluded_skills": ["systematic-debugging"]
     },
     {
       "id": "node-module-resolution",

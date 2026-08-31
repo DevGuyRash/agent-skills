@@ -1,0 +1,6 @@
+interface:
+  display_name: "Concurrency Engineering"
+  short_description: "Own concurrent work, pressure, and shutdown"
+  default_prompt: "Use $concurrency-engineering to make this concurrent workflow bounded, cancelable, and terminally owned."
+policy:
+  allow_implicit_invocation: true

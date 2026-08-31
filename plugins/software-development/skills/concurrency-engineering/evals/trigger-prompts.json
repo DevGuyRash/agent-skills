@@ -1,0 +1,45 @@
+{
+  "skill_name": "concurrency-engineering",
+  "comment": "Boundary probes for material cross-language concurrency contracts versus trivial async syntax, focused Rust async ownership, and unknown-cause diagnosis.",
+  "queries": [
+    {
+      "id": "explicit-concurrency",
+      "should_trigger": true,
+      "query": "Use $concurrency-engineering to bound this worker pipeline, define cancellation precedence, and prove every accepted operation is terminal before shutdown returns."
+    },
+    {
+      "id": "implicit-callback-pressure",
+      "should_trigger": true,
+      "query": "This callback source overwhelms a slower async iterator and remains subscribed after the consumer exits. Add a bounded pressure policy and terminal teardown."
+    },
+    {
+      "id": "negative-trivial-async",
+      "should_trigger": false,
+      "query": "Rename this private async helper and update its two call sites; no lifecycle or behavior changes."
+    },
+    {
+      "id": "negative-unknown-race",
+      "should_trigger": false,
+      "query": "The test sometimes hangs in CI and we do not know whether concurrency is involved. Diagnose the cause."
+    },
+    {
+      "id": "negative-focused-async-rust",
+      "should_trigger": false,
+      "query": "Fix cancellation safety in this Tokio future and preserve its runtime-specific pinning and task-local contracts."
+    },
+    {
+      "id": "composition-java-workers",
+      "should_trigger": true,
+      "expected_skills": ["concurrency-engineering", "java-development"],
+      "excluded_skills": ["async-rust"],
+      "query": "Repair this Java worker pool: bound admission, stop blocked submitters after failure, propagate interruption according to its API, and join every worker before close returns."
+    },
+    {
+      "id": "composition-parallel-performance",
+      "should_trigger": true,
+      "expected_skills": ["concurrency-engineering", "performance-engineering"],
+      "excluded_skills": ["systematic-debugging"],
+      "query": "The bottleneck is already localized. Select a bounded parallel worker count that raises throughput while preserving p99, memory, complete work accounting, and clean shutdown."
+    }
+  ]
+}
