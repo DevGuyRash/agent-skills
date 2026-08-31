@@ -66,15 +66,6 @@ build:
 dist-host:
   python3 scripts/package_skills.py stage-host
 
-# Rebuild the committed Split Testing release matrix twice from the frozen index
-dist-refresh:
-  python3 scripts/package_skills.py dist-refresh --source index --platform-set required --skill split-testing
-
-# Purely verify the staged Split Testing binaries, receipt, and target matrix
-verify-dist:
-  python3 scripts/package_skills.py verify-dist-receipt --source index --platform-set required --skill split-testing
-  python3 scripts/package_skills.py verify-target-matrix --platform-set required
-
 # Run the fast local verification surface without packaging steps
 verify: fmt-check lint test
 
@@ -96,10 +87,10 @@ verify-skill-launchers:
   python3 scripts/package_skills.py smoke-launchers
 
 # Run the pull-request verification surface without rewriting tracked dist payloads
-ci: bootstrap verify verify-dist verify-skill-launchers
+ci: bootstrap verify verify-skill-launchers
   @:
 
-# Install the committed repo-owned commit and push gates for this clone
+# Install the committed repo-owned pre-push gate for this clone
 hooks-install:
-  chmod +x githooks/pre-commit githooks/pre-push
+  chmod +x githooks/pre-push
   git config --local core.hooksPath githooks

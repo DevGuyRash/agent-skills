@@ -460,28 +460,28 @@ class PackageSkillsTests(unittest.TestCase):
                 required_platforms = ["linux-x86_64"]
                 ci_platforms = ["linux-x86_64"]
 
-                [skills."split-testing"]
-                package = "split-test"
-                binary = "split-test"
-                skill_dir = "plugins/split-testing/skills/split-testing"
-                launcher = "scripts/split-test"
+                [skills."matrix"]
+                package = "matrix-tool"
+                binary = "matrix-tool"
+                skill_dir = "plugins/matrix/skills/matrix"
+                launcher = "scripts/matrix-tool"
                 required_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
                 ci_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
 
-                [skills."split-testing".targets."linux-x86_64"]
-                artifact = "split-test"
+                [skills."matrix".targets."linux-x86_64"]
+                artifact = "matrix-tool"
                 cargo_target = "x86_64-unknown-linux-gnu"
 
-                [skills."split-testing".targets."linux-aarch64"]
-                artifact = "split-test"
+                [skills."matrix".targets."linux-aarch64"]
+                artifact = "matrix-tool"
                 cargo_target = "aarch64-unknown-linux-gnu"
 
-                [skills."split-testing".targets."windows-x86_64"]
-                artifact = "split-test.exe"
+                [skills."matrix".targets."windows-x86_64"]
+                artifact = "matrix-tool.exe"
                 cargo_target = "x86_64-pc-windows-msvc"
 
-                [skills."split-testing".targets."windows-aarch64"]
-                artifact = "split-test.exe"
+                [skills."matrix".targets."windows-aarch64"]
+                artifact = "matrix-tool.exe"
                 cargo_target = "aarch64-pc-windows-msvc"
                 """
             ).strip()
@@ -498,10 +498,10 @@ class PackageSkillsTests(unittest.TestCase):
             tracked,
             {
                 "plugins/tool/skills/tool/dist/linux-x86_64/tool",
-                "plugins/split-testing/skills/split-testing/dist/linux-x86_64/split-test",
-                "plugins/split-testing/skills/split-testing/dist/linux-aarch64/split-test",
-                "plugins/split-testing/skills/split-testing/dist/windows-x86_64/split-test.exe",
-                "plugins/split-testing/skills/split-testing/dist/windows-aarch64/split-test.exe",
+                "plugins/matrix/skills/matrix/dist/linux-x86_64/matrix-tool",
+                "plugins/matrix/skills/matrix/dist/linux-aarch64/matrix-tool",
+                "plugins/matrix/skills/matrix/dist/windows-x86_64/matrix-tool.exe",
+                "plugins/matrix/skills/matrix/dist/windows-aarch64/matrix-tool.exe",
             },
         )
 
@@ -551,17 +551,17 @@ class PackageSkillsTests(unittest.TestCase):
             package_skills.CONFIG_PATH,
             textwrap.dedent(
                 """
-                [skills."split-testing"]
-                package = "split-test"
-                binary = "split-test"
-                skill_dir = "plugins/split-testing/skills/split-testing"
-                launcher = "scripts/split-test"
+                [skills."release-tool"]
+                package = "release-tool"
+                binary = "release-tool"
+                skill_dir = "plugins/release-tool/skills/release-tool"
+                launcher = "scripts/release-tool"
                 required_platforms = ["windows-x86_64"]
                 ci_platforms = ["windows-x86_64"]
-                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/split-test", "packaging/skills.toml"]
+                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/release-tool", "packaging/skills.toml"]
 
-                [skills."split-testing".targets."windows-x86_64"]
-                artifact = "split-test.exe"
+                [skills."release-tool".targets."windows-x86_64"]
+                artifact = "release-tool.exe"
                 cargo_target = "x86_64-pc-windows-msvc"
                 recipe = "cargo-xwin"
                 recipe_version = "0.23.1"
@@ -571,13 +571,13 @@ class PackageSkillsTests(unittest.TestCase):
         )
         write(self.repo / "Cargo.lock", "# locked\n")
         write(self.repo / "Cargo.toml", "[workspace]\nresolver = \"2\"\n")
-        write(self.repo / "crates" / "split-test" / "src" / "main.rs", "fn main() {}\n")
-        write(self.repo / "crates" / "split-test" / "Cargo.toml", "[package]\nname = \"split-test\"\nversion = \"2.0.0\"\n")
+        write(self.repo / "crates" / "release-tool" / "src" / "main.rs", "fn main() {}\n")
+        write(self.repo / "crates" / "release-tool" / "Cargo.toml", "[package]\nname = \"release-tool\"\nversion = \"2.0.0\"\n")
         write(
             self.repo / "rust-toolchain.toml",
             "[toolchain]\nchannel = \"stable\"\n",
         )
-        write(self.repo / "plugins" / "split-testing" / "skills" / "split-testing" / "scripts" / "split-test", "#!/bin/sh\n")
+        write(self.repo / "plugins" / "release-tool" / "skills" / "release-tool" / "scripts" / "release-tool", "#!/bin/sh\n")
         subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
 
         original_run = package_skills.subprocess.run
@@ -610,17 +610,17 @@ class PackageSkillsTests(unittest.TestCase):
             self.assertTrue(artifacts_root.is_dir())
             self.assertEqual(len(selected_targets), 1)
             skill_name, _, platform_id = selected_targets[0]
-            self.assertEqual(skill_name, "split-testing")
+            self.assertEqual(skill_name, "release-tool")
             self.assertEqual(platform_id, "windows-x86_64")
             payload = (
                 artifacts_root
                 / "plugins"
-                / "split-testing"
+                / "release-tool"
                 / "skills"
-                / "split-testing"
+                / "release-tool"
                 / "dist"
                 / "windows-x86_64"
-                / "split-test.exe"
+                / "release-tool.exe"
             )
             write(payload, "windows payload\n")
             payload.chmod(0o755)
@@ -633,7 +633,7 @@ class PackageSkillsTests(unittest.TestCase):
         self.addCleanup(setattr, package_skills, "dev_cache_temp_root", original_dev_cache_temp_root)
         self.addCleanup(setattr, package_skills.subprocess, "run", original_run)
 
-        changed = package_skills.dist_refresh("index", "required", skill_names=["split-testing"], git_stage=True)
+        changed = package_skills.dist_refresh("index", "required", skill_names=["release-tool"], git_stage=True)
 
         self.assertEqual(len(build_payloads), 2, "release refresh must compare two independent builds")
         self.assertTrue(
@@ -643,11 +643,11 @@ class PackageSkillsTests(unittest.TestCase):
         self.assertEqual(
             set(changed),
             {
-                "plugins/split-testing/skills/split-testing/dist/windows-x86_64/split-test.exe",
-                "plugins/split-testing/skills/split-testing/dist/receipt.json",
+                "plugins/release-tool/skills/release-tool/dist/windows-x86_64/release-tool.exe",
+                "plugins/release-tool/skills/release-tool/dist/receipt.json",
             },
         )
-        receipt = self.repo / "plugins/split-testing/skills/split-testing/dist/receipt.json"
+        receipt = self.repo / "plugins/release-tool/skills/release-tool/dist/receipt.json"
         self.assertTrue(receipt.is_file())
         payload = json.loads(receipt.read_text(encoding="utf-8"))
         self.assertEqual(payload["schema"], "agent-tooling-skill-dist-receipt.v2")
@@ -655,7 +655,7 @@ class PackageSkillsTests(unittest.TestCase):
         self.assertRegex(payload["source"]["cargo_lock_digest"], r"^sha256:[0-9a-f]{64}$")
         self.assertRegex(payload["build_recipe_digest"], r"^sha256:[0-9a-f]{64}$")
         self.assertEqual(payload["artifacts"][0]["platform"], "windows-x86_64")
-        self.assertEqual(payload["artifacts"][0]["artifact"], "split-test.exe")
+        self.assertEqual(payload["artifacts"][0]["artifact"], "release-tool.exe")
         self.assertEqual(payload["artifacts"][0]["recipe"], "cargo-xwin")
         self.assertEqual(payload["artifacts"][0]["recipe_version"], "0.23.1")
         self.assertEqual(payload["artifacts"][0]["dev_cache_cas_digest"], "cache123")
@@ -670,12 +670,12 @@ class PackageSkillsTests(unittest.TestCase):
                 == str(
                     self.repo
                     / "plugins"
-                    / "split-testing"
+                    / "release-tool"
                     / "skills"
-                    / "split-testing"
+                    / "release-tool"
                     / "dist"
                     / "windows-x86_64"
-                    / "split-test.exe"
+                    / "release-tool.exe"
                 )
                 for cmd, _ in calls
             )
@@ -760,17 +760,17 @@ class PackageSkillsTests(unittest.TestCase):
             package_skills.CONFIG_PATH,
             textwrap.dedent(
                 """
-                [skills."split-testing"]
-                package = "split-test"
-                binary = "split-test"
-                skill_dir = "plugins/split-testing/skills/split-testing"
-                launcher = "scripts/split-test"
+                [skills."release-tool"]
+                package = "release-tool"
+                binary = "release-tool"
+                skill_dir = "plugins/release-tool/skills/release-tool"
+                launcher = "scripts/release-tool"
                 required_platforms = ["linux-x86_64"]
                 ci_platforms = ["linux-x86_64"]
-                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/split-test", "packaging/skills.toml"]
+                dist_sources = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates/release-tool", "packaging/skills.toml"]
 
-                [skills."split-testing".targets."linux-x86_64"]
-                artifact = "split-test"
+                [skills."release-tool".targets."linux-x86_64"]
+                artifact = "release-tool"
                 cargo_target = "x86_64-unknown-linux-musl"
                 recipe = "cargo-zigbuild"
                 recipe_version = "0.23.3"
@@ -782,24 +782,24 @@ class PackageSkillsTests(unittest.TestCase):
         write(self.repo / "Cargo.lock", "# locked\n")
         write(self.repo / "rust-toolchain.toml", "[toolchain]\nchannel = \"1.94.1\"\n")
         original_source = "fn main() {}\n"
-        write(self.repo / "crates/split-test/src/main.rs", original_source)
-        write(self.repo / "crates/split-test/Cargo.toml", "[package]\nname = \"split-test\"\nversion = \"2.0.0\"\n")
-        artifact = self.repo / "plugins/split-testing/skills/split-testing/dist/linux-x86_64/split-test"
+        write(self.repo / "crates/release-tool/src/main.rs", original_source)
+        write(self.repo / "crates/release-tool/Cargo.toml", "[package]\nname = \"release-tool\"\nversion = \"2.0.0\"\n")
+        artifact = self.repo / "plugins/release-tool/skills/release-tool/dist/linux-x86_64/release-tool"
         write(artifact, "binary\n")
         artifact.chmod(0o755)
 
         config = package_skills.load_config()
-        skill = config["split-testing"]
+        skill = config["release-tool"]
         source = package_skills.source_receipt(skill, self.repo)
         receipt = {
             "schema": "agent-tooling-skill-dist-receipt.v2",
-            "skill": "split-testing",
+            "skill": "release-tool",
             "source": source,
             "toolchain": {"channel": "1.94.1"},
             "build_recipe_digest": package_skills.build_recipe_digest(skill, ["linux-x86_64"]),
             "artifacts": [{
                 "platform": "linux-x86_64",
-                "artifact": "split-test",
+                "artifact": "release-tool",
                 "cargo_target": "x86_64-unknown-linux-musl",
                 "recipe": "cargo-zigbuild",
                 "recipe_version": "0.23.3",
@@ -807,7 +807,7 @@ class PackageSkillsTests(unittest.TestCase):
                 "dev_cache_cas_digest": "cache123",
             }],
         }
-        receipt_path = self.repo / "plugins/split-testing/skills/split-testing/dist/receipt.json"
+        receipt_path = self.repo / "plugins/release-tool/skills/release-tool/dist/receipt.json"
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
         subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
 
@@ -817,14 +817,14 @@ class PackageSkillsTests(unittest.TestCase):
         )
         self.addCleanup(setattr, package_skills, "stage_from_frozen_index", original_stage)
 
-        package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+        package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
 
         missing_toolchain = json.loads(json.dumps(receipt))
         del missing_toolchain["toolchain"]
         write(receipt_path, json.dumps(missing_toolchain, sort_keys=True) + "\n")
         subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
         with self.assertRaises(SystemExit) as toolchain_error:
-            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("toolchain", str(toolchain_error.exception))
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
         subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
@@ -834,23 +834,23 @@ class PackageSkillsTests(unittest.TestCase):
         write(receipt_path, json.dumps(missing_cache_binding, sort_keys=True) + "\n")
         subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
         with self.assertRaises(SystemExit) as cache_error:
-            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("dev-cache CAS digest", str(cache_error.exception))
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
         subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
 
-        write(self.repo / "crates/split-test/src/main.rs", "fn main() { println!(\"changed\"); }\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", "crates/split-test/src/main.rs"], check=True)
+        write(self.repo / "crates/release-tool/src/main.rs", "fn main() { println!(\"changed\"); }\n")
+        subprocess.run(["git", "-C", str(self.repo), "add", "crates/release-tool/src/main.rs"], check=True)
         with self.assertRaises(SystemExit) as source_error:
-            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("source digest", str(source_error.exception))
 
-        write(self.repo / "crates/split-test/src/main.rs", original_source)
-        subprocess.run(["git", "-C", str(self.repo), "add", "crates/split-test/src/main.rs"], check=True)
+        write(self.repo / "crates/release-tool/src/main.rs", original_source)
+        subprocess.run(["git", "-C", str(self.repo), "add", "crates/release-tool/src/main.rs"], check=True)
         write(artifact, "mutated\n")
         subprocess.run(["git", "-C", str(self.repo), "add", str(artifact.relative_to(self.repo))], check=True)
         with self.assertRaises(SystemExit) as artifact_error:
-            package_skills.verify_dist_receipt("required", source="index", skill_names=["split-testing"])
+            package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("artifact digest", str(artifact_error.exception))
 
 
@@ -866,42 +866,21 @@ class HookTests(unittest.TestCase):
         self,
         hook_name: str,
         *,
-        release_workstation: bool,
-        verify_fails: bool = False,
         stdin: str = "",
     ) -> tuple[subprocess.CompletedProcess[str], str]:
         bin_dir = self.root / "bin"
         log_path = self.root / "log.txt"
         bin_dir.mkdir(parents=True, exist_ok=True)
-        python3 = bin_dir / "python3"
-        git = bin_dir / "git"
         just = bin_dir / "just"
-        python3.write_text(
-            "#!/bin/sh\nprintf 'python3 %s\\n' \"$*\" >> \"$HOOK_LOG\"\n"
-            "case \"$*\" in *verify-dist-receipt*) [ \"${HOOK_VERIFY_FAIL:-}\" = 1 ] && exit 1;; esac\n"
-            "exit 0\n",
-            encoding="utf-8",
-        )
-        git.write_text(
-            "#!/bin/sh\nprintf 'git %s\\n' \"$*\" >> \"$HOOK_LOG\"\n"
-            "case \"$*\" in 'config --bool --get agent-tooling.releaseWorkstation')"
-            " [ \"${HOOK_RELEASE:-}\" = 1 ] && printf 'true\\n';; esac\n"
-            "exit 0\n",
-            encoding="utf-8",
-        )
         just.write_text(
             "#!/bin/sh\nprintf 'just %s\\n' \"$*\" >> \"$HOOK_LOG\"\n",
             encoding="utf-8",
         )
-        python3.chmod(0o755)
-        git.chmod(0o755)
         just.chmod(0o755)
 
         env = os.environ.copy()
         env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
         env["HOOK_LOG"] = str(log_path)
-        env["HOOK_RELEASE"] = "1" if release_workstation else "0"
-        env["HOOK_VERIFY_FAIL"] = "1" if verify_fails else "0"
 
         result = subprocess.run(
             [str(MODULE_PATH.parents[1] / "githooks" / hook_name)],
@@ -914,39 +893,10 @@ class HookTests(unittest.TestCase):
         )
         return result, log_path.read_text(encoding="utf-8")
 
-    def test_pre_commit_refreshes_stages_and_aborts_first_release_commit(self) -> None:
-        result, log = self._run_hook(
-            "pre-commit",
-            release_workstation=True,
-            verify_fails=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("review them, then commit again", result.stderr)
-        self.assertIn("python3 scripts/package_skills.py dist-refresh --source index --platform-set required --stage --skill split-testing", log)
-
-    def test_pre_commit_second_release_invocation_is_pure_when_receipt_matches(self) -> None:
-        result, log = self._run_hook("pre-commit", release_workstation=True)
+    def test_pre_push_runs_the_non_mutating_repository_gate(self) -> None:
+        result, log = self._run_hook("pre-push")
         self.assertEqual(result.returncode, 0)
-        self.assertIn("verify-dist-receipt --source index", log)
-        self.assertNotIn("dist-refresh", log)
-
-    def test_pre_commit_verifies_only_on_normal_clone(self) -> None:
-        result, log = self._run_hook("pre-commit", release_workstation=False)
-        self.assertEqual(result.returncode, 0)
-        self.assertIn("python3 scripts/package_skills.py verify-dist-receipt --source index --platform-set required --skill split-testing", log)
-        self.assertNotIn("dist-refresh", log)
-
-    def test_pre_push_is_pure_and_verifies_each_pushed_commit_object(self) -> None:
-        sha = "a" * 40
-        result, log = self._run_hook(
-            "pre-push",
-            release_workstation=True,
-            stdin=f"refs/heads/main {sha} refs/heads/main {'b' * 40}\n",
-        )
-        self.assertEqual(result.returncode, 0)
-        self.assertIn(f"verify-dist-receipt --source commit:{sha} --platform-set required --skill split-testing", log)
-        self.assertNotIn("git add", log)
-        self.assertNotIn("dist-refresh", log)
+        self.assertEqual(log, "just ci\n")
 
 
 class VendorCopyTests(unittest.TestCase):

@@ -28,8 +28,8 @@ Current local plugins:
 - `plugins/goalspec/` exposes `goalspec` for both Codex and Claude and bundles the agnostic `$authoring-goals` skill payload.
 - `plugins/playwright-testing/`
 - `plugins/project-harness/`
-- `plugins/skill-auditor/` owns audit disposition and optionally delegates newly needed comparative evidence to Split Testing without a hard plugin dependency.
-- `plugins/split-testing/` owns generic comparative-evidence method, deterministic custody, caller-neutral comparison exchange, and optional derived evidence views without owning domain truth or maker values.
+- `plugins/skill-auditor/` owns audit disposition and delegates newly needed comparative evidence to Split Testing in ordinary context without a hard plugin dependency.
+- `plugins/split-testing/` owns generic comparative-evidence method without owning domain truth, maker values, audit disposition, a caller format, or an execution harness.
 - `plugins/software-development/` replaces `rust-development` and `gitops-workflow` with a shared development catalog for both Codex and Claude Code.
 
 ## Plugin Packages
@@ -123,16 +123,16 @@ Common commands:
 
 - `just bootstrap` — install packaging prerequisites used by the repo scripts
 - `just verify` — run the fast local verification surface (`fmt-check`, `lint`, `test`)
-- `just ci` — run the full non-mutating verification surface, including committed distribution receipts and launcher checks
+- `just ci` — run bootstrap, repository verification, and launcher checks without rewriting tracked distribution payloads
 - `scripts/install-all` / `just install-all` — add the sparse `agent-tooling` marketplace to enabled hosts, then install each host's selected catalog entries
 - `just dist-host` — build and stage host-platform packaged binaries into plugin-local skill `dist/` trees
 - `just verify-packaging` — verify host refresh plus the committed dist completeness contract
 - `just verify-skill-launchers` — smoke-test plugin-local skill launchers against the staged binaries
 - `just audit-plugins [name ...]` — report what the skill-auditor's scripts observe about every plugin, or the named ones (`--errors-only` omits the observations)
-- `just hooks-install` — point this clone at the committed repo-owned `githooks/` directory for local commit and push checks
+- `just hooks-install` — point this clone at the committed repo-owned `githooks/` directory for the local pre-push check
 - `just harness-doctor` — inspect the current repo shape and local tool availability from the installed harness
 
-`just hooks-install` only opts the current clone into the tracked guards. The packaging manifest, receipts, and pure verification commands define the contract; CI can reuse those checks without refreshing artifacts, while release payloads change only through the explicit local refresh workflow.
+`just hooks-install` only opts the current clone into the tracked pre-push guard. `just verify-packaging` checks packaged-artifact completeness without refreshing artifacts, while release payloads change only through the explicit local refresh workflow.
 
 `just audit-plugins` prints what the auditor's scripts can observe and fails only on what is broken for every target. Facts whose significance depends on the target — lengths, naming, house idiom — are printed with the reference that owns the rule, and never fail; a script cannot see a target's age or profile, so judging those is the reader's. Run `scripts/audit-plugins.sh --help` for the current contract — that text is canonical, so this paragraph does not restate it. CI audits only the plugins a change touches, so one plugin's backlog blocks nobody else's work.
 
@@ -191,25 +191,24 @@ claude plugin install software-development@agent-tooling
 
 ### Contributor hook setup
 
-Repo-owned hooks are committed under `githooks/`, but Git does not execute them automatically from a tracked directory. Each clone that wants the local commit and push guards must opt into that path once:
+Repo-owned hooks are committed under `githooks/`, but Git does not execute them automatically from a tracked directory. Each clone that wants the local push guard must opt into that path once:
 
 - `just hooks-install`
 - or `git config --local core.hooksPath githooks`
 
-That updates the clone-local `core.hooksPath` setting so Git runs the committed `githooks/pre-commit` and `githooks/pre-push` scripts for this repository.
+That updates the clone-local `core.hooksPath` setting so Git runs the committed `githooks/pre-push` script for this repository.
 
 ## Packaged binary policy
 
-Each packaged skill declares its exact committed target matrix in `packaging/skills.toml`. Most current skills ship Linux x86-64 payloads; Split Testing also ships Linux ARM64 and Windows x86-64/ARM64 payloads. A platform is supported only when that skill's declared matrix, receipt, and smoke contract cover it; macOS is not currently declared.
+Each packaged skill declares its exact committed target matrix in `packaging/skills.toml`. A platform is supported only when that skill's declared matrix and smoke contract cover it. Split Testing is instruction-only and has no packaged executable.
 
 That means:
 
-- `just ci` verifies committed artifacts and receipts without rewriting tracked `dist/` trees
-- `just dist-refresh` explicitly rebuilds Split Testing's declared release matrix twice from the frozen Git index before refreshing its committed artifacts
-- `just dist-host` remains the host-platform refresh route for the other packaged skills
+- `just ci` verifies the repository without rewriting tracked `dist/` trees
+- `just dist-host` is the explicit host-platform refresh route for packaged skills
 - consumers use only the platform payloads declared for the specific skill
 
-This keeps ordinary verification non-mutating while making every cross-platform claim skill-specific and reproducible.
+This keeps ordinary verification non-mutating while making every executable capability and platform claim skill-specific.
 
 ## Friction summary output
 

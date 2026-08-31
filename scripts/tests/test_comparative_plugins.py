@@ -9,7 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPLIT_ROOT = REPO_ROOT / "plugins" / "split-testing"
 AUDITOR_ROOT = REPO_ROOT / "plugins" / "skill-auditor"
-SPLIT_SHORT = "Least-cost defensible evidence for consequential comparisons"
+SPLIT_SHORT = "Defensible evidence for live comparisons"
 AUDITOR_SHORT = "Audit skills; delegate new comparisons when available"
 
 
@@ -31,7 +31,7 @@ def section(text: str, start_heading: str, end_heading: str) -> str:
 
 
 class ComparativePluginRepositoryTests(unittest.TestCase):
-    def test_catalogs_match_versions_and_optional_relationship_metadata(self) -> None:
+    def test_catalogs_match_versions_and_one_way_relationship_metadata(self) -> None:
         codex_path = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
         claude_path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
         expectations = {
@@ -48,22 +48,29 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
             self.assertEqual(claude["version"], version)
             self.assertEqual(codex_manifest["version"], version)
             self.assertEqual(claude_manifest["version"], version)
-            self.assertEqual(codex_manifest["interface"]["shortDescription"], short_description)
+            self.assertEqual(
+                codex_manifest["interface"]["shortDescription"], short_description
+            )
             self.assertNotIn("dependencies", codex_manifest)
             self.assertNotIn("dependencies", claude_manifest)
 
-    def test_root_inventory_states_separate_ownership_and_optional_handoff(self) -> None:
+    def test_root_inventory_states_separate_ownership_without_a_handoff_format(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(
             "`plugins/split-testing/` owns generic comparative-evidence method",
             readme,
         )
-        self.assertIn("optional derived evidence views", readme)
         self.assertIn(
-            "`plugins/skill-auditor/` owns audit disposition and optionally delegates",
+            "`plugins/skill-auditor/` owns audit disposition and delegates",
             readme,
         )
         self.assertIn("without a hard plugin dependency", readme)
+        for rejected in (
+            "caller-neutral comparison exchange",
+            "deterministic custody",
+            "optional derived evidence views",
+        ):
+            self.assertNotIn(rejected, readme)
 
     def test_adopted_governing_architecture_is_source_equal(self) -> None:
         governing = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
@@ -91,18 +98,8 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
             ]
             self.assertNotIn("friction-diagnostics", "\n".join(texts))
 
-    def test_split_testing_is_caller_neutral_and_relationship_is_one_way(self) -> None:
-        text_suffixes = {
-            ".json",
-            ".md",
-            ".ps1",
-            ".py",
-            ".rs",
-            ".sh",
-            ".toml",
-            ".yaml",
-            ".yml",
-        }
+    def test_split_testing_is_independent_and_relationship_is_one_way(self) -> None:
+        text_suffixes = {".json", ".md", ".py", ".sh", ".yaml", ".yml"}
         split_text = "\n".join(
             path.read_text(encoding="utf-8")
             for path in SPLIT_ROOT.rglob("*")
@@ -114,51 +111,79 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
             for path in AUDITOR_ROOT.rglob("*")
             if path.is_file()
             and "tests" not in path.parts
-            and path.suffix in {".json", ".md", ".ps1", ".sh", ".toml", ".yaml", ".yml"}
+            and path.suffix in text_suffixes
         ).lower()
         self.assertNotIn("skill-auditor", split_text)
         self.assertIsNone(re.search(r"\baudit(?:ed|ing|or|ors|s)?\b", split_text))
-        self.assertIn("split-testing", auditor_text)
+        for rejected in (
+            "comparative-evidence-request",
+            "comparative-evidence-result",
+            "caller interface",
+            "custody helper",
+            "opaque_copy",
+            "evaluation-world",
+            "benchmark family",
+            "benchmark lineage",
+            "three runs",
+            "three reviewers",
+            "required dimensions",
+            "markdown report is required",
+            "radar chart",
+            "heatmap",
+            "matplotlib",
+            "plotly",
+            "vega-lite",
+        ):
+            self.assertNotIn(rejected, split_text)
+        self.assertIn("$split-testing", auditor_text)
 
-    def test_caller_schemas_are_vendored_byte_for_byte(self) -> None:
-        names = (
-            "comparative-evidence-request.v1.schema.json",
-            "comparative-evidence-result.v1.schema.json",
-        )
-        for name in names:
-            split = SPLIT_ROOT / "skills" / "split-testing" / "schemas" / name
-            auditor = AUDITOR_ROOT / "skills" / "skill-auditor" / "schemas" / name
-            self.assertEqual(auditor.read_bytes(), split.read_bytes(), name)
+    def test_no_caller_exchange_or_split_runtime_mechanism_remains(self) -> None:
+        for plugin_root in (SPLIT_ROOT, AUDITOR_ROOT):
+            skill_root = next((plugin_root / "skills").iterdir())
+            self.assertFalse((skill_root / "schemas").exists())
+        split_skill = SPLIT_ROOT / "skills" / "split-testing"
+        self.assertFalse((split_skill / "scripts").exists())
+        self.assertFalse((split_skill / "dist").exists())
+        self.assertFalse((REPO_ROOT / "crates" / "split-test").exists())
 
-    def test_caller_schemas_are_honest_about_cross_document_verification(self) -> None:
-        schema_root = SPLIT_ROOT / "skills" / "split-testing" / "schemas"
-        request = json.loads(
-            (schema_root / "comparative-evidence-request.v1.schema.json").read_text(
-                encoding="utf-8"
-            )
+        runtime = "\n".join(
+            path.read_text(encoding="utf-8").lower()
+            for root in (SPLIT_ROOT, AUDITOR_ROOT)
+            for path in root.rglob("*")
+            if path.is_file()
+            and "tests" not in path.parts
+            and path.suffix in {".json", ".md", ".py", ".sh", ".yaml", ".yml"}
         )
-        result = json.loads(
-            (schema_root / "comparative-evidence-result.v1.schema.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        request_conditions = request["properties"]["closure_conditions"]
-        result_assessments = result["properties"]["closure_assessment"]
-        for contract in (request_conditions, result_assessments):
-            self.assertEqual(contract["minItems"], 1)
-            self.assertIs(contract["uniqueItems"], True)
-            self.assertIn("caller-side verification", contract["description"])
-        caller = (
-            SPLIT_ROOT
-            / "skills"
-            / "split-testing"
-            / "references"
-            / "caller-interface.md"
+        for rejected in (
+            "comparative-evidence-request.v1",
+            "comparative-evidence-result.v1",
+            "request_digest",
+            "closure_assessment",
+            "split-test exchange",
+        ):
+            self.assertNotIn(rejected, runtime)
+
+    def test_auditor_delegates_naturally_and_retains_disposition(self) -> None:
+        skill = (
+            AUDITOR_ROOT / "skills" / "skill-auditor" / "SKILL.md"
         ).read_text(encoding="utf-8")
-        self.assertIn("split-test exchange verify REQUEST.json RESULT.json", caller)
-        self.assertIn("JSON Schema cannot express", caller)
+        handoff = (
+            AUDITOR_ROOT
+            / "skills"
+            / "skill-auditor"
+            / "references"
+            / "comparative-handoff.md"
+        ).read_text(encoding="utf-8")
+        combined = f"{skill}\n{handoff}".lower()
+        self.assertIn("$split-testing", combined)
+        self.assertIn("ordinary context", combined)
+        self.assertIn("existing evidence", combined)
+        self.assertIn("does not recreate", combined)
+        self.assertIn("unresolved", combined)
+        for authority in ("materiality", "severity", "repair", "release", "reopening"):
+            self.assertIn(authority, combined)
 
-    def test_repo_delegation_guidance_is_generic_and_not_template_locked(self) -> None:
+    def test_repo_delegation_guidance_is_generic_and_unchanged_by_this_plugin(self) -> None:
         agents = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
         self.assertNotIn("split-testing", agents.lower())
         self.assertNotIn("skill-auditor", agents.lower())
@@ -173,7 +198,6 @@ class ComparativePluginRepositoryTests(unittest.TestCase):
         self.assertIn("narrowest real output interface", delegated)
         self.assertIn("inspect", delegated)
         self.assertIn("inherit", delegated)
-        self.assertNotIn("fill-in-the-blank", delegated)
         for leaked in ("split testing", "split-testing", "estimand", "comparative evidence"):
             self.assertNotIn(leaked, delegated)
 

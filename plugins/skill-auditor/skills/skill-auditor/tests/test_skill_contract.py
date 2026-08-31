@@ -108,58 +108,25 @@ class SkillContractTests(unittest.TestCase):
 
         self.assertIn("$split-testing", content)
         self.assertIn("existing evidence", content)
-        self.assertIn("comparative-evidence-request.v1", content)
-        self.assertIn("do not fall through to independent observation", content)
-        self.assertIn("do not", content)
-        self.assertIn("invent another request shape", content)
-        self.assertIn("shall not", handoff)
-        self.assertIn("replacement comparison", handoff)
+        self.assertIn("ordinary context", content)
+        self.assertIn("does not recreate comparative method", content)
+        self.assertIn("plain-language", content)
+        self.assertIn("does not recreate comparative method", handoff)
         self.assertIn("unresolved consequence", handoff)
         self.assertIn("audit disposition", handoff)
         self.assertFalse((ROOT / "references" / "task-value-evidence.md").exists())
+        self.assertFalse((ROOT / "schemas").exists())
 
-    def test_handoff_contract_is_open_exact_and_audit_owned(self) -> None:
+    def test_handoff_is_natural_context_and_audit_owned(self) -> None:
         handoff = (ROOT / "references" / "comparative-handoff.md").read_text(
             encoding="utf-8"
         )
-        request_fields = {
-            "schema",
-            "claim_id",
-            "target_ref",
-            "authority_ref",
-            "claim",
-            "decision_context",
-            "existing_evidence_refs",
-            "closure_conditions",
-            "unresolved_consequence",
-            "prohibited_effects",
-            "extensions",
-        }
-        result_fields = {
-            "schema",
-            "claim_id",
-            "request_digest",
-            "tested_conditions",
-            "conclusion",
-            "closure_assessment",
-            "evidence_refs",
-            "scope_and_limits",
-            "uncertainty",
-            "reopening_conditions",
-            "extensions",
-        }
-        self.assertIn("comparative-evidence-request.v1", handoff)
-        self.assertIn("comparative-evidence-result.v1", handoff)
-        for field in request_fields | result_fields:
-            self.assertRegex(handoff, rf"`{re.escape(field)}`")
-        for status in ("closes", "narrows", "does_not_resolve"):
-            self.assertRegex(handoff, rf"`{status}`")
-        self.assertIn("exact frozen UTF-8 request bytes", handoff)
-        self.assertIn("preserve unknown fields", handoff)
-        self.assertIn("stable ID", handoff)
-        self.assertIn("rightful", handoff)
+        self.assertIn("ordinary context", handoff)
+        for needed in ("claim", "authority", "existing evidence", "constraints", "consequence"):
+            self.assertIn(needed, handoff.lower())
         self.assertIn("Skill Auditor", handoff)
-        self.assertIn("not a closed result enum", handoff.lower())
+        for rejected in ("schema", "envelope", "request_digest", "closure_assessment"):
+            self.assertNotIn(rejected, handoff)
 
     def test_removed_comparison_manual_is_not_duplicated_elsewhere(self) -> None:
         runtime = "\n".join(

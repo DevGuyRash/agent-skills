@@ -68,7 +68,7 @@
     {
       "name": "split-testing",
       "source": "./plugins/split-testing",
-      "description": "Least-cost defensible evidence for consequential comparisons",
+      "description": "Defensible evidence for live comparisons",
       "version": "2.0.0"
     },
     {

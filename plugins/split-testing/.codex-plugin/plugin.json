@@ -1,7 +1,7 @@
 {
   "name": "split-testing",
   "version": "2.0.0",
-  "description": "Determine the least-cost defensible basis for a live, consequential comparative decision or material claim across artifacts, people, systems, processes, or agent runs. Use for consequential A/B, split, benchmark, blind or unblinded, repeated, audience, or N-way comparisons when existing evidence, rightful preference, or new observations must be assessed, checked, or arranged.",
+  "description": "Obtain the strongest defensible comparative evidence for a live decision across artifacts, people, systems, processes, or agent runs. Use for A/B, split, benchmark, blind or unblinded, repeated, audience, or N-way comparisons; when existing evidence is not fit and the needed observations must be arranged; or whenever one alternative is claimed better.",
   "author": {
     "name": "Agent Tooling Contributors"
   },
@@ -15,14 +15,14 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Split Testing",
-    "shortDescription": "Least-cost defensible evidence for consequential comparisons",
-    "longDescription": "Determine the least-cost defensible basis for a live, consequential comparative decision or material claim across artifacts, people, systems, processes, or agent runs. Use for consequential A/B, split, benchmark, blind or unblinded, repeated, audience, or N-way comparisons when existing evidence, rightful preference, or new observations must be assessed, checked, or arranged.",
+    "shortDescription": "Defensible evidence for live comparisons",
+    "longDescription": "Obtain the strongest defensible comparative evidence for a live decision across artifacts, people, systems, processes, or agent runs. Use for A/B, split, benchmark, blind or unblinded, repeated, audience, or N-way comparisons; when existing evidence is not fit and the needed observations must be arranged; or whenever one alternative is claimed better.",
     "developerName": "Agent Tooling Contributors",
     "category": "Testing",
     "capabilities": [
       "Read",
       "Write"
     ],
-    "defaultPrompt": "Use $split-testing to determine the least-cost defensible basis for this decision."
+    "defaultPrompt": "Use $split-testing to obtain the strongest defensible evidence for this decision."
   }
 }

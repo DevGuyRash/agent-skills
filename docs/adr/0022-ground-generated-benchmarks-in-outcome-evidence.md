@@ -1,6 +1,6 @@
 # ADR 0022: Do not prescribe benchmark seeds without behavioral gain
 
-- Status: Superseded by [ADR 0025](0025-centralize-comparative-method-and-derive-evidence-views.md)
+- Status: Superseded by [ADR 0025](0025-centralize-comparative-method-declaratively.md)
 - Date: 2026-08-17
 
 ## Decision

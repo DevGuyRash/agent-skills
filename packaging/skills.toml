@@ -40,53 +40,6 @@ smoke_args = ["--help"]
 required_platforms = ["linux-x86_64"]
 ci_platforms = ["linux-x86_64"]
 
-[skills."split-testing"]
-package = "split-test"
-binary = "split-test"
-skill_dir = "plugins/split-testing/skills/split-testing"
-launcher = "scripts/split-test"
-smoke_args = ["--help"]
-required_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
-ci_platforms = ["linux-x86_64", "linux-aarch64", "windows-x86_64", "windows-aarch64"]
-dist_sources = [
-  "Cargo.toml",
-  "Cargo.lock",
-  "rust-toolchain.toml",
-  "crates/split-test",
-  "packaging/skills.toml",
-  "scripts/package_skills.py",
-  "plugins/split-testing/skills/split-testing/scripts/split-test",
-  "plugins/split-testing/skills/split-testing/scripts/split-test.ps1",
-]
-
-[skills."split-testing".targets."linux-x86_64"]
-artifact = "split-test"
-cargo_target = "x86_64-unknown-linux-musl"
-recipe = "cargo-zigbuild"
-recipe_version = "0.23.3"
-zig_version = "0.16.0"
-
-[skills."split-testing".targets."linux-aarch64"]
-artifact = "split-test"
-cargo_target = "aarch64-unknown-linux-musl"
-recipe = "cargo-zigbuild"
-recipe_version = "0.23.3"
-zig_version = "0.16.0"
-
-[skills."split-testing".targets."windows-x86_64"]
-artifact = "split-test.exe"
-cargo_target = "x86_64-pc-windows-msvc"
-recipe = "cargo-xwin"
-recipe_version = "0.23.1"
-llvm_version = "22.1.8"
-
-[skills."split-testing".targets."windows-aarch64"]
-artifact = "split-test.exe"
-cargo_target = "aarch64-pc-windows-msvc"
-recipe = "cargo-xwin"
-recipe_version = "0.23.1"
-llvm_version = "22.1.8"
-
 # Vendored copies of shared skill scripts. Skills are self-contained
 # distribution units on every harness (Agent Skills spec), so shared code is
 # committed as real per-skill copies; the source below is the single source
