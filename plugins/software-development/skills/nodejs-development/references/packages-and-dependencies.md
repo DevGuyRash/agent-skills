@@ -12,7 +12,8 @@ Load this reference when changing `package.json`, exports/imports, workspaces, l
 ## Manifest Semantics
 
 - Treat `name`, `version`, `type`, `main`, `module`, `types`, `exports`, `imports`, `bin`, `files`, `sideEffects`, `engines`, and publish configuration as compatibility-sensitive.
-- Prefer an exports map only when the supported runtime and consumers can resolve it. Once present, verify every documented public subpath and condition.
+- Prefer an exports map only when the supported runtime and consumers can resolve it. Adding one encapsulates undeclared deep paths; once present, verify every previously supported and documented subpath, self-reference, and condition.
+- Order conditional-export keys from specific to general and include a compatible default when unknown runtimes are supported; object key order participates in resolution.
 - Keep runtime, development, peer, and optional dependencies in the category that matches who installs and provides them.
 - Keep command shims portable and verify their shebang, permissions, entry file, and exit behavior when publishing a CLI.
 - Inspect the packed artifact rather than assuming source-tree contents match publication.

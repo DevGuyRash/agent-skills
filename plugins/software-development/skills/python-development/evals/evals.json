@@ -2,29 +2,29 @@
   "skill_name": "python-development",
   "evals": [
     {
-      "id": "eval-version-and-toolchain",
-      "prompt": "A package supports Python 3.9 through 3.13 in pyproject.toml and CI, uses Poetry, and has a lockfile. Implement a small feature whose tempting standard-library API was introduced in Python 3.11.",
-      "expected_output": "Preserve the declared Python range and Poetry workflow, choose a compatible implementation or explicitly negotiate a version change, avoid unrelated dependency resolution, and verify through repository-owned checks on the warranted versions.",
+      "id": "eval-dependency-authority-and-import-origin",
+      "prompt": "Repair a Python package whose test dependency was moved from its repository-owned dependency group into a similarly named published extra, and whose current smoke test accidentally imports an older globally installed copy.",
+      "expected_output": "Restore the repository's established dependency authority without cosmetic tool migration, preserve publication metadata, and verify both the selected interpreter and the imported module origin before treating tests as evidence.",
       "files": []
     },
     {
-      "id": "eval-public-api-and-typing",
-      "prompt": "Refactor a typed public function used with keyword arguments and mirrored by a .pyi stub. The repository runs Pyright but not mypy.",
-      "expected_output": "Preserve or intentionally migrate parameter names, defaults, return and exception behavior; keep the stub aligned; use the configured Pyright contract; and avoid imposing another checker or broad annotation rewrite.",
+      "id": "eval-decorated-public-api",
+      "prompt": "Repair a decorator applied to async public methods: it breaks descriptor binding, hides the inspectable keyword-only signature used by dependency injection, and reports coroutine functions as ordinary callables. Keep the repository's .pyi contract and configured Pyright checks aligned.",
+      "expected_output": "Preserve descriptor and async call shape, keyword names, metadata and inspectable signature, align the stub and configured checker, and add runtime evidence for binding and introspection rather than assuming *args/**kwargs preserves the API.",
       "files": []
     },
     {
-      "id": "eval-async-resource-lifetime",
-      "prompt": "Fix an async worker that starts untracked tasks and leaks a client session when cancellation arrives.",
-      "expected_output": "Respect the repository's async framework, give tasks and the session explicit owners, make cancellation-safe cleanup bounded, propagate cancellation as required, and verify the failure and shutdown paths.",
+      "id": "eval-async-bounded-lifecycle",
+      "prompt": "Fix an asyncio dispatcher with a bounded work queue: a worker failure strands queue.join(), cancellation is swallowed during async client cleanup, and producer completion cannot reliably stop every consumer when the queue is full.",
+      "expected_output": "Model the queue and workers as one owned protocol, keep the true in-flight bound, make producer and consumer termination deliverable under failure, balance task accounting, settle every task and cleanup operation, preserve useful failures, and propagate cancellation.",
       "files": [
         "evals/files/async_worker.py"
       ]
     },
     {
-      "id": "eval-subprocess-resource-boundary",
-      "prompt": "Fix a maintained Python CLI that launches a configured helper, leaks its temporary file on timeout, and treats captured output as success without checking the exit status.",
-      "expected_output": "Preserve the repository's CLI contract, pass explicit arguments, define timeout and exit-status behavior, give the temporary file an explicit cleanup owner, and verify success, failure, and timeout paths with configured tools.",
+      "id": "eval-subprocess-terminal-settlement",
+      "prompt": "Fix a maintained Python CLI that calls wait() before draining two captured pipes, returns immediately after terminate() on timeout, and can leave a grandchild holding the pipes open. Output may exceed pipe capacity.",
+      "expected_output": "Treat both pipes and the process tree as one lifecycle, avoid cyclic waits, define platform-appropriate termination authority, do not infer group settlement from leader exit or pipe EOF, escalate after the grace interval while authority is valid, drain and reap to terminal state, preserve the CLI's output and exit contract, and verify success, failure, high-output, early-pipe-close descendant, and timeout paths.",
       "files": []
     }
   ]

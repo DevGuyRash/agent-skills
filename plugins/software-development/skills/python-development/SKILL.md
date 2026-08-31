@@ -37,6 +37,7 @@ Treat repository configuration and supported consumers as authoritative. Do not 
 - Use native annotations where they are accurate and supported, but follow the repository's checker mode and annotation policy.
 - Keep sync code sync unless concurrency is part of the requirement; do not introduce async as a style preference.
 - Make ownership of files, connections, locks, tasks, and processes visible at the boundary that acquires them.
+- Treat submission, cancellation or termination, result delivery, and terminal cleanup as one lifecycle contract; a request to stop is not evidence that work has settled.
 - Catch exceptions only where code can recover, translate, add boundary context, or perform cleanup.
 - Keep comments and docstrings focused on public contracts, invariants, surprising constraints, and non-obvious rationale.
 
@@ -48,6 +49,7 @@ Consider these compatibility surfaces before refactoring:
 - Exception types, warning behavior, context-manager behavior, and iterator or generator timing.
 - CLI arguments, exit status, stdout/stderr, environment variables, and configuration formats.
 - Serialized data, database schemas, plugin hooks, framework callbacks, and typing artifacts such as stubs or `py.typed`.
+- Introspection surfaces such as decorator metadata, callable signatures, annotations, descriptors, and runtime registration.
 
 Do not turn an internal cleanup into a public API migration accidentally.
 

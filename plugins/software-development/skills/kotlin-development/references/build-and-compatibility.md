@@ -5,7 +5,7 @@
 - Prefer the repository's Gradle or Maven wrapper and declared tasks over global installations or direct compiler invocation.
 - Read version catalogs, convention plugins, settings, compiler options, plugin declarations, toolchains, target settings, and CI together.
 - Keep Kotlin, serialization/compiler plugins, Compose plugins, KSP/KAPT, Gradle, AGP, Java, and platform versions aligned with repository compatibility rules.
-- Distinguish Kotlin compiler language/API versions from JVM toolchain and emitted bytecode target.
+- Distinguish the JDK running the build, Java/Kotlin compile toolchains, Kotlin language/API versions, emitted JVM target, and permitted JDK API surface. Align related Java and Kotlin task targets without assuming one setting governs all five.
 - Treat `.gradle.kts` as executable Kotlin DSL with Gradle lifecycle semantics; compose a Gradle/framework skill when configuration behavior is central.
 
 ## Respect source sets and targets
@@ -29,6 +29,7 @@
 - Edit schema, annotated source, or generator configuration rather than generated Kotlin/Java output; regenerate through repository tasks.
 - Keep KSP/KAPT ordering and generated-source registration consistent with the build.
 - Inspect API dumps, explicit-API errors, binary compatibility reports, metadata, source JARs, and publication variants when library APIs change.
+- Treat default-argument stubs, JVM default-interface mode, public inline bodies, parameter names used by Kotlin callers, and old precompiled consumers as compatibility surfaces even when an API dump looks unchanged.
 - Preserve serialization names, reflection metadata, service descriptors, and Java-visible signatures.
 - Avoid handwritten edits to wrappers, lock files, generated manifests, or API dumps unless their owning tool documents that workflow.
 

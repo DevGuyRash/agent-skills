@@ -13,6 +13,11 @@
       "query": "Update this pyproject.toml optional dependency and keep the existing uv lock and CI environments consistent."
     },
     {
+      "id": "implicit-concurrent-lifecycle",
+      "should_trigger": true,
+      "query": "Repair this asyncio worker pool so queue shutdown, cancellation, and client cleanup cannot strand tasks."
+    },
+    {
       "id": "explicit-invocation",
       "should_trigger": true,
       "query": "Use $python-development to review this library's public annotations and import surface."

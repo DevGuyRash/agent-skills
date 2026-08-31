@@ -17,7 +17,7 @@ Load this reference for Node version compatibility, ESM/CommonJS resolution, pat
 - Keep `__dirname`/`__filename` assumptions confined to CommonJS or explicit compatibility code.
 - Treat default-import interop as toolchain-dependent. Test the actual supported consumer rather than relying on editor acceptance.
 - Do not expose internal deep paths accidentally when changing an exports map.
-- A dual ESM/CommonJS package can create separate instances or state. Add dual entry points only with a tested need and compatible design.
+- A dual ESM/CommonJS package can create separate caches, instances, class identities, and mutable state. Add dual entry points only with a tested need and prove identity-sensitive behavior when both loaders can coexist.
 
 ## Files, Paths, and Data
 
@@ -31,8 +31,10 @@ Load this reference for Node version compatibility, ESM/CommonJS resolution, pat
 
 - Prefer direct executable plus argument arrays over shell strings. Enable a shell only for syntax that genuinely requires it and constrain inputs.
 - Decide how stdin/stdout/stderr are inherited, captured, streamed, and bounded.
-- Handle subprocess exit, signal, spawn error, cancellation, and cleanup as separate outcomes.
+- Handle subprocess spawn error, exit, stdio close, signal delivery, cancellation, and cleanup as separate outcomes. Guard error/exit listeners against double settlement and wait for `'close'` when the contract includes terminal stdio.
+- Check an already-aborted signal before spawning or acquiring other resources when cancellation promises no side effects. When the API exposes `signal.reason`, preserve the exact reason if identity is contractual, and remove abort listeners at every terminal path.
+- Treat `subprocess.killed` as evidence that a signal was sent, not that the process terminated. A shell or parent kill may leave descendants alive; define descendant ownership and verify the complete owned process closure.
 - Use worker threads or child processes only when isolation or measured CPU-bound work warrants their complexity.
 - Avoid sharing mutable process-global configuration across tests or request contexts unless ownership is explicit.
 
-Primary authority: the repository version's documentation from the [Node.js documentation index](https://nodejs.org/docs/). Package and tool behavior may impose narrower contracts.
+Primary authority: the repository version's documentation from the [Node.js documentation index](https://nodejs.org/docs/) and [child-process API](https://nodejs.org/api/child_process.html). Package and tool behavior may impose narrower contracts.

@@ -13,6 +13,16 @@
       "query": "Add a package to this multi-target .NET library without breaking its netstandard target."
     },
     {
+      "id": "implicit-process-lifecycle",
+      "should_trigger": true,
+      "query": "Fix this System.Diagnostics.Process wrapper so cancellation cannot leave the child or redirected stderr reader running."
+    },
+    {
+      "id": "implicit-bounded-channel",
+      "should_trigger": true,
+      "query": "Make this Channel<T> callback bridge bounded and preserve lossless shutdown when the async consumer exits early."
+    },
+    {
       "id": "explicit-skill",
       "should_trigger": true,
       "query": "Use $csharp-development to review this async cancellation path and its xUnit tests."

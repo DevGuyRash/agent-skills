@@ -22,7 +22,10 @@ Do not add or enable a test or analyzer tool merely because it appears here. Rep
 ## Check specialized boundaries
 
 - For nullable changes, compile with the repository warning policy and test oblivious/runtime null inputs where relevant.
-- For async changes, test completion, exceptions, cancellation, cleanup, and task ownership without sync-over-async.
+- For async changes, test success, multiple simultaneous failures, cancellation, timeout, cleanup failure, and terminal ownership without sync-over-async; inspect every task outcome when the contract is collect-all.
+- For process changes, use helpers that can fill stdout and stderr, wait for stdin EOF, exit nonzero, hang, and outlive a parent; assert process and drain completion, bounded output, failure precedence, and no surviving owned work.
+- For channels and async streams, use a deliberately slow or early-exiting consumer; assert the declared bound/full mode, ordering or loss, completion cause, producer teardown, enumerator disposal, and late-write behavior. Exercise pipeline `AdvanceTo`, flush, pressure, and both-end completion when pipelines are selected.
+- For native interop, test exact layouts/signatures, allocation/free pairing, callback rooting and late callbacks, disposal races, and every declared architecture or trimming/AOT deployment that can run.
 - For multi-target projects, test each affected target; one target's success does not prove conditional code elsewhere.
 - For serializers, reflection, trimming, or AOT, run the configured integration or publish checks rather than relying on unit mocks.
 - For public packages, compile representative consumers and run API compatibility tooling when available.
@@ -43,4 +46,4 @@ Do not add or enable a test or analyzer tool merely because it appears here. Rep
 - Separate unrelated baseline failures; do not suppress warnings or weaken tests to obtain green output.
 - Preserve seeds, dumps, logs, and inputs needed to reproduce nondeterministic failures without committing noise.
 
-Primary references: [`dotnet test`](https://learn.microsoft.com/dotnet/core/tools/dotnet-test), [.NET testing overview](https://learn.microsoft.com/dotnet/core/testing/), [code analysis](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/overview), [package validation](https://learn.microsoft.com/dotnet/fundamentals/package-validation/overview).
+Primary references: [`dotnet test`](https://learn.microsoft.com/dotnet/core/tools/dotnet-test), [.NET testing overview](https://learn.microsoft.com/dotnet/core/testing/), [code analysis](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/overview), [package validation](https://learn.microsoft.com/dotnet/fundamentals/package-validation/overview), [async streams](https://learn.microsoft.com/dotnet/csharp/asynchronous-programming/generate-consume-asynchronous-stream).

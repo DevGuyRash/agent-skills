@@ -33,4 +33,12 @@ Load this reference for atomicity, isolation, locks, deadlocks, savepoints, retr
 - Avoid holding locks while invoking external systems unless a documented protocol requires it.
 - Make commit uncertainty explicit: after a connection failure, determine whether retrying could duplicate an effect.
 
+## Host Adapter Lifecycle
+
+- Treat caller cancellation, driver request, server statement termination, cursor/result closure, transaction completion, and connection return as separate boundaries.
+- Follow the selected driver and engine contract for cancellation; closing a client-side future or abandoning a row iterator may leave server work or an open transaction alive.
+- Drain or close streaming results according to the adapter contract before returning the connection. Do not reuse a pooled session with an unknown transaction, isolation, role, search path, temporary object, prepared-state, or session-setting residue.
+- Preserve the primary query, cancellation, or transaction outcome while retaining cleanup failure evidence through the repository's error model.
+- Test cancellation while waiting for a connection, executing, streaming rows, and committing when those states are reachable; prove the pool remains usable and no owned work or transaction survives.
+
 PostgreSQL demonstrates why engine/version evidence matters: its Read Uncommitted behaves as Read Committed and its Repeatable Read prevents more anomalies than the standard minimum: [transaction isolation](https://www.postgresql.org/docs/current/transaction-iso.html).

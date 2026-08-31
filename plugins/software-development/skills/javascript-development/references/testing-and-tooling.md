@@ -6,10 +6,13 @@ Load this reference when choosing verification, changing dependencies or targets
 
 - Add or update the narrowest test that would fail for the original defect or missing behavior.
 - Cover relevant boundaries: absent versus explicit values, falsy data, thrown versus rejected failures, duplicate calls, ordering, cancellation, and cleanup.
+- For concurrency limits, hold admitted work behind controller-owned handshakes, observe the complete closed cohort before release, and prove eventual terminal completion. Do not infer a bound from start timestamps or a short sleep.
+- For early aggregate settlement, timeout, or abort, keep the losing operation observable long enough to prove whether cancellation reached it and whether owned cleanup completed before return.
 - Test public outcomes rather than private implementation structure unless that structure is itself contractual.
 - Keep time, randomness, locale, timezone, environment variables, and network dependencies controlled when they affect results.
 - Use fake timers only when the repository already supports them and advance both timer and promise work correctly.
 - Restore global state, module mocks, listeners, and timers so test order does not matter.
+- Isolate tests whose result depends on module evaluation or cache state in a fresh supported realm/process or through the repository's reset mechanism; cache-busting production specifiers are not a general test-isolation policy.
 
 ## Respect the Toolchain
 

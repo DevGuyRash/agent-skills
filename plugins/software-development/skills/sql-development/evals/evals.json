@@ -38,6 +38,18 @@
       "prompt": "For the documented ten-million-row workload, validate whether the proposed index reduces query p99 from 900 ms below 300 ms without changing results or risking production writes.",
       "expected_output": "The work composes SQL correctness and performance engineering; uses a matching vendor skill when installed and otherwise primary documentation for the detected engine/version, naming assumptions or unverified semantics; establishes representative baselines and result equivalence, uses a safe plan mode, measures the index, and reports write, storage, concurrency, and untested-production tradeoffs.",
       "files": []
+    },
+    {
+      "id": "eval-plan-cast-skew",
+      "prompt": "A parameterized relational query is fast with an interactive literal but slow through the application for one skewed tenant. Diagnose and optimize it without changing its row semantics.",
+      "expected_output": "The work preserves cardinality and ordering, inspects the real driver parameter types and effective plan, compares estimates with actual work on representative skew and statistics, identifies casts or access-path loss, and measures index or query changes with write/storage tradeoffs.",
+      "files": []
+    },
+    {
+      "id": "eval-cancelled-stream-pool",
+      "prompt": "An embedded SQL row stream is canceled by its caller, but the server query and transaction can continue before the pooled connection is reused.",
+      "expected_output": "The solution composes the host-language and SQL contracts, distinguishes caller cancellation from server termination, closes or drains the result, resolves the transaction, sanitizes pooled session state, preserves the primary outcome, and tests reuse after cancellation.",
+      "files": []
     }
   ]
 }

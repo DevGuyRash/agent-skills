@@ -5,7 +5,7 @@
 - Treat configured Kotlin `languageVersion`, `apiVersion`, compiler/plugin version, platform targets, and explicit-API mode as compatibility constraints.
 - Version-gate syntax, standard-library calls, opt-in APIs, compiler features, and generated behavior.
 - For published libraries, preserve source, binary, behavioral, reflection, serialization, and Java-call-site compatibility.
-- Check default arguments, named calls, component functions, extension resolution, inline bodies, and generated JVM signatures before changing public declarations.
+- Check default arguments and their generated stubs, named calls and parameter names, component functions, extension resolution, inline bodies, and generated platform signatures before changing public declarations.
 
 ## Model nullability and initialization
 
@@ -31,6 +31,7 @@
 - Keep extension functions discoverable and scoped. They dispatch statically and do not override members; import and receiver type can change resolution.
 - Use scope functions when receiver/result behavior is immediately clear. Nested chains are not inherently more idiomatic.
 - Preserve intentional default and named parameters; changing parameter names can break Kotlin source callers even when JVM descriptors remain stable.
+- Adding a defaulted parameter can preserve a fresh source call while breaking old binaries or changing overload resolution. Keep the old declaration or another explicit bridge when that consumer contract exists, then prove it with unchanged consumers.
 - Avoid exposing mutable implementation state or platform-only types from common/public APIs without an explicit contract.
 
 ## Comments and style

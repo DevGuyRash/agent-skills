@@ -34,4 +34,10 @@ Production diagnostics should be logged through the application's controlled int
 
 For long-running PHP runtimes, account for state retained beyond one request, connection reuse, signal/shutdown behavior, and framework reset hooks. Fibers are a cooperative primitive, not a complete async policy; event loops, cancellation, and lifecycle belong to the selected runtime or framework.
 
-When invoking processes, define arguments, shell use, environment, working directory, timeout, exit status, and stream handling explicitly.
+Suspension is not cancellation. Once generator, Fiber, callback, or event-loop work owns a resource, propagate the selected runtime's cancellation signal and join its `finally` cleanup. Do not depend on garbage collection or unfinished Fiber/generator destruction as the normal completion path.
+
+When invoking processes, define arguments, shell use, environment, working directory, timeout, exit status, and stream handling explicitly. Prefer an argument vector when the supported runtime and platform provide the required no-shell semantics; a command string is a shell-language boundary, not an escaping convenience.
+
+Child pipes are bounded queues. Progress stdin, stdout, and stderr concurrently, close every parent pipe end at the owned boundary, and keep reading until terminal EOF. Sequential write-then-read or stdout-then-stderr logic can deadlock even when each individual operation is correct. Nonblocking behavior differs by platform, especially for Windows pipes, so verify the supported target rather than assuming one `stream_set_blocking()` policy is portable.
+
+Treat `proc_terminate()` as a request, not proof of exit. After timeout or cancellation, apply the declared escalation policy, drain or close owned pipes, observe terminal process status, and reap with `proc_close()`. Account for version-dependent exit-status caching and for descendants that can outlive the immediate child.

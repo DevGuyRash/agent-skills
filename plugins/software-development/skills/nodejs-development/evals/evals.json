@@ -30,6 +30,30 @@
       "prompt": "Implement a typed Node CLI that spawns an existing executable, streams output, supports cancellation, and publishes a bin entry.",
       "expected_output": "The work composes Node runtime/package guidance with TypeScript source and declaration guidance, avoids shell interpolation, handles spawn and exit outcomes, cleans up on cancellation, and verifies the packed bin under a supported Node version.",
       "files": []
+    },
+    {
+      "id": "eval-child-process-terminal-closure",
+      "prompt": "Repair a Node subprocess wrapper that resolves on exit, reports cancellation from child.killed, and leaves a shell grandchild plus redirected stderr alive.",
+      "expected_output": "The result rejects an already-aborted call before spawn when the contract forbids side effects; distinguishes spawn error, signal request, exit, and stdio close; bounds both output streams; terminates and reaps the declared descendant closure; preserves the exact primary or abort reason when contractual; removes listeners; and proves no process or handle survives return.",
+      "files": []
+    },
+    {
+      "id": "eval-http-upgrade-shutdown",
+      "prompt": "Implement bounded shutdown for a Node HTTP server that has keep-alive requests and accepted upgrade sockets across the repository's supported Node range.",
+      "expected_output": "The solution closes admission before forceful teardown, derives idle-connection behavior from the supported runtime floor, tracks upgraded sockets separately, joins active work within the grace period, and verifies idempotent repeated shutdown.",
+      "files": []
+    },
+    {
+      "id": "eval-dual-package-identity",
+      "prompt": "Repair conditional exports in a package that can be loaded by both import and require without splitting its singleton registry or exposing internal deep paths.",
+      "expected_output": "The result preserves the supported condition and subpath surface, orders conditions deliberately, avoids duplicate runtime state across loaders, verifies external import/require consumers against the packed artifact, and treats any compatibility break explicitly.",
+      "files": []
+    },
+    {
+      "id": "eval-test-runner-integration",
+      "prompt": "A package fix adds a strong external-consumer regression file, but the repository's default test command never executes it.",
+      "expected_output": "The focused test is wired into the authoritative repository test path, reaches an explicit terminal assertion, rejects the seed defect, and leaves generated package output and handles clean.",
+      "files": []
     }
   ]
 }

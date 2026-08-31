@@ -1,6 +1,6 @@
 interface:
   display_name: "C++ Development"
-  short_description: "Modern C++ ownership, lifetimes, ABI, and builds"
+  short_description: "C++ ownership, lifetimes, ABI, and builds"
   default_prompt: "Use $cpp-development to implement this C++ change while preserving the repository's toolchain, lifetime, and ABI contracts."
 policy:
   allow_implicit_invocation: true

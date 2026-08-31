@@ -17,6 +17,8 @@ Do not use Bash syntax merely because a `.sh` file happens to work under local B
 - Use parameter-expansion defaults carefully: unset and empty are different states.
 - Avoid parsing display output when a stable command or structured interface exists.
 
+In a hand-written option loop, prove that every branch advances or exits. Validate required operands before `shift N`, then test missing, empty, repeated, and `--` boundary cases so malformed input reaches the documented usage status instead of looping or consuming the next option.
+
 `eval`, indirect expansion, namerefs, and dynamically generated code expand authority. Use them only for a real interface that cannot be represented with arrays, functions, or mappings.
 
 ## Design failure and pipeline behavior
@@ -26,6 +28,8 @@ Do not use Bash syntax merely because a `.sh` file happens to work under local B
 Capture pipeline status only when the contract requires component-level detail. Avoid depending on parent-shell mutation from a pipeline loop unless the supported Bash behavior is deliberate and tested.
 
 Preserve the original status during traps and cleanup. Define how signals, background jobs, process substitutions, coprocesses, and child processes terminate. Wait for owned jobs and propagate the intended status.
+
+Treat non-interactive job control, process groups, and `wait` options as versioned interfaces rather than folklore. Track the PIDs or jobs this invocation owns; Bash `wait -n` and `wait -p` are useful only when the supported version provides them. A trapped signal can interrupt `wait`, so distinguish interruption from child completion and still settle or terminate the remaining owned work.
 
 ## Keep scope and state legible
 

@@ -21,6 +21,7 @@
 ## Own concurrent work
 
 - Give every goroutine an owner, termination condition, and observed outcome. A fire-and-forget goroutine is a resource and error-lifecycle decision.
+- Cancellation is a signal, not a join. When cleanup or observable effects depend on completion, the owner must wait for every started goroutine and observe its outcome before releasing shared state.
 - Establish who closes a channel. Normally the sending owner closes it; receivers must not close a channel merely to stop producers.
 - Account for nil channels, closed-channel zero values, buffered capacity, and select fairness when they affect behavior.
 - Prefer direct synchronous code until concurrency provides a concrete latency, throughput, or isolation benefit.
@@ -28,6 +29,7 @@
 - Use `sync.Mutex`, atomics, channels, or immutable handoff according to the state transition; none is universally superior.
 - Remember that map access and compound read-modify-write operations require synchronization when shared.
 - Keep lock scope and order explicit. Do not call unknown or blocking code while holding a lock unless the contract requires it.
+- Goroutine return alone establishes no happens-before relation with another goroutine; use the synchronization event that publishes completion and the state being observed.
 
 ## Diagnose concurrent failures
 

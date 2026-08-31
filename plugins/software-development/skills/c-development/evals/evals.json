@@ -50,6 +50,14 @@
       "expected_result": "No ordinary-memory race or teardown use-after-free remains, blocked workers can exit, queued-work policy is explicit, and every successful acquisition has one shutdown owner.",
       "expected_output": "State the queue and object-lifetime invariants, shutdown order, failure propagation, and deterministic coordination or supported ThreadSanitizer evidence used; do not present volatile as synchronization.",
       "files": []
+    },
+    {
+      "id": "eval-borrowed-overlap-without-growth",
+      "prompt": "A growable C buffer accepts payloads borrowed from its current logical bytes. An append fits in spare capacity, and source and destination ranges overlap.",
+      "expected_decision": "Validate the borrowed range against current logical data before mutation and use overlap-safe movement even though allocation does not occur; reject pointers into unused capacity under the API contract.",
+      "expected_result": "Same-buffer appends are defined with and without relocation, slack pointers are not accepted as external input, and failure leaves the documented state unchanged.",
+      "expected_output": "State logical extent, alias classification, movement primitive, and tests for growing, non-growing overlap, exact end, and interior unused capacity.",
+      "files": []
     }
   ]
 }

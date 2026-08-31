@@ -1,6 +1,10 @@
 ---
 name: async-rust
-description: Use for Rust async runtimes, task lifecycles, cancellation, backpressure, Send boundaries, or pinning. Always compose with rust-development; exclude synchronous-only work.
+description: >-
+  REQUIRED for Rust async runtime, task-lifecycle, cancellation, backpressure,
+  Send-boundary, or pinning work—do not write, review, debug, or scaffold those
+  surfaces without this skill. Always compose with rust-development; exclude
+  synchronous-only work. If Rust work is asynchronous, use this skill.
 ---
 
 # Async Rust
@@ -35,19 +39,19 @@ Make the unit of work and its owner explicit. Prefer scoped or supervised tasks 
 
 Use bounded concurrency when input can outrun downstream work. Choose buffering from an explicit throughput and memory contract, not an arbitrary large capacity. Avoid holding a synchronous lock guard across `.await` unless that guard and critical section are designed for it.
 
-## Treat every await as an interruption point
+## Review cancellable suspension points
 
-At each `.await`, identify state already mutated, resources held, and externally visible effects. Assume the future may be dropped there unless its owner proves otherwise. Keep multi-step state transitions restartable, guarded, or completed by an owner that outlives the waiting future.
+At each suspension point where the owner may drop or abort the future, identify state already mutated, resources held, and externally visible effects. Keep multi-step state transitions restartable, guarded, or completed by an owner that outlives the waiting future. Do not impose cancellation machinery where ownership proves the future cannot be abandoned.
 
 Do not assume a timeout stops the underlying operation. Do not retry a non-idempotent operation without a deduplication or reconciliation contract. Preserve errors from spawned work instead of logging and forgetting them by default.
 
 ## Keep blocking work off constrained executors
 
-Classify filesystem, DNS, compression, foreign calls, CPU-heavy loops, and synchronization by the runtime and platform actually used. Move genuinely blocking or CPU-heavy work through the repository's established blocking boundary. Do not wrap an operation in async syntax and assume it became nonblocking.
+Classify filesystem, DNS, compression, foreign calls, CPU-heavy loops, and synchronization by the runtime and platform actually used. Move genuinely blocking or CPU-heavy work through the repository's established blocking boundary, then preserve that boundary's queue, cancellation, and shutdown contract. Do not wrap an operation in async syntax and assume it became nonblocking.
 
 ## Preserve async interfaces
 
-Avoid async traits, boxed futures, pinning, or streams unless the caller needs that abstraction. Keep borrowing futures local when possible; require `'static` only at boundaries that retain the future. Treat changes to `Send`, `Sync`, cancellation, ordering, buffering, and wake behavior as API changes.
+Avoid async traits, boxed futures, pinning, or streams unless the caller needs that abstraction. Keep borrowing futures local when possible; require `'static` only at boundaries that retain the future. Treat changes to `Send`, `Sync`, cancellation, ordering, buffering, and wake behavior as API changes. Load `$unsafe-rust` too when the solution introduces manual pin projection, raw callback state, FFI lifetime work, or unsafe trait implementations.
 
 ## Verify concurrency behavior
 

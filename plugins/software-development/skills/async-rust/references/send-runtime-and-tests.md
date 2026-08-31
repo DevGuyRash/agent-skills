@@ -12,7 +12,13 @@ When a future is not `Send`, inspect values live across each `.await`. Common ca
 
 Use the repository's established runtime entry points, handles, local-task facilities, and blocking pool. Nested runtime startup can panic, deadlock, or violate resource ownership; do not create a new runtime inside an active async context without an explicit isolation contract.
 
-Classify work by behavior, not API name. An async wrapper around a blocking foreign call still blocks its executor thread. Put blocking or sustained CPU work on the established blocking/compute surface, and bound that surface too.
+Classify work by behavior, not API name. An async wrapper around a blocking foreign call still blocks its executor thread. Put blocking or sustained CPU work on the established blocking/compute surface, and bound both queued and active work.
+
+Inspect the selected runtime's cancellation and shutdown contract for blocking tasks. A blocking closure that has started may be non-abortable, may outlive the caller's timeout, and may delay runtime shutdown indefinitely. Give such work cooperative cancellation and a terminal observation path when possible; use a separately owned thread, process, or service for long-lived work whose lifecycle does not fit the runtime blocking pool. Do not report an abort request or shutdown timeout as proof that blocking work stopped.
+
+When terminal observation follows an initiating timeout or cancellation request, do not discard a join, panic, or cleanup failure. Preserve both facts when the error model supports it; otherwise apply the repository's existing error precedence and retain the initiating context.
+
+Manual pin projection, self-referential state, raw callback contexts, unsafe `Send`/`Sync`, and FFI lifetime boundaries require `$unsafe-rust` in addition to this skill. Async progress and cancellation evidence cannot establish memory safety.
 
 ## Test observable schedules
 
@@ -26,4 +32,4 @@ For failures, ensure spawned-task errors reach the test. A parent test that exit
 
 Cover the runtime features and executor flavor the repository supports. When behavior depends on `Send`, test both retained/spawned and local paths where both are public contracts. Model checking and sanitizers can explore additional schedules, but neither replaces integration behavior on the supported runtime.
 
-Primary anchors: [`Send`](https://doc.rust-lang.org/std/marker/trait.Send.html), [`Sync`](https://doc.rust-lang.org/std/marker/trait.Sync.html), and the selected runtime's official spawning, blocking, and test-time documentation.
+Primary anchors: [`Send`](https://doc.rust-lang.org/std/marker/trait.Send.html), [`Sync`](https://doc.rust-lang.org/std/marker/trait.Sync.html), and the selected runtime's official spawning, blocking, shutdown, and test-time documentation.

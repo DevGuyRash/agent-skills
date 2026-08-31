@@ -25,6 +25,7 @@ Account for engine and platform where relevant: MRI, JRuby, TruffleRuby, Windows
 - Use the repository's Bundler version and invocation, commonly `bundle exec` for project tools.
 - Prefer `bundle check` or the established locked install path before resolving dependencies.
 - Run `bundle update` only when updating resolution is part of the task; scope updates when possible.
+- Verify the resulting lock graph, sources, platforms, checksums when present, and the Bundler version that consumers use; a successful local require does not prove the locked artifact or loaded gem came from the intended source.
 - Preserve groups, platforms, sources, credentials boundaries, and gemspec-versus-Gemfile ownership.
 - Follow repository policy for `Gemfile.lock`; application and reusable-gem needs differ, so neither always-commit nor always-ignore is universal.
 - Do not hand-edit generated lock state or broad-update unrelated gems.

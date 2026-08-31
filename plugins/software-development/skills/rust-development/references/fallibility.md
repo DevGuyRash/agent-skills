@@ -25,6 +25,12 @@ Do not encode environmental failure as impossibility. Files, networks, clocks, u
 
 Use `?` when propagation preserves the contract. Map an error when crossing an abstraction boundary, translating representation, or adding actionable context.
 
+## Complete fallible work
+
+A successful write, send, enqueue, or staged mutation may report partial progress or acceptance rather than completed work. Follow the API's completion contract: loop over partial progress where required, perform fallible `flush`, `finish`, `commit`, or close operations explicitly, and return their failures. Resource ownership and RAII structure cleanup, but `Drop` cannot report a cleanup error and may not run after abort, process termination, or deliberate leakage; do not use destruction as proof of durable settlement.
+
+When both the primary operation and cleanup fail, apply the surrounding contract deliberately. Preserve the primary error, the cleanup error, or both in a form callers can act on; do not let incidental cleanup overwrite the more consequential failure without policy.
+
 ## Decide whether panic is acceptable
 
 A panic can be correct when continuing would contradict an invariant and the failure policy is explicit. Before accepting it, ask:
@@ -41,6 +47,6 @@ Do not replace a meaningful failure with an empty collection, zero value, log-on
 
 ## Verification
 
-Test each observable failure category and the information callers rely on. Include malformed or boundary inputs where applicable. If panic is intentional, test the invariant at the narrowest useful layer; do not turn every panic into a global audit.
+Test each observable failure category and the information callers rely on. Include malformed or boundary inputs, partial progress, and explicit completion failure where applicable. If panic is intentional, test the invariant at the narrowest useful layer; do not turn every panic into a global audit.
 
 Primary anchors: [Rust error handling](https://doc.rust-lang.org/book/ch09-00-error-handling.html), [`std::result`](https://doc.rust-lang.org/std/result/), and [API Guidelines: dependability](https://rust-lang.github.io/api-guidelines/dependability.html).

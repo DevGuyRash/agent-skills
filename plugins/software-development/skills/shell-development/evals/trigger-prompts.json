@@ -1,6 +1,6 @@
 {
   "skill_name": "shell-development",
-  "comment": "Boundary probes for maintained POSIX sh, Bash, and PowerShell artifacts; zsh, fish, and incidental commands are excluded.",
+  "comment": "Boundary probes for substantive shell artifacts. POSIX sh, Bash, and PowerShell have dedicated references; other shells use the explicit bounded fallback. Incidental commands are excluded.",
   "queries": [
     {
       "id": "implicit-posix-change",
@@ -26,13 +26,13 @@
       "query": "Harden the Bash run block in this GitHub Actions job that passes a secret and user-selected deployment target to a CLI."
     },
     {
-      "id": "negative-zsh",
-      "should_trigger": false,
+      "id": "fallback-zsh",
+      "should_trigger": true,
       "query": "Update my maintained zsh plugin to use zsh associative arrays and completion widgets."
     },
     {
-      "id": "negative-fish",
-      "should_trigger": false,
+      "id": "fallback-fish",
+      "should_trigger": true,
       "query": "Fix this fish function and its abbreviations in config.fish."
     },
     {

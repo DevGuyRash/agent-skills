@@ -30,6 +30,7 @@ Preserve those choices unless the request explicitly changes them. Do not upgrad
 | --- | --- |
 | Designing a fallible public API, deciding whether panic is acceptable, or changing error context | `<skills-file-root>/references/fallibility.md` |
 | Changing features, workspace structure, Cargo metadata, MSRV, platform gates, or dependency exposure | `<skills-file-root>/references/cargo-contracts.md` |
+| Changing public traits, types, bounds, opaque returns, iterators, or downstream compile behavior | `<skills-file-root>/references/public-contracts.md` |
 | Changing synchronous threads, channels, shared state, worker shutdown, or atomics | `<skills-file-root>/references/sync-concurrency.md` |
 
 Do not load a reference for a local implementation that does not touch its decision.
@@ -48,7 +49,7 @@ Use `unwrap` or `expect` only when the invariant is local and reviewable, or in 
 
 ## Preserve interfaces
 
-Keep visibility as narrow as the callers require. For public types and functions, consider semver impact, downstream inference, exhaustiveness, feature availability, and documented error behavior. Do not expose an implementation dependency through a public signature accidentally. Keep platform-specific code behind the existing `cfg` and feature structure.
+Keep visibility as narrow as the callers require. For public types and functions, consider semver impact, downstream inference, exhaustiveness, auto traits, feature availability, and documented error behavior. Do not expose an implementation dependency through a public signature accidentally. Keep platform-specific code behind the existing `cfg` and feature structure.
 
 ## Verify with repository evidence
 

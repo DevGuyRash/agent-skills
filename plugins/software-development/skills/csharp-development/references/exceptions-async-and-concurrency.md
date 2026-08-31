@@ -18,6 +18,13 @@
 - Preserve the repository's synchronization-context policy. Do not mandate `ConfigureAwait(false)` everywhere or remove it mechanically.
 - Keep blocking work and CPU work on execution mechanisms appropriate to the environment; `Task.Run` is not a universal async adapter.
 
+## Compose task outcomes deliberately
+
+- Choose fail-fast, first-success, partial-result, or collect-all behavior from the public contract. `Task.WhenAll` waits for its inputs but does not cancel siblings.
+- When every failure matters, retain the combined task and inspect its aggregate exception and/or each input after all tasks are terminal; an ordinary `await` catch path is not a complete failure ledger.
+- Signal sibling cancellation explicitly through an owned or linked `CancellationTokenSource` when policy requires it, then await terminal cleanup and observe late failures.
+- Dispose owned token sources, registrations, timers, semaphores, and other coordination resources. Do not dispose caller-owned tokens or sources.
+
 ## Propagate cancellation deliberately
 
 - Accept and pass `CancellationToken` where the operation is meaningfully cancellable; do not invent tokens that no underlying work observes.
@@ -25,6 +32,19 @@
 - Check cancellation at suitable boundaries and clean up registrations, timers, and partial state.
 - Do not catch and convert `OperationCanceledException` into success unless the public contract explicitly defines that outcome.
 - Bound retries and ensure side effects are safe before repeating a canceled or failed operation.
+
+## Own subprocesses and redirected I/O
+
+- When stdout and stderr are redirected and either can fill, start both drains before waiting. Close redirected stdin when input is complete so the child can observe EOF.
+- Treat wait cancellation, graceful shutdown request, forced termination, descendant policy, process exit, and stream-drain completion as separate events. Canceling `WaitForExitAsync` does not establish that the child stopped.
+- Join the process and every owned drain before returning, bound captured output or stream it under an explicit policy, and keep exit, decode, drain, timeout, cancellation, and cleanup failures inspectable.
+- Dispose the `Process`, streams, registrations, and timers only after their lifecycle is terminal. Use only process APIs available on every supported target and platform.
+
+## Make streaming pressure and termination explicit
+
+- `IAsyncEnumerable<T>` is pull-driven at its iterator boundary, but a callback, process, or background producer behind it can still be unbounded. Propagate cancellation and ensure early consumer exit reaches enumerator and producer teardown.
+- For `Channel<T>`, declare capacity, full mode, ordering, reader/writer multiplicity, loss observation, and the one owner of writer completion and its cause. Waiting and each drop mode are different public behaviors.
+- For `System.IO.Pipelines`, keep one owner per reader/writer, pair every read with correct `AdvanceTo`, observe `FlushAsync` completion/cancellation, and complete both ends with the relevant failure. Treat pause/resume thresholds as repository configuration, not universal constants.
 
 ## Synchronize shared state
 
@@ -41,4 +61,4 @@
 - Do not require `ConfigureAwait(false)`, channels, immutable state, reactive streams, or one synchronization primitive everywhere.
 - Do not ban all broad catches, locks, blocking calls, or fire-and-forget event handlers without considering the actual boundary.
 
-Primary references: [exception guidance](https://learn.microsoft.com/dotnet/standard/exceptions/best-practices-for-exceptions), [async return types](https://learn.microsoft.com/dotnet/csharp/asynchronous-programming/async-return-types), [cancellation](https://learn.microsoft.com/dotnet/standard/threading/cancellation-in-managed-threads), [managed threading](https://learn.microsoft.com/dotnet/standard/threading/managed-threading-basics).
+Primary references: [exception guidance](https://learn.microsoft.com/dotnet/standard/exceptions/best-practices-for-exceptions), [async return types](https://learn.microsoft.com/dotnet/csharp/asynchronous-programming/async-return-types), [`Task.WhenAll`](https://learn.microsoft.com/dotnet/api/system.threading.tasks.task.whenall), [process output](https://learn.microsoft.com/dotnet/api/system.diagnostics.process.standardoutput), [channels](https://learn.microsoft.com/dotnet/core/extensions/channels), [pipelines](https://learn.microsoft.com/dotnet/standard/io/pipelines), [cancellation](https://learn.microsoft.com/dotnet/standard/threading/cancellation-in-managed-threads).

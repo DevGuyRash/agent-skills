@@ -47,7 +47,8 @@ For detailed value, object, compatibility, and module guidance, read [language-a
 
 - Decide whether work is sequential, concurrent, cancellable, or streaming before selecting an abstraction.
 - Await or deliberately return every promise; make intentional background work observable and handle rejection.
-- Bound concurrency when work can exhaust memory, connections, rate limits, or file descriptors.
+- Bound concurrency at the admission point before invoking work; wrapping already-created promises does not restore a bound.
+- Treat aggregate settlement, cancellation request, timeout observation, and owned-work completion as separate events; a race or early rejection does not stop losing work.
 - Preserve error identity and cause where callers inspect them; do not convert every failure to a generic message.
 - Clean up listeners, timers, subscriptions, and resources on success, failure, and cancellation.
 

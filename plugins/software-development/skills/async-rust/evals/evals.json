@@ -12,7 +12,7 @@
     {
       "id": "eval-select-cancellation-safety",
       "prompt": "A select loop races a shutdown signal against a multi-read protocol operation and recreates the read future each iteration.",
-      "expected_decision": "Determine whether abandoning the losing read loses partial framing state and move ownership or restructuring to a cancellation-safe layer.",
+      "expected_decision": "Determine whether abandoning the losing read loses partial framing state and move ownership or restructuring to a cancellation-safe layer that persists authoritative lengths and consumed offsets rather than poll or allocation metadata.",
       "expected_result": "Shutdown remains responsive without corrupting or discarding protocol progress contrary to contract.",
       "expected_output": "Identify the cancellation point, state owner, and deterministic race/shutdown tests.",
       "files": []
@@ -39,6 +39,22 @@
       "expected_decision": "Replace timing inference with an observable synchronization point or controlled clock and retain only a bounded outer timeout.",
       "expected_result": "The test proves the required state transition without depending on scheduler speed.",
       "expected_output": "Name the synchronization evidence and the failure bound used by the test harness.",
+      "files": []
+    },
+    {
+      "id": "eval-started-blocking-work",
+      "prompt": "A Tokio service times out and aborts a started spawn_blocking compression task, then reports that shutdown canceled all work.",
+      "expected_decision": "Use the locked runtime's actual blocking-task contract, bound queued and active work, and provide cooperative or separately owned lifecycle control for work that cannot be aborted after start.",
+      "expected_result": "Timeout and abort do not masquerade as termination; shutdown either observes completion or reports explicitly unfinished work without leaking capacity silently.",
+      "expected_output": "Distinguish caller timeout, abort request, blocking-task termination, terminal join or cleanup failure, runtime shutdown, and external effects, then state error precedence and deterministic saturation/shutdown tests.",
+      "files": []
+    },
+    {
+      "id": "eval-abort-is-not-terminal",
+      "prompt": "A shutdown loop calls abort on every async task and immediately releases the resources those tasks own.",
+      "expected_decision": "Issue the common shutdown request to every owned unfinished task, then use the runtime's documented terminal join or completion witness for each before releasing dependencies whose safety or correctness requires task destruction.",
+      "expected_result": "Every owned task reaches an observed terminal state and no resource is released merely because cancellation was requested.",
+      "expected_output": "State the cancellation request, terminal observation, panic/error handling, and bounded shutdown behavior separately.",
       "files": []
     }
   ]

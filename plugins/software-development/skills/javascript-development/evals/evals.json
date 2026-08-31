@@ -22,6 +22,24 @@
       "files": []
     },
     {
+      "id": "eval-prestarted-promises",
+      "prompt": "A JavaScript limiter receives an array produced by inputs.map(runAsync), but every request has already started before the limiter sees it.",
+      "expected_output": "Admission is moved before operation invocation, the exact in-flight bound and output ordering are preserved, failure policy is explicit, and a handshake-based regression rejects eager promise creation.",
+      "files": []
+    },
+    {
+      "id": "eval-timeout-loser-lifecycle",
+      "prompt": "A browser-side operation uses Promise.race with a timer and returns a TimeoutError while the losing request can still mutate shared state and keep an abort listener installed.",
+      "expected_output": "Timeout observation is separated from cancellation and terminal completion, the actual operation receives and observes AbortSignal, listeners and timers are cleaned once, late effects are prevented or explicitly transferred, and tests prove loser termination.",
+      "files": []
+    },
+    {
+      "id": "eval-async-iterator-early-exit",
+      "prompt": "A callback source feeds an async iterable; when a consumer breaks early, callbacks continue filling an unbounded array and the subscription stays registered.",
+      "expected_output": "The adapter declares pressure policy, connects iterator return/cancellation to producer unregistration, owns terminal settlement once, handles late callbacks, and tests a deliberately slow and early-exiting consumer.",
+      "files": []
+    },
+    {
       "id": "eval-object-copy",
       "prompt": "Review a patch that spreads class instances into plain objects before passing them to an existing public API.",
       "expected_output": "The review identifies any loss of prototype, descriptors, symbols, identity, or nested ownership that affects behavior and recommends only evidence-backed changes rather than a blanket cloning rule.",

@@ -13,6 +13,11 @@
       "query": "Repair the package.json exports map so supported ESM consumers can load the public subpath without exposing internals."
     },
     {
+      "id": "implicit-child-lifecycle",
+      "should_trigger": true,
+      "query": "Fix this Node spawn wrapper so abort terminates the owned process tree, drains both pipes, and returns only after close."
+    },
+    {
       "id": "explicit-invocation",
       "should_trigger": true,
       "query": "Use $nodejs-development to make this CLI handle signals, child-process failure, and exit codes correctly."

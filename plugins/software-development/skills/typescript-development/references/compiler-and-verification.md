@@ -27,12 +27,15 @@ Load this reference when compiler settings, project references, emit, declaratio
 - Inspect emitted JavaScript when module interop, decorators, class fields, downlevel iteration, or helpers can affect runtime behavior.
 - Inspect generated declarations when a library's public API changes.
 - Run a supported consumer or package-boundary smoke test when exports or declaration resolution changed.
+- For a published package, verify the packed artifact or another repository-authoritative publication view so source-only files, path mappings, workspace links, and unshipped declarations cannot create a false green.
+- Separate static checking, transformation/emission, and runtime execution. Record which engine or loader actually executes the supported artifact and do not infer runtime support from compiler acceptance.
 
 ## Tooling and Dependencies
 
 - Preserve the selected package manager, lockfile, compiler source, linter integration, formatter, test runner, and build transformer.
 - Avoid invoking a globally installed compiler whose version differs from the repository.
 - Keep compiler, runtime, framework, and `@types` versions compatible; do not upgrade unrelated packages as incidental cleanup.
+- For a fixed profile, retain the lockfile, effective configs, compiler, resolver, runtime, dependency graph, and package export conditions that define it. For a moving support matrix, exercise declared floors and representative current points rather than testing one ambient installation and calling it portable.
 - If checks disagree, compare their working directories, configs, file sets, environments, and installed dependency graphs before weakening any check.
 
 Report exact commands and the project/config they exercised. Name untested supported targets and downstream consumers explicitly.

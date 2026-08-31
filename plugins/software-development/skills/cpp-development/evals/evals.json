@@ -50,6 +50,14 @@
       "expected_result": "No data race, detached lifetime escape, blocked waiter, or teardown use-after-free remains, and shutdown behavior for pending work is explicit.",
       "expected_output": "State ownership, synchronization, lock scope, shutdown order, failure propagation, and deterministic coordination or supported ThreadSanitizer evidence.",
       "files": []
+    },
+    {
+      "id": "eval-submit-close-registration-failure",
+      "prompt": "A C++ client schedules asynchronous jobs while another thread closes it. A job can start before jobs_.push_back succeeds, that push can throw, and the public header is ABI-governed.",
+      "expected_decision": "Define one submit/close admission boundary, make registration and in-flight accounting exception-safe, cancel and observe any started-but-unregistered job, and preserve the governed header/ABI through implementation-owned state.",
+      "expected_result": "Close rejects later work, waits every admitted operation, cannot hang on failed registration, and does not trade the lifecycle fix for public layout churn.",
+      "expected_output": "State the linearization point, rollback/terminal path, ownership of started work, public-boundary strategy, and deterministic failure-injection plus consumer evidence.",
+      "files": []
     }
   ]
 }

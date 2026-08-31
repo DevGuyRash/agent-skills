@@ -42,6 +42,18 @@
       "expected_result": "Language logic receives Swift verification without this skill inventing UI architecture or signing guidance.",
       "expected_output": "Separate the Swift-owned work from platform-owned work and report evidence for each through its proper workflow.",
       "files": []
+    },
+    {
+      "id": "eval-task-group-failure-policy",
+      "prompt": "A Swift package launches one task-group child per input and returns on the first thrown error while thousands of pending children continue side effects.",
+      "expected_output": "The repair declares fail-fast versus collect-all behavior, bounds admission, propagates cancellation to pending children when required, observes every admitted child to group completion, preserves the primary error, and tests terminal settlement with deterministic coordination.",
+      "files": []
+    },
+    {
+      "id": "eval-asyncstream-pressure",
+      "prompt": "A callback API feeds Swift AsyncStream faster than its consumer and continues calling after the consumer exits early. Repair the adapter without pretending buffering is producer backpressure.",
+      "expected_output": "The adapter declares bounded buffering or loss, observes dropped yields when supported, unregisters the callback on iterator termination, owns completion once, ignores late callbacks safely, and tests a slow and early-exiting consumer.",
+      "files": []
     }
   ]
 }

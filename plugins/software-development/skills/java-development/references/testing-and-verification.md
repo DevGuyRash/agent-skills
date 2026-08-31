@@ -26,6 +26,8 @@ Do not add or enable an analyzer solely because it is listed here. Existing buil
 - For serialization changes, test old/new fixtures or compatibility paths specified by the repository.
 - For annotation processors, regenerate from a clean source state and verify generated output.
 - For concurrency changes, combine deterministic lifecycle tests with stress or repeated execution when useful; no finite run proves every schedule.
+- For process wrappers, use a helper child that can fill stdout and stderr independently, wait for stdin EOF, hang, exit nonzero, and emit during termination. Synchronize on events and bounded deadlines; assert exit, both drains, termination policy, timeout overflow behavior, interruption status when contractual, and absence of surviving owned work.
+- For fan-out or publisher changes, exercise multiple failures, a blocked or canceling participant, slow demand, full-buffer behavior, synchronous callback reentrancy, competing terminal actions, and cleanup failure. Verify every required outcome remains inspectable, the selected terminal cause is retained, and terminal completion occurs once.
 - For performance claims, use a configured JMH or benchmark harness and route the measurement design to `performance-engineering`.
 
 ## Interpret evidence correctly

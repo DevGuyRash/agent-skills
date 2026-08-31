@@ -6,6 +6,8 @@ Read this reference for strict typing, coercion, declarations, PHPDoc, signature
 
 Scalar typing is coercive by default. `declare(strict_types=1)` is per file, affects scalar declarations, and uses the calling file's mode for argument calls. It is not a property attached solely to the function declaration.
 
+Argument scalar coercion follows the caller file. Scalar return enforcement follows the file defining the function. Test both sides of a mixed strict/coercive boundary instead of inferring package-wide behavior from one declaration.
+
 Follow repository policy. Adding strict mode to a legacy caller can change behavior; omitting it from a strict codebase can weaken the intended boundary.
 
 - Use native parameter, return, property, and constant types supported by the minimum PHP version.
@@ -32,6 +34,22 @@ Use deprecation and migration paths for intentional library changes rather than 
 PHP comparisons and scalar contexts can coerce values. Parse and validate external strings into the intended domain before authorization, identity, range, or persistence decisions. Prefer strict comparison when type identity matters, but do not ban loose comparison where coercion is the explicit contract.
 
 Distinguish missing, `null`, `false`, zero, and empty strings when the domain distinguishes them. Avoid blanket truthiness rewrites that collapse valid states.
+
+## Preserve array identity and presence
+
+PHP array keys normalize values: decimal integer strings can become integers, floats truncate, booleans become `0` or `1`, and `null` becomes an empty string on supported versions. Normalize and validate external identifiers before insertion so distinct source values cannot silently overwrite one slot.
+
+Use `array_key_exists()` when present-with-`null` differs from missing. `isset()` and `??` intentionally collapse those states. Preserve list/map ordering and key shape when serialization, iteration, equality, or consumer code observes them.
+
+Validate required field presence before reading its value or canonicalizing related identity. A default value, `??`, `isset`, or early skip can otherwise convert a schema violation into an accepted null/empty record and can bypass later duplicate or supported-type checks.
+
+## Treat references as explicit aliases
+
+Arrays normally use copy-on-write; PHP references instead bind names to the same variable content, and objects have handle-like mutation semantics. Do not introduce `&` merely to avoid a presumed copy.
+
+A by-reference `foreach` value remains bound to the final element after the loop. `unset()` that loop variable before reuse. Preserve by-reference parameters, returns, array entries, and closure captures as public mutation contracts.
+
+`readonly` prevents property reassignment, not mutation inside a referenced object or resource. Do not advertise deep immutability without enforcing it across the complete reachable state.
 
 ## Document durable contracts
 

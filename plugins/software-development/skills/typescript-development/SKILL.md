@@ -11,7 +11,7 @@ Use TypeScript to make real program invariants visible and maintainable without 
 
 ## Compose Deliberately
 
-- Use `javascript-development` instead for work confined to plain JavaScript. Use both only when both JavaScript and TypeScript sources change.
+- Use `javascript-development` for substantive plain JavaScript, JSDoc, or `checkJs` source work. Add this skill when TypeScript compiler configuration, declarations, project references, or typed consumers also change; use both when both artifact contracts are material.
 - Add `nodejs-development` only for Node runtime APIs, package metadata, module loading, CLIs, servers, streams, or process behavior.
 - Add the relevant UI framework, testing, migration, debugging, refactoring, security, or performance skill when that concern shapes the task.
 - Do not load Node guidance merely because TypeScript tooling itself runs on Node.
@@ -26,6 +26,7 @@ Before editing:
 4. Identify supported runtimes, package boundaries, public exports, generated files, and the repository's package manager and lockfile.
 5. Find the selected formatter, linter, test runner, type-check command, and build pipeline.
 6. Distinguish compile-time input from runtime input and authored source from generated declarations or output.
+7. Determine whether compatibility is against one frozen install/configuration or a moving supported matrix of compiler, resolver, runtime, dependency, and package-export versions.
 
 Use the effective configuration as evidence. Do not infer behavior from a root `tsconfig` that a package does not actually use.
 
@@ -61,6 +62,7 @@ Read [boundaries-and-apis.md](<skills-file-root>/references/boundaries-and-apis.
 - Keep runtime and type namespaces distinct; a type import does not create a runtime value.
 - Avoid ESM/CommonJS conversion or compiler-wide strictness changes unless the task owns that migration.
 - Do not hand-edit generated `.d.ts`, transpiled JavaScript, source maps, or schema-derived types unless repository policy requires it.
+- A clean type check is not direct runtime execution. When the supported runtime consumes emitted JavaScript, a loader/transform output, or native TypeScript syntax, verify that actual path separately.
 
 ## Verify with the Effective Project
 
@@ -70,7 +72,7 @@ Run the narrowest native checks first:
 2. The package's configured type-check command or the correct project-reference build.
 3. Existing lint and format checks for touched files.
 4. The relevant build or runtime smoke test when emit, exports, declarations, or module resolution changed.
-5. Broader consumers when a public type or package boundary changed.
+5. Broader consumers when a public type or package boundary changed, including a packed or external fixture when internal path aliases could hide declaration or export defects.
 
 Read [compiler-and-verification.md](<skills-file-root>/references/compiler-and-verification.md) before changing compiler settings, package declarations, build integration, or compatibility targets.
 

@@ -13,9 +13,15 @@ Ruby 3 separates positional hashes from keyword arguments. Treat parameter kind 
 
 Blocks also form API. Preserve whether a method requires a block, yields values, returns an Enumerator without one, forwards the block, performs non-local control flow, or retains the block beyond the call.
 
+A delegator can preserve successful calls while changing `Method#parameters`, arity, source ownership, visibility, or `respond_to?`. Determine which reflective surfaces consumers use. Prefer an explicit public signature when names and parameter kinds are contractual; use generic forwarding when transparent acceptance matters and generic reflection is acceptable. Test the unbound and bound method when both are public surfaces.
+
+## Preserve value and key contracts
+
+`==`, `eql?`, `hash`, ordering, and pattern/deconstruction methods serve different protocols. When value objects are hash or set keys, ensure `a.eql?(b)` implies `a.hash == b.hash`, include the same identity fields in both, and preserve the repository's class/subclass policy. Keep identity fields stable while an object is an active key; prefer immutable key state over requiring every owner to call `rehash` after mutation. Test equivalent distinct instances, unequal instances, lookup, deduplication, and mutation boundaries.
+
 ## Protect public surfaces
 
-Consider require paths, constants, method visibility, inheritance hooks, mixin order, refinements, callbacks, and monkey patches. Public behavior may include mutability, object identity, equality/hash behavior, ordering, laziness, and exceptions.
+Consider require paths, constants, method visibility, inheritance hooks, mixin order, refinements, callbacks, and monkey patches. Public behavior may include mutability, object identity, ordering, laziness, and exceptions.
 
 When using `method_missing`, implement compatible discovery such as `respond_to_missing?` and preserve forwarding. Prefer ordinary methods when the dynamic surface is finite and known. Avoid changing global core classes for local convenience.
 

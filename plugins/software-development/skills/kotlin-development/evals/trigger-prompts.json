@@ -15,6 +15,13 @@
       "query": "Update this Kotlin Multiplatform source-set dependency without changing unrelated targets."
     },
     {
+      "id": "implicit-kotlin-flow-bridge",
+      "should_trigger": true,
+      "expected_skills": ["kotlin-development"],
+      "excluded_skills": ["java-development"],
+      "query": "Repair this callbackFlow adapter so cancellation unregisters its Kotlin listener exactly once and a slow collector cannot make buffering unbounded; no Java source or Java-facing API changes."
+    },
+    {
       "id": "explicit-skill",
       "should_trigger": true,
       "query": "Use $kotlin-development to review this coroutine cancellation path and its tests."

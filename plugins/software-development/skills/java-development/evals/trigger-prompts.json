@@ -15,6 +15,13 @@
       "query": "Make this Maven module compile for the repository's Java 17 runtime without changing the parent toolchain."
     },
     {
+      "id": "implicit-java-process-lifecycle",
+      "should_trigger": true,
+      "expected_skills": ["java-development"],
+      "excluded_skills": ["shell-development"],
+      "query": "Repair this Java ProcessBuilder wrapper so a child that floods both redirected streams cannot deadlock and timeout cleanup leaves no owned process or drainer; no shell source or shell parsing is changing."
+    },
+    {
       "id": "explicit-skill",
       "should_trigger": true,
       "query": "Use $java-development to review this CompletableFuture error path and its JUnit tests."

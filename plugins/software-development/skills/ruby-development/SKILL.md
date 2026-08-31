@@ -25,8 +25,8 @@ Repository evidence and supported consumers take precedence. Do not silently rep
 ## Load detail only when needed
 
 - Read `<skills-file-root>/references/project-and-verification.md` for Ruby versions, Bundler, gems, dependencies, native extensions, project metadata, or verification changes.
-- Read `<skills-file-root>/references/apis-and-types.md` for public methods, keyword arguments, blocks, constants, metaprogramming, signatures, RBS, Sorbet, or compatibility work.
-- Read `<skills-file-root>/references/errors-resources-and-concurrency.md` for exceptions, cleanup, transactions, threads, processes, Fibers, Ractors, cancellation, or long-running workers.
+- Read `<skills-file-root>/references/apis-and-types.md` for public methods, keyword arguments, blocks, equality/hash behavior, constants, metaprogramming, signatures, RBS, Sorbet, or compatibility work.
+- Read `<skills-file-root>/references/errors-resources-and-concurrency.md` for exceptions, cleanup, transactions, queues, threads, processes, Fibers, Ractors, timeouts, cancellation, or long-running workers.
 - Read `<skills-file-root>/references/security-and-framework-boundaries.md` for commands, serialization, templates, SQL, paths, secrets, dynamic dispatch, Rails, or another framework boundary.
 
 Do not load unrelated references.

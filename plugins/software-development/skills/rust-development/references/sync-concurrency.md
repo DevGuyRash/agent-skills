@@ -13,9 +13,9 @@ Name the concrete latency, throughput, isolation, responsiveness, or lifecycle r
 
 ## Own every thread
 
-Use scoped threads when workers may borrow scope-owned data and must finish before that scope exits. Use owned threads when their lifetime crosses the current scope, and retain their `JoinHandle`s under an explicit owner. Do not detach a thread accidentally by dropping its handle.
+Use scoped threads when workers may borrow scope-owned data and must finish before that scope exits. Scope exit settles unjoined scoped threads, but explicitly join each handle when the owner must observe every return value or panic. Use owned threads when their lifetime crosses the current scope, and retain their `JoinHandle`s under an explicit owner. Do not detach a thread accidentally by dropping its handle.
 
-A safe shutdown stops admission, signals workers, wakes blocked workers, applies the declared drain-or-cancel policy, and joins every owned thread before releasing its dependencies. An atomic flag alone does not wake a worker blocked on a channel or condition variable; pair shutdown state with a wakeup path.
+A safe shutdown stops admission, signals workers, wakes blocked workers, applies the declared drain-or-cancel policy, and joins every owned thread before releasing its dependencies. Join all handles even after one worker fails or panics; early return from the first `join` can detach the rest. An atomic flag alone does not wake a worker blocked on a channel or condition variable; pair shutdown state with a wakeup path.
 
 Distinguish a worker's returned error from a panic reported by `join`. Propagate, aggregate, or deliberately contain both according to the surrounding service contract; do not lose either in logging or cleanup.
 
@@ -23,7 +23,7 @@ Distinguish a worker's returned error from a panic reported by `join`. Propagate
 
 Prefer message passing when ownership can move with the work and shared state when multiple workers must coordinate one invariant. Use a bounded queue when producers can outrun consumers, and define whether capacity causes waiting, rejection, shedding, coalescing, or durable spill. Do not replace a bounded queue with an unbounded channel merely to avoid handling overload.
 
-Treat channel disconnection as a lifecycle event with defined meaning. Ensure every sender clone is eventually dropped; one forgotten sender can keep a receiver blocked during shutdown. `std::sync::mpsc::Receiver` is single-consumer; do not clone it. Choose one dispatcher, per-worker queues, or an intentional mutex-wrapped receiver. That mutex serializes receive/wait: release it before work and verify throughput, fairness, and shutdown.
+Treat channel disconnection as a lifecycle event with defined meaning. A successful send proves channel acceptance, not worker completion; use a result or acknowledgment path when the owner must observe each item's outcome. Ensure every sender clone is eventually dropped; one forgotten sender can keep a receiver blocked during shutdown. `std::sync::mpsc::Receiver` is single-consumer; do not clone it. Choose one dispatcher, per-worker queues, or an intentional mutex-wrapped receiver. That mutex serializes receive/wait: release it before work and verify throughput, fairness, and shutdown.
 
 ## Protect shared invariants
 
@@ -41,4 +41,4 @@ Prefer channels or locks when state spans multiple values or requires compound t
 
 Make tests coordinate with barriers, channels, condition predicates, or controlled hooks rather than assuming progress after a sleep. Use a bounded outer timeout only to prevent a hung test suite, not as evidence that an ordering occurred.
 
-Exercise capacity behavior, work completion, shutdown while idle and busy, blocked-worker wakeup, disconnects, worker errors, panics, and required ordering. Run repository-supported model checking, race analysis, or concurrency sanitizers when already configured and applicable. Report scheduling, platform, or state-space limits that remain unverified.
+Exercise capacity behavior, acknowledged work completion, shutdown while idle and busy, blocked-worker wakeup, disconnects, all-consumer failure under producer pressure, worker errors, panics, and required ordering. Assert that every owned handle is settled even when an earlier join fails. Run repository-supported model checking, race analysis, or concurrency sanitizers when already configured and applicable. Report scheduling, platform, or state-space limits that remain unverified.

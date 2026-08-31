@@ -12,9 +12,18 @@
 ## Respect interruption and cancellation
 
 - Treat `InterruptedException` as a control signal. Propagate it when the signature permits, or restore the interrupt flag when translating or terminating work.
+- If the API separately promises that the caller's interrupt status remains set after propagation, restore it immediately before the exception crosses that boundary; propagation alone normally leaves the flag cleared.
 - Do not continue a retry loop after interruption without an explicit contract.
-- Give timeouts a unit, clock assumption, and cleanup path. Preserve the distinction among timeout, cancellation, interruption, and operation failure.
+- Give timeouts a unit, monotonic-clock assumption, overflow policy, and cleanup path. Complete fallible duration conversion and deadline construction before acquiring resources, or place acquisition and conversion inside the same cleanup guard. Preserve the distinction among timeout, cancellation, interruption, and operation failure.
 - When composing futures, decide which executor runs each stage and how cancellation and exceptional completion propagate.
+
+## Own external processes and redirected I/O
+
+- Start stdout and stderr consumption while the child runs when either redirected pipe can fill; waiting for exit before draining both can deadlock the parent and child.
+- Close or finish child stdin when input is complete. Define encoding, output bounds or streaming ownership, and the disposition of partial output.
+- Treat process exit and both drainer completions as separate terminal events. Do not return, close their streams, or discard failures until the declared result has observed each owned event.
+- Canceling or abandoning an exit-wait future does not establish that the process stopped. Define interruption, timeout, graceful termination, forced termination, and descendant policy, then observe the selected terminal boundary.
+- Preserve the exit status and required process, drain, and cleanup failures through the API's result or exception contract. Leave no owned child, drainer, or blocked input writer after completion.
 
 ## Apply the Java Memory Model
 
@@ -31,6 +40,15 @@
 - Distinguish CPU-bound work from blocking work when sizing or selecting an executor.
 - Observe `Future`, `CompletionStage`, or task failures; fire-and-forget is an explicit error and lifecycle policy.
 - Preserve thread-local, security, logging, and request context only through mechanisms the repository already establishes.
+
+## Compose concurrent outcomes and pressure
+
+- Choose fail-fast, collect-all, first-success, or partial-result semantics explicitly. Cancellation policy and result policy are separate from the mechanism used to wait.
+- `CompletableFuture.allOf` establishes completion of its inputs but does not itself provide every outcome. Inspect the component stages when every failure or cancellation must remain observable.
+- Canceling a `CompletableFuture` is exceptional completion and does not by itself prove that its computation was interrupted or stopped. Route cancellation through the actual owned work and await admitted tasks when teardown depends on their completion.
+- For publishers and other buffered producers, declare capacity, admission behavior, and what full means: wait, reject, drop, or coalesce. Observe loss when it is part of the contract; do not let an apparently asynchronous API hide unbounded memory or an uninterruptible producer wait.
+- Give terminal completion one owner, preserve its cause, and ensure subscribers, producers, and owned executors reach their declared terminal state exactly once.
+- For callback protocols, publish the required initial state before delivering later signals, keep callbacks outside internal locks, and account for synchronous reentrancy or callback failure without replacing an already-selected terminal cause.
 
 ## Treat newer concurrency features as versioned choices
 

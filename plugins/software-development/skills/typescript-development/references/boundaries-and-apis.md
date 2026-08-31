@@ -30,9 +30,11 @@ Load this reference for untrusted input, runtime validation, declarations, publi
 ## JavaScript and Library Interop
 
 - Respect `allowJs`, `checkJs`, JSDoc types, declaration files, and package export conditions selected by the repository.
+- Treat edits to JavaScript/JSDoc runtime source as JavaScript work even when `checkJs` analyzes it; TypeScript owns the effective compiler configuration, declarations, project graph, and typed-consumer contract.
 - Use type-only imports when required by the configured transform; do not rewrite imports without checking runtime emission.
 - Verify whether a dependency's declarations match the installed runtime version before compensating locally.
 - Keep ambient declarations narrowly scoped. A global augmentation can affect every consumer in the compilation.
 - For dual-runtime or dual-module packages, test the actual public import paths rather than only internal source imports.
+- Test emitted declarations from an external consumer when public inference, resolution, or package exports matter; compiling only the source project can hide private paths and workspace-only resolution.
 
 Types can prevent representable mistakes; they do not replace authorization, validation, synchronization, or runtime tests.

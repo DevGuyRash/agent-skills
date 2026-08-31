@@ -13,6 +13,26 @@
       "query": "Review and correct this unsafe Sync implementation for a wrapper around a thread-affine native handle."
     },
     {
+      "id": "implicit-thread-affine-owner",
+      "should_trigger": true,
+      "query": "Fix this synchronous Rust worker client so a non-Send foreign session is constructed, used, and destroyed on its owner thread with startup and shutdown settlement."
+    },
+    {
+      "id": "implicit-unsafe-attribute",
+      "should_trigger": true,
+      "query": "Export this Rust function under a fixed symbol with no_mangle and verify that its ABI and symbol contract are sound."
+    },
+    {
+      "id": "implicit-inline-assembly",
+      "should_trigger": true,
+      "query": "Fix this x86_64 asm block; its options claim it preserves memory and flags but the instructions may not."
+    },
+    {
+      "id": "implicit-provenance",
+      "should_trigger": true,
+      "query": "Repair this raw-pointer table lookup that casts pointer addresses through usize before dereferencing them."
+    },
+    {
       "id": "explicit-unsafe-rust",
       "should_trigger": true,
       "query": "Use $unsafe-rust to design a safe abstraction over this raw pointer and document its invariants."
@@ -26,6 +46,26 @@
       "id": "negative-panic-report",
       "should_trigger": false,
       "query": "Produce a repository-wide report of Rust panic sites without changing or reviewing any unsafe boundary."
+    },
+    {
+      "id": "negative-safe-atomics",
+      "should_trigger": false,
+      "query": "Replace this Mutex-protected request counter with a safe AtomicUsize counter; the crate contains no unsafe code, raw reclamation, or unsafe trait implementation."
+    },
+    {
+      "id": "negative-safe-attributes",
+      "should_trigger": false,
+      "query": "Add cfg and derive attributes to this entirely safe Rust data type; there are no unsafe attributes, extern declarations, or layout assumptions."
+    },
+    {
+      "id": "negative-immutable-static",
+      "should_trigger": false,
+      "query": "Replace repeated string allocation with an immutable static lookup table in otherwise safe Rust."
+    },
+    {
+      "id": "negative-safe-function-trait",
+      "should_trigger": false,
+      "query": "Refactor this ordinary safe function and add a safe trait bound without raw pointers, unsafe implementations, FFI, or layout-sensitive code."
     },
     {
       "id": "composition-async-ffi",

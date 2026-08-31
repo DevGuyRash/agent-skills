@@ -38,9 +38,12 @@ Do not load unrelated references.
 - Follow existing namespace, autoload, bootstrap, and framework lifecycle decisions.
 - Use accurate native declarations where supported; use analyzer-aware PHPDoc only when it adds information PHP cannot express.
 - Follow repository policy for `declare(strict_types=1)`; do not add it mechanically to legacy files.
-- Make coercion and comparison behavior explicit at trust and public API boundaries.
+- Make scalar coercion, array-key normalization, missing-versus-null behavior, and comparison semantics explicit at trust and public API boundaries.
+- When an input field is required, prove presence with `array_key_exists()` before reading, defaulting, normalizing, or inserting it; do not silently turn missing into present-null or skip the invalid record unless that is the declared contract.
+- Use references only for intentional aliasing, not as a presumed performance optimization; end by-reference iteration leases explicitly.
 - Catch only where code can recover, translate, add boundary context, or clean up.
 - Make ownership of streams, locks, transactions, temporary files, processes, and long-lived services visible.
+- For child processes, progress every owned pipe without deadlock, bound waiting, and distinguish termination request, process exit, pipe completion, reaping, and descendant ownership.
 - Keep comments and docblocks focused on contracts, invariants, analyzer-only information, and non-obvious rationale.
 
 ## Preserve interfaces
@@ -51,6 +54,7 @@ Review these compatibility surfaces before refactoring:
 - Parameter names, position, defaults, by-reference behavior, variadics, native/PHPDoc types, and return values.
 - Inheritance variance, interfaces, traits, attributes, magic methods, and reflection-visible metadata.
 - Exceptions, warnings, deprecations, resource ownership, serialization, and framework hooks.
+- Array keys, shapes, ordering, missing/null distinctions, reference aliasing, and object interior mutation when consumers observe them.
 - CLI arguments, exit status, streams, environment/configuration, HTTP messages, and database behavior.
 
 Named arguments make public parameter names observable. Do not turn an internal cleanup into an accidental package API migration.

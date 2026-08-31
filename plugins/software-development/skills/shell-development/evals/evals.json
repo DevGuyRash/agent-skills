@@ -4,7 +4,7 @@
     {
       "id": "eval-posix-routing",
       "prompt": "A file named deploy.sh is invoked explicitly with dash in CI. Fix its argument parsing; the local developer ran it successfully with Bash.",
-      "expected_output": "Route to POSIX sh based on the configured runner, avoid Bash-only syntax and pipefail, preserve argument and exit contracts, and verify with dash plus repository checks rather than local Bash alone.",
+      "expected_output": "Route to POSIX sh based on the configured runner, avoid Bash-only syntax and pipefail because the declared dash target does not support that option, preserve argument and exit contracts, and verify with dash plus repository checks rather than local Bash alone. Do not generalize this target-specific decision into a claim that POSIX.1-2024 lacks pipefail.",
       "files": [
         "evals/files/deploy.sh"
       ]
@@ -25,6 +25,54 @@
       "id": "eval-process-security",
       "prompt": "A deployment script receives a user-selected environment, creates a temporary directory, builds a command string with eval, and recursively deletes the directory on exit.",
       "expected_output": "Compose the selected dialect with process-security guidance, replace reparsed command construction with structured arguments, allowlist control values, create and own temporary state safely, validate the exact deletion target, preserve status, and test adversarial inputs.",
+      "files": []
+    },
+    {
+      "id": "eval-bounded-concurrency-lifecycle",
+      "prompt": "Refactor a shell batch runner from sequential execution to bounded parallel execution. Individual units may hang, emit large stdout and stderr, fail independently, and spawn descendants. The caller requires input-ordered result records and Ctrl-C must leave no owned work behind.",
+      "expected_output": "Select mechanisms supported by the declared interpreter and operating systems; justify that parallelism fits the workload; impose one aggregate concurrency and queue/output budget; retain an input-to-handle mapping; define admission, ordering, failure, timeout, and cancellation policies; drain streams while work runs; stop admission before terminating only the owned execution domain; settle every admitted unit; preserve the primary status through idempotent cleanup; and test limit enforcement, mixed outcomes, interruption, ordered merge, and orphan/resource absence.",
+      "files": []
+    },
+    {
+      "id": "eval-posix-multi-child-status",
+      "prompt": "A POSIX sh script starts four background conversions, records only the final $!, then calls wait with no operands. One early conversion fails and another spawns a helper. Make completion and cleanup correct across the repository's pre-2024 dash and ash targets.",
+      "expected_output": "Track every direct asynchronous child when admitted; do not treat wait-without-operands, one final PID, or an unknown descendant PID as a complete status ledger; impose a portable bound without unsupported wait extensions or pipefail; define which failure is primary while still settling remaining children; use an explicitly supported process-group/session design if descendant closure is required; preserve status through idempotent traps; and test mixed completion order, early failure, interruption, and orphan absence on both declared shells.",
+      "files": []
+    },
+    {
+      "id": "eval-bash-job-control-cancellation",
+      "prompt": "A non-interactive Bash 4.3 deployment script uses jobspecs and wait -n to throttle background workers. Ctrl-C sometimes returns success and leaves grandchildren alive. Preserve Bash 4.3 support and the first task failure while fixing it.",
+      "expected_output": "Honor the declared Bash version and non-interactive job-control mode; do not rely on unsupported wait options or jobspec behavior; retain direct-child identities and an explicit input mapping; distinguish trapped interruption from child completion; stop admission before cancelling the owned execution domain; drain and wait every admitted worker; preserve the selected primary failure through idempotent cleanup; and verify concurrency bounds, failure ordering, signal behavior, and descendant/orphan outcomes.",
+      "files": []
+    },
+    {
+      "id": "eval-bash-option-operand-progress",
+      "prompt": "A hand-written Bash option loop consumes two arguments for --jobs, --timeout, and --output, but malformed invocations sometimes hang. Preserve usage exit status 64 and the existing -- terminator behavior.",
+      "expected_output": "Validate that each option has its required operand before shifting, distinguish missing from intentionally empty values, ensure every parser branch advances or exits, preserve the -- boundary and usage status 64, and test missing, empty, repeated, option-looking, and trailing operands without allowing a malformed invocation to loop.",
+      "files": []
+    },
+    {
+      "id": "eval-zsh-fallback",
+      "prompt": "Fix a substantive zsh script in a repository that pins zsh 5.9. No dedicated zsh skill is installed, and nearby Bash scripts use syntax that looks similar.",
+      "expected_output": "Use the repository contract, zsh's official documentation, and zsh 5.9 tests as dialect authority; apply the cross-shell interface, process, security, and verification guidance; do not copy Bash semantics or claim dedicated zsh coverage; and identify a dedicated skill as a possible future addition only if recurring demand warrants its maintenance cost.",
+      "files": []
+    },
+    {
+      "id": "eval-powershell-native-argument-boundaries",
+      "prompt": "A cross-platform PowerShell module accepts untrusted filenames and invokes one native tool directly, another through Start-Process, and a Windows-only .cmd wrapper. It supports Windows PowerShell 5.1 and PowerShell 7.4. Repair quoting without changing those interfaces.",
+      "expected_output": "Treat direct invocation, Start-Process, and cmd/batch passage as distinct parsers; account for version- and platform-specific native argument passing and Start-Process's joined command line; avoid claiming arrays make the batch boundary safe; validate or reject values that cannot cross safely; and use an argv-echoing probe on every supported edition, operating system, and boundary while preserving output, exit, and working-directory contracts.",
+      "files": []
+    },
+    {
+      "id": "eval-powershell-caller-visible-errors",
+      "prompt": "A reusable advanced function wraps a native tool, redirects stderr, and calls a helper that uses Write-Error. Tests only assert that red text appeared, but callers inspect $?, $LASTEXITCODE, and process exit status under pwsh -File and pwsh -Command across PowerShell 7.2 and 7.4.",
+      "expected_output": "Define the caller-visible failure contract; distinguish Write-Error, $PSCmdlet.WriteError(), and throw; capture native status at its boundary; account for invocation-form and supported-version differences in $LASTEXITCODE, redirected stderr, and native error preferences; preserve the primary failure through cleanup; and assert caller-observed $?, streams, native code, and host process exit for each deployed entry path.",
+      "files": []
+    },
+    {
+      "id": "eval-powershell-parallel-object-fidelity",
+      "prompt": "Speed up a PowerShell module by choosing among Start-Job, Start-ThreadJob, ForEach-Object -Parallel, or native child processes. Inputs include live objects with methods; workers update shared aggregation state and may spawn descendants. Windows PowerShell 5.1 remains supported.",
+      "expected_output": "Select an execution domain supported by the declared editions; preserve or explicitly change the serialization/type-fidelity contract; treat $Using: capture as distinct from thread safety; use isolated state or a synchronized reduction; impose one aggregate throttle; retain handles and receive all streams; define descendant and cancellation closure honestly; settle and clean every admitted unit; and verify types, races, ordering, mixed failure, interruption, and orphan absence across the supported matrix.",
       "files": []
     }
   ]

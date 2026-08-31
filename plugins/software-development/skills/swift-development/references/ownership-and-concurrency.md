@@ -12,6 +12,8 @@ For escaping closures, identify captured objects, capture strength, release poin
 
 Prefer child tasks when work belongs to a scope and its result/failure should be observed there. Unstructured or detached tasks require an explicit owner, cancellation path, priority/task-local decision, and error-reporting destination. Do not create a task solely to escape actor isolation or suppress a compiler error.
 
+For task groups, define whether one failure cancels pending work, every child outcome is collected, or partial success is returned. Observe child failures through the selected group API, request cancellation for siblings when the contract requires fail-fast behavior, and remember that leaving the group scope waits for child completion while cancellation itself remains cooperative. Bound task creation when input size or downstream capacity is not tightly bounded.
+
 Cancellation is cooperative. Define which effects may have occurred before cancellation, whether cleanup is required, and how cancellation propagates to child or wrapped operations. A timeout or canceled waiter does not prove independently owned work stopped.
 
 ## Actor isolation and sendability
@@ -23,6 +25,10 @@ Review values live across suspension, callback execution context, global/main-ac
 ## Continuations and bridging
 
 Resume checked continuations exactly once on every completion path and never retain them indefinitely. Define cancellation and late-callback behavior when bridging callback APIs. Preserve executor/actor expectations when a foreign or legacy API chooses the callback thread.
+
+An `AsyncStream` buffering policy bounds or drops retained elements; it does not make a push-only callback producer wait for consumer capacity. Declare buffering or loss semantics, observe continuation yield results when they carry drop information, connect iterator termination and early exit to producer unregistration, and make one path own terminal completion.
+
+When Swift code owns a subprocess, separately own argument/environment construction, spawn failure, concurrent stdout/stderr drainage or bounded capture, stdin closure, timeout/cancellation request, process or descendant termination policy, exit observation, and pipe/task joins. Do not destroy captured state or return a terminal claim while drainers or owned process work remain.
 
 ## Verification
 

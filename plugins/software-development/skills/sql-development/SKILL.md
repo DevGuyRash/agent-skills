@@ -12,7 +12,7 @@ Preserve query meaning, invariants, transactions, and construction in the reposi
 ## Compose Deliberately
 
 - For engine-specific behavior, use an installed vendor skill; otherwise consult detected engine/version primary documentation and name assumptions or unverified semantics.
-- Add `systematic-debugging` first for an unexplained slowdown. Add `performance-engineering` once the workload and criterion are explicit, or after diagnosis when validating a query, index, or data-structure change. Keep SQL correctness active whenever a query or schema changes.
+- Add `systematic-debugging` first for an unexplained slowdown. Add `performance-engineering` once the workload and criterion are explicit, or after diagnosis when validating a query, index, or data-structure change. Read [plans-and-indexes.md](<skills-file-root>/references/plans-and-indexes.md) for the SQL-specific plan, statistics, parameter-type, spill, and index evidence. Keep SQL correctness active whenever a query or schema changes.
 - Add the host-language skill for embedded SQL or query-builder code.
 - Add ORM/framework guidance for model APIs or generated SQL; retain this skill only for relational semantics.
 - Exclude NoSQL, backups, replication, HA, and administration without SQL effects.
@@ -65,6 +65,7 @@ Read [nulls-types-and-portability.md](<skills-file-root>/references/nulls-types-
 - Define each transaction around the invariant it protects and keep it no broader or longer than required.
 - Select isolation and locking from the anomalies to prevent, not from isolation names alone.
 - Account for autocommit, pooled state, savepoints, DDL, deadlocks, and retry safety.
+- For embedded or streamed execution, own statement cancellation, cursor/result drainage or closure, transaction outcome, and sanitized connection return separately; a canceled caller does not prove server work stopped or pooled session state was reset.
 - Bind data values through the repository's driver or prepared API.
 - Allowlist and dialect-quote dynamic identifiers or SQL fragments that parameters cannot represent.
 - Keep authorization, tenant isolation, and least privilege separate from input parameterization.
@@ -75,7 +76,7 @@ Read [transactions-and-concurrency.md](<skills-file-root>/references/transaction
 
 Use configured SQL tools, test databases, and CI. Do not invent a runner or connect to an unconfirmed target.
 
-Run the narrowest safe existing checks for results, edge cases, constraints, affected rows, migration state, and relevant concurrency. Read [verification.md](<skills-file-root>/references/verification.md) when designing new database checks, applying a migration, validating concurrent behavior, executing consequential DML, or claiming behavior across engines or versions. Report engine/version, settings, commands, outcomes, and untested production-scale or cross-engine behavior.
+Run the narrowest safe existing checks for results, edge cases, constraints, affected rows, migration state, and relevant concurrency. Read [verification.md](<skills-file-root>/references/verification.md) when designing new database checks, applying a migration, validating concurrent behavior, executing consequential DML, or claiming behavior across engines or versions. For performance claims, distinguish result correctness from optimizer evidence and include representative data volume, distribution, parameter types, and write/storage tradeoffs. Report engine/version, settings, commands, outcomes, and untested production-scale or cross-engine behavior.
 
 ## Avoid Universal Mandates
 

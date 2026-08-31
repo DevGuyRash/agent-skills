@@ -38,6 +38,18 @@
       "prompt": "Refactor a browser TypeScript API that sends jobs to a Web Worker and accepts AbortSignal; cancellation currently leaves listeners and late replies behind.",
       "expected_output": "Preserve the browser and worker runtime contract, message protocol, public types, and terminal-result ordering; make abort versus reply races deterministic, remove listeners and pending entries on every exit, define worker ownership, and test cancellation without introducing Node assumptions or loading JavaScript-only guidance.",
       "files": []
+    },
+    {
+      "id": "eval-checkjs-ownership",
+      "prompt": "Repair runtime logic and JSDoc in a plain JavaScript package analyzed with checkJs, and adjust its shared TypeScript compiler configuration only if required.",
+      "expected_output": "JavaScript guidance owns the runtime/JSDoc source change, TypeScript guidance owns effective compiler and declaration behavior, the repository's authoritative checkJs path runs, and runtime validation remains separate from static annotations.",
+      "files": []
+    },
+    {
+      "id": "eval-packed-declaration-consumer",
+      "prompt": "A TypeScript library type-checks internally through workspace paths but its packed package exposes a broken declaration import to external consumers.",
+      "expected_output": "The work resolves the effective build/publication profile, inspects generated declarations and exports, verifies the packed artifact from an external consumer without workspace aliases, preserves runtime loading, and reports the supported compiler/resolver matrix exercised.",
+      "files": []
     }
   ]
 }

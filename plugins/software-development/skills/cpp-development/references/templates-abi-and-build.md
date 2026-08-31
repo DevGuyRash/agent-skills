@@ -20,6 +20,8 @@ When binary compatibility matters, review exported names, calling conventions, o
 
 Use the project's established PImpl, opaque handle, symbol-versioning, or ABI-checking approach when applicable. Do not introduce one as ritual when binaries are rebuilt together and no stable ABI is promised.
 
+Treat the declared target platform, compiler, standard library, runtime, and build flags—and their matching ABI documentation and tools—as authoritative. Do not apply one ABI model, mangling scheme, or layout convention universally.
+
 ## Build configuration
 
 Preserve the selected standard, compiler/stdlib matrix, exception and RTTI flags, visibility, link mode, runtime library, sanitizers, and warning policy. Do not fix one target by adding global flags that alter every consumer. Generated code and modules must retain their canonical dependency-scanning and regeneration path.

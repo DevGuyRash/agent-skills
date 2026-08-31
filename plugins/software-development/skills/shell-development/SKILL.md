@@ -1,14 +1,14 @@
 ---
 name: shell-development
 description: >-
-  Use for substantive POSIX sh, Bash, or PowerShell artifacts, selecting rules by interpreter. Covers process and error boundaries; exclude zsh, fish, and one-liners.
+  Use for substantive shell scripts, shell modules, or shell-based automation. Select rules by the declared interpreter; covers POSIX sh, Bash, PowerShell, and an explicit fallback for other shells. Excludes incidental one-liners.
 ---
 
 # Shell Development
 
 ## Purpose
 
-Produce maintainable POSIX sh, Bash, or PowerShell changes that preserve the repository's execution environment, command interfaces, stream behavior, failure semantics, and security boundaries. This skill does not cover zsh or fish.
+Produce maintainable shell changes that preserve the repository's execution environment, command interfaces, stream behavior, failure semantics, and security boundaries. Detailed dialect guidance covers POSIX sh, Bash, and PowerShell; other shells use the bounded fallback below.
 
 ## Resolve the dialect first
 
@@ -21,13 +21,14 @@ Determine the interpreter for every changed artifact from the strongest availabl
 
 Execution configuration outranks a misleading extension. If evidence conflicts or a requested change would alter the interpreter contract, surface that decision instead of blending dialects.
 
-Route zsh and fish work to their own language guidance. Do not treat them as Bash-compatible because some syntax overlaps.
+For another shell such as zsh or fish, use its official documentation and the repository's supported-version tests as syntax authority. Apply this skill's repository-contract, interface, process, security, and verification guidance, but do not infer compatibility from another dialect or claim language-specific coverage this skill does not provide. Recommend a dedicated skill only when recurring work justifies one; do not invent a sibling that is not installed.
 
 ## Load the matching reference only
 
 - Read `<skills-file-root>/references/posix-sh.md` for artifacts executed as POSIX `sh` or required to run across POSIX-conforming shells.
 - Read `<skills-file-root>/references/bash.md` for artifacts explicitly executed by Bash.
 - Read `<skills-file-root>/references/powershell.md` for PowerShell scripts, modules, manifests, functions, or pipeline behavior.
+- Read `<skills-file-root>/references/concurrency-and-processes.md` when work starts background jobs, runs units concurrently, manages timeouts or cancellation, or owns a subprocess tree.
 - Also read `<skills-file-root>/references/process-security.md` when the task handles untrusted values, secrets, privileges, destructive paths, temporary files, remote input, or external process construction.
 
 Load one dialect reference per changed artifact. A multi-dialect task may require more than one, but do not merge their syntax or error models.
@@ -56,6 +57,7 @@ Do not print progress to stdout when callers parse it. Do not hide a failed nati
 - Keep data separate from code and pass external-command arguments without reparsing when the dialect permits.
 - Check status at the boundary that knows which exit codes are acceptable.
 - Make resource and temporary-file ownership explicit on success, error, interruption, and cancellation.
+- Bound concurrency from one aggregate budget, settle every admitted unit, and define output ordering and partial-failure behavior.
 - Preserve byte/text encoding, line endings, locale, and stream behavior where consumers depend on them.
 - In PowerShell, preserve object-pipeline values rather than flattening them to display text.
 - In PowerShell, distinguish terminating errors, non-terminating errors, and native-process exit codes explicitly.

@@ -7,6 +7,7 @@ Load this reference for embedded SQL, query builders, dynamic identifiers, store
 - Pass untrusted data through the repository driver's bind or prepared-statement API.
 - Do not build values into SQL with interpolation, concatenation, manual escaping, or generic string quoting.
 - Match placeholder style, binding order/names, and driver type conversion to the detected adapter.
+- Bind the intended database type when overloaded operators, implicit casts, collation, precision, or index selection can change with parameter inference; inspect the sent type rather than assuming a host-language annotation controls it.
 - Remember that parameters usually cannot represent identifiers, keywords, operators, sort direction, or arbitrary clauses.
 - Map structural choices from a closed allowlist, then use the dialect's identifier-quoting facility where identifiers remain dynamic.
 - Treat stored-procedure or server-side dynamic SQL with the same separation rules.

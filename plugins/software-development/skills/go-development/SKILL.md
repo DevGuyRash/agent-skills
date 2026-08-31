@@ -61,7 +61,7 @@ Start with the narrowest repository-supported check that can fail for the change
 3. Run configured vet, lint, generation, race, fuzz, or compatibility checks when relevant.
 4. Inspect module, workspace, generated, and public-API diffs for unintended changes.
 
-If a check cannot run, distinguish an environment or dependency limitation from a product failure. Do not claim success from `gofmt`, `go test` cache output, compilation alone, or an unavailable matrix.
+If a check cannot run, distinguish an environment or dependency limitation from a product failure. Do not treat formatting, compilation, or a cached result as evidence beyond what it actually exercised. When fresh execution matters or relevant inputs are outside the test-cache key, use the repository convention or `-count=1`; do not clear caches reflexively.
 
 ## Report completion
 

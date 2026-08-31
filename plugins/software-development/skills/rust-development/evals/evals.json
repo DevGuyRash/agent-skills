@@ -44,6 +44,22 @@
       "files": []
     },
     {
+      "id": "eval-public-opaque-contract",
+      "prompt": "A published Rust 2024 library changes a public function returning impl Iterator from an owned, Send iterator to one that captures a borrowed cache and is no longer Send. The visible Iterator<Item = Record> bound and tests inside the crate still compile. Review and implement a compatible correction.",
+      "expected_decision": "Treat downstream lifetime capture and auto-trait behavior as public observations, inspect the crate's edition and MSRV, and preserve the supported consumer contract without exposing the hidden iterator type.",
+      "expected_result": "Downstream callers can use the iterator with the promised ownership and Send behavior under the supported feature, edition, and compiler contract.",
+      "expected_output": "Name the opaque-return captures and auto traits at risk, explain the compatible design, and report focused downstream compile probes plus runtime behavior tests.",
+      "files": []
+    },
+    {
+      "id": "eval-fallible-writer-completion",
+      "prompt": "A Rust exporter calls Write::write once, returns Ok, and relies on a wrapper's Drop implementation to flush buffered bytes. Its tests use Cursor<Vec<u8>>, so partial writes and flush failures are invisible. Repair the completion contract without selecting a third-party error framework.",
+      "expected_decision": "Separate partial progress from completion, write all required bytes, perform fallible finalization explicitly, and define precedence if the main write and cleanup both fail.",
+      "expected_result": "Successful return means the exporter completed the promised write and explicit flush or finish step; partial writes, zero progress, interruption, and finalization failure are observable according to the API contract.",
+      "expected_output": "State what success guarantees, how primary and completion failures are preserved, and report adversarial writer tests rather than only an in-memory happy path.",
+      "files": []
+    },
+    {
       "id": "eval-sync-worker-shutdown",
       "prompt": "A synchronous Rust service owns std::thread workers fed by an unbounded channel and updating Arc<Mutex<State>>. Shutdown sometimes hangs because a sender clone survives, the owner joins while holding the state lock, worker errors are logged and lost, and JoinHandles are dropped. Repair the lifecycle without introducing async or unsafe code.",
       "expected_decision": "Keep synchronous concurrency because the existing worker requirement is concrete; give the pool one owner, bound admission with a declared overload policy, close or signal every producer, release shared-state locks before waiting, wake blocked workers, and join them while distinguishing returned errors from panics.",

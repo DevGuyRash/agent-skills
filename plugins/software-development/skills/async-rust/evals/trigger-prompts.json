@@ -13,6 +13,11 @@
       "query": "A future passed to spawn is not Send because a guard remains live across await; preserve the intended synchronization."
     },
     {
+      "id": "implicit-blocking-abort",
+      "should_trigger": true,
+      "query": "Our Rust service aborts a started Tokio spawn_blocking task on timeout and hangs during runtime shutdown."
+    },
+    {
       "id": "explicit-async-rust",
       "should_trigger": true,
       "query": "Use $async-rust to add bounded concurrency and graceful shutdown to this Rust worker."

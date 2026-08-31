@@ -10,11 +10,43 @@
       "files": []
     },
     {
+      "id": "eval-provenance-preserving-address",
+      "prompt": "A safe view stores a base pointer and length, but its getter casts base.addr() plus an index back to a pointer and dereferences it.",
+      "expected_decision": "Keep the address calculation within checked element and allocation bounds and derive the result with a provenance-preserving pointer operation rather than an integer round trip.",
+      "expected_result": "Every dereference retains the allocation authority of the validated base pointer, and safe callers cannot select an out-of-range address.",
+      "expected_output": "State the allocation, range, provenance, validity, and lifetime evidence for reference creation, including zero-length and overflow behavior.",
+      "files": []
+    },
+    {
+      "id": "eval-partial-initialization-unwind",
+      "prompt": "An array of MaybeUninit<String> is filled in a loop that can panic, then converted to an initialized array without tracking how many writes completed.",
+      "expected_decision": "Track the initialized prefix as authoritative state, install panic-safe cleanup for exactly that prefix, and assume initialization only after every element is valid.",
+      "expected_result": "A failed fill drops each initialized String once and no uninitialized slot; successful conversion transfers ownership once without leaks or duplicated reads.",
+      "expected_output": "Explain initialization, cleanup, and ownership transitions and test success plus failure at multiple fill positions.",
+      "files": []
+    },
+    {
+      "id": "eval-raw-owner-origin",
+      "prompt": "A Rust wrapper turns a buffer returned by C malloc into Vec::from_raw_parts so Rust will release it automatically.",
+      "expected_decision": "Reject ownership reconstruction with an incompatible allocator and wrap the foreign pointer in an owner whose destructor calls the matching foreign release function after callback and alias quiescence.",
+      "expected_result": "The allocation is released exactly once through its originating allocator with its foreign length and lifetime contract preserved.",
+      "expected_output": "State allocation origin, layout, initialized range, owner, release, failure, and zero-length rules.",
+      "files": []
+    },
+    {
       "id": "eval-ffi-callback-lifetime",
       "prompt": "A C library stores a Rust context pointer and may invoke it concurrently until deregistration has completed.",
       "expected_decision": "Define registration, concurrency, deregistration completion, context ownership, and panic behavior before reconstructing a Rust reference.",
       "expected_result": "The context outlives every possible callback and is freed through its originating allocator only after callback quiescence.",
       "expected_output": "Document both sides of the ABI contract and report race, late-callback, failure, and cleanup verification.",
+      "files": []
+    },
+    {
+      "id": "eval-unsafe-extern-safe-item",
+      "prompt": "An unsafe extern block marks a C function as safe even though the function reads count elements from the caller's raw pointer.",
+      "expected_decision": "Verify the foreign declaration against its authoritative header and keep the item unsafe unless a safe wrapper establishes pointer validity, initialized range, aliasing, and lifetime before the call.",
+      "expected_result": "No safe caller can invoke the foreign read without satisfying its extra preconditions, and the declaration's ABI and types match the linked symbol.",
+      "expected_output": "Separate the extern-block author's signature obligation from the call-site obligation and show where each is discharged.",
       "files": []
     },
     {
@@ -34,11 +66,27 @@
       "files": []
     },
     {
+      "id": "eval-thread-affine-owner-lifecycle",
+      "prompt": "A synchronous Rust client spawns a worker that constructs and owns a thread-affine native handle, but the client constructor returns before the worker reports whether construction succeeded.",
+      "expected_decision": "Keep the native handle on its owner thread and withhold the client until startup reports readiness or failure; close command admission and settle owner-thread destruction before the client drop returns.",
+      "expected_result": "Immediate post-construction observations see a live owner, startup failure cannot expose a half-live client, and construction, use, and destruction all occur on the same thread.",
+      "expected_output": "State the readiness, command, failure, shutdown, and join contracts without requiring one particular synchronization primitive.",
+      "files": []
+    },
+    {
       "id": "eval-dynamic-tool-not-proof",
       "prompt": "Miri and a stress test pass for a custom lock-free queue on the host architecture.",
       "expected_decision": "Treat the runs as supporting evidence while still reviewing publication, reclamation, ordering, ABA, and supported-target assumptions.",
       "expected_result": "The soundness claim rests on a written invariant and memory-order argument, with unsupported targets or schedules named.",
       "expected_output": "Report tool coverage accurately and avoid claiming that sampled executions prove the unsafe abstraction sound.",
+      "files": []
+    },
+    {
+      "id": "eval-target-feature-gate",
+      "prompt": "A portable crate calls an AVX2 intrinsic unconditionally because its development machine supports AVX2.",
+      "expected_decision": "Keep the target-feature-specific operation behind a runtime or enclosing-target guarantee and provide a supported fallback for CPUs where the feature is absent.",
+      "expected_result": "The crate never executes instructions unsupported by the current CPU and preserves its declared target contract.",
+      "expected_output": "State compile-time and runtime feature authority and show tests or CI evidence for both specialized and fallback paths.",
       "files": []
     }
   ]

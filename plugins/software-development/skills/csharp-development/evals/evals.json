@@ -46,6 +46,30 @@
       "files": []
     },
     {
+      "id": "eval-process-lifecycle",
+      "prompt": "A multi-target C# library redirects both streams from a helper that can flood output, wait for stdin EOF, and hang. Cancellation currently stops only WaitForExitAsync.",
+      "expected_output": "Both streams drain concurrently, stdin closes, wait cancellation is separated from child teardown, supported-target APIs implement a declared process/descendant policy, and process plus drains reach terminal state before disposal or return.",
+      "files": []
+    },
+    {
+      "id": "eval-task-aggregation",
+      "prompt": "A Task.WhenAll batch has two faults, one cancellation, and one cleanup failure, but the caller logs only the exception thrown by await.",
+      "expected_output": "The chosen fail-fast or collect-all contract is explicit, sibling cancellation is not assumed, every task reaches an observed terminal state, all required failures remain inspectable, and cleanup resources are disposed.",
+      "files": []
+    },
+    {
+      "id": "eval-bounded-channel",
+      "prompt": "A background callback producer feeds an unbounded Channel<T>; a slow reader can cancel early and data loss is not currently allowed.",
+      "expected_output": "Capacity and full mode match the lossless contract, early exit tears down producer and registration ownership, completion has one owner and cause, and tests hold the reader slow enough to prove the bound.",
+      "files": []
+    },
+    {
+      "id": "eval-native-callback-lifetime",
+      "prompt": "A native library stores a managed callback and returns an owned handle while cancellation can race disposal and a late callback.",
+      "expected_output": "The managed signature matches the native ABI, the handle has one safe allocation/free owner, the callback stays rooted for exactly the registration lifetime, late callbacks cannot use disposed state, and configured platform/AOT checks run.",
+      "files": []
+    },
+    {
       "id": "eval-central-package-update",
       "prompt": "Upgrade one centrally managed NuGet package with lock files and two target frameworks.",
       "expected_output": "Only the requested package graph changes, central and lock diffs are inspected, both targets are verified, and no broad package or SDK upgrade occurs.",

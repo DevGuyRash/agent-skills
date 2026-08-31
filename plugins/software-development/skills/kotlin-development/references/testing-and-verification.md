@@ -4,6 +4,7 @@
 
 - Preserve `kotlin.test`, JUnit 4/5, Kotest, Spek, or platform-specific frameworks and their configured runners.
 - Reuse repository fixtures, coroutine test utilities, assertions, mocking tools, source sets, and naming.
+- Compile the submitted test source with the repository's exact compiler, language/API level, opt-ins, imports, and warning policy before treating its design as evidence. A behavior check that cannot compile proves nothing about the repair.
 - Test observable behavior rather than private structure, incidental coroutine scheduling, collection implementation, or exact generated names unless contractual.
 - Keep common tests portable and platform tests in their owning source sets.
 - Do not migrate test frameworks or add an assertion/mocking dependency for preference.
@@ -22,14 +23,21 @@ Do not install or enable a tool merely because it appears in this list. Reposito
 ## Test coroutine behavior deterministically
 
 - Use the repository's coroutine test scheduler and dispatcher injection where configured.
+- `launch` and other builders require a `CoroutineScope` receiver. Make suspending test helpers scope extensions or introduce `coroutineScope`; do not rely on an implicit receiver that the pinned compiler rejects. Import APIs from their exact packages and keep warnings-as-errors green rather than suppressing diagnostics broadly.
 - Assert cancellation, completion, ordering, and failure through observable events rather than real-time sleeps.
 - Advance virtual time deliberately and ensure child jobs complete or cancel before the test exits.
+- Remember that virtual time controls only dispatchers sharing its scheduler; it does not prove behavior on hardcoded dispatchers, blocking Java calls, external callbacks, processes, or native threads.
+- Exercise multiple simultaneous failures, cancellation during acquisition and cleanup, bounded in-flight work across suspension, slow or absent collectors, buffer overflow, late callbacks, and terminal uniqueness when those behaviors are contractual.
+- Use barriers, latches, channels, or test-scheduler events to establish lifecycle boundaries; give forbidden early return or post-close activity a bounded observation interval.
+- Launch intentional infinite background producers only in the test framework's owned background scope and verify teardown rather than leaving jobs for timeout cleanup.
 - Test blocking bridges separately from suspending logic.
 - Preserve `CancellationException` behavior and verify cleanup paths.
+- Canceling an `async` leaves its `Deferred` canceled even if its body catches `CancellationException`; use `join`, `cancelAndJoin`, or an expected failing `await` according to the observable under test.
 
 ## Check interop and platform boundaries
 
 - Compile representative Java callers when Kotlin JVM signatures change.
+- Run unchanged precompiled Kotlin and Java consumers when binary compatibility is promised; separately recompile source consumers to catch named-argument, overload-resolution, nullability, and metadata changes.
 - Verify nullable Java inputs, checked-exception metadata, overloads, properties, and generated names at the caller boundary.
 - For Multiplatform changes, run each affected target that the environment supports and report unavailable targets.
 - Regenerate and inspect code or API dumps through their owning tasks.

@@ -22,6 +22,18 @@
       ]
     },
     {
+      "id": "eval-array-presence-reference-boundary",
+      "prompt": "Repair an ingestion map where external keys `1`, `\"1\"`, `true`, and `null` collide, null-valued entries are mistaken for missing entries, and a by-reference foreach loop corrupts the last item on a later pass.",
+      "expected_output": "Define and validate one domain key representation before insertion, preserve missing versus present-null with the appropriate presence check, end the foreach reference lease, retain observable ordering and shape, and add collision plus repeated-pass regression tests.",
+      "files": []
+    },
+    {
+      "id": "eval-process-pipe-terminal-lifecycle",
+      "prompt": "Fix a proc_open wrapper that writes all stdin before reading stdout, reads stderr only afterward, treats proc_terminate as completion, and sometimes loses the child exit status.",
+      "expected_output": "Preserve the repository's platform contract; avoid an unintended shell; progress all pipes without cyclic blocking; close owned ends; implement deadline, cancellation, and escalation; drain terminal output; reap the child; preserve exit status; account for descendants; and test high-volume dual-stream plus timeout paths.",
+      "files": []
+    },
+    {
       "id": "eval-framework-security-composition",
       "prompt": "A WordPress plugin accepts an archive upload, interpolates a requested column into SQL, and must retain its declared older PHP baseline.",
       "expected_output": "Compose PHP, WordPress, and security guidance; preserve the declared baseline; validate archive destinations; parameterize values and allowlist query structure; retain framework lifecycle conventions; and add focused regression coverage.",

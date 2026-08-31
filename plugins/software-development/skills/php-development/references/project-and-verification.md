@@ -28,6 +28,7 @@ Derive support from Composer constraints, CI, deployment, framework requirements
 - Treat Composer plugins and scripts as code execution; constrain them for untrusted packages or environments.
 - Follow repository policy for `composer.lock`. Applications and reusable libraries have different consumer effects, so always-commit and never-commit are both overbroad.
 - Do not hand-edit generated lock or autoloader state.
+- Treat optimized and authoritative autoloaders as deployment choices: authoritative classmaps can reject runtime-generated classes that ordinary PSR-4 fallback would find.
 
 ## Build verification evidence
 
@@ -36,8 +37,8 @@ Use project commands first. A proportionate sequence is:
 1. Syntax or focused test for the changed behavior.
 2. Configured static analysis and style check.
 3. Relevant framework or integration suite.
-4. `composer validate` for metadata/lock consistency.
-5. Actual platform-requirement checks for deployment-sensitive work.
+4. `composer validate` for metadata/lock consistency; use the repository's warning policy when deciding whether `--strict` is required.
+5. `composer check-platform-reqs` on the actual target for deployment-sensitive work; it checks real PHP/extensions rather than `config.platform`.
 6. Supported PHP/SAPI/extension matrix where compatibility changed.
 
 Do not introduce a new test, analyzer, or formatter merely to verify one change. Report exact command, scope, runtime/SAPI, result, and unavailable evidence.

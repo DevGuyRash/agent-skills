@@ -54,7 +54,19 @@
     {
       "id": "eval-test-adaptation",
       "prompt": "Add a coroutine regression test to a module using kotlin.test and kotlinx-coroutines-test.",
-      "expected_output": "The configured scheduler and assertions are reused, virtual time or events replace sleeps, and no JUnit/Kotest migration is introduced.",
+      "expected_output": "The configured scheduler and assertions are reused, the exact pinned compiler accepts every scope receiver and import under the repository warning policy, virtual time or events replace sleeps, and no JUnit/Kotest migration is introduced.",
+      "files": []
+    },
+    {
+      "id": "eval-blocking-close-before-join",
+      "prompt": "Cancel a suspend adapter around a blocking source that ignores thread interruption and returns only after close().",
+      "expected_output": "Cancellation initiates close exactly once before joining the blocking operation, awaits the owned terminal boundary, preserves the initiating cancellation if close also fails, and tests the ordering with events rather than sleeps.",
+      "files": []
+    },
+    {
+      "id": "eval-cancelled-deferred-test",
+      "prompt": "A coroutine test cancels an async task whose body catches CancellationException and then expects await() to return normally.",
+      "expected_output": "The test recognizes that the Deferred remains cancelled and uses join/cancelAndJoin or asserts the expected await failure according to the public contract.",
       "files": []
     },
     {

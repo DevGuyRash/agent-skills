@@ -32,6 +32,7 @@
 - Preserve assembly names, namespaces, strong names, internals visibility, type forwarding, resource names, and reflection-visible attributes.
 - For public packages, inspect API baselines, XML docs, symbols, source packages, dependency metadata, and deterministic-build settings.
 - Check configuration binding and serializer source-generation contracts when those files or attributes change, while routing framework behavior outward.
+- For native interop, match exact widths, encodings, calling conventions, ownership, and allocation/free pairs; prefer `SafeHandle` for owned handles where suitable and root callbacks for the complete native registration lifetime. Select `LibraryImport`, `DllImport`, or another binding mechanism from the target/runtime contract, then verify representative native consumers and configured trimming/AOT deployments.
 
 ## Avoid environment drift
 
@@ -47,4 +48,4 @@
 - Run API compatibility and package validation when public surface or packaging changes.
 - Report intentional SDK, language, framework, package, generated, trimming/AOT, or publication changes.
 
-Primary references: [`global.json`](https://learn.microsoft.com/dotnet/core/tools/global-json), [target frameworks](https://learn.microsoft.com/dotnet/standard/frameworks), [central package management](https://learn.microsoft.com/nuget/consume-packages/central-package-management), [lock files](https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies).
+Primary references: [`global.json`](https://learn.microsoft.com/dotnet/core/tools/global-json), [target frameworks](https://learn.microsoft.com/dotnet/standard/frameworks), [central package management](https://learn.microsoft.com/nuget/consume-packages/central-package-management), [lock files](https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#locking-dependencies), [native interop](https://learn.microsoft.com/dotnet/standard/native-interop/best-practices).

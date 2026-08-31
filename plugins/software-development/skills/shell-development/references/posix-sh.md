@@ -6,7 +6,7 @@ Read this reference only for artifacts whose execution contract is POSIX `sh` or
 
 `/bin/sh` names a contract, not one fixed implementation. Determine the actual shells and operating systems the repository supports, such as dash, ash, ksh in POSIX mode, or Bash in POSIX mode.
 
-Do not introduce Bash-only arrays, `[[ ... ]]`, `(( ... ))` syntax assumptions, process substitution, brace expansion, `source`, `function`, `mapfile`, or `pipefail` into POSIX sh.
+Do not introduce Bash-only arrays, `[[ ... ]]`, `(( ... ))` syntax assumptions, process substitution, brace expansion, `source`, `function`, or `mapfile` into POSIX sh.
 
 Utilities also vary. Check whether the project promises strict POSIX userland or a narrower GNU/BSD/BusyBox environment before selecting flags and output formats.
 
@@ -23,11 +23,13 @@ Avoid parsing human-formatted command output when a stable machine-readable inte
 
 ## Make status flow explicit
 
-POSIX `set -e` has context-dependent exceptions and is not a substitute for designed error handling. `pipefail` is not POSIX. Preserve repository policy and explicitly check important commands, especially in conditions, substitutions, pipelines, and cleanup.
+POSIX `set -e` has context-dependent exceptions and is not a substitute for designed error handling. `pipefail` was standardized in POSIX.1-2024, but older POSIX targets and deployed shells may not implement it; use it only when the declared shell matrix supports that contract. Preserve repository policy and explicitly check important commands, especially in conditions, substitutions, pipelines, and cleanup.
 
 Pipeline components commonly execute in subshell environments, so variable changes may not reach the parent. Structure data flow accordingly rather than depending on one shell's extension.
 
 Use traps only for signals and exits the script intentionally owns. Preserve the incoming status before cleanup and avoid masking it with a successful cleanup command.
+
+For background work, record each direct child PID when it is started and wait for every admitted child. Portable `wait` lacks Bash's richer completion-selection interface, and a child PID does not by itself identify all descendants; choose a concurrency and cancellation design the declared shells and operating systems can actually enforce.
 
 ## Own temporary state
 

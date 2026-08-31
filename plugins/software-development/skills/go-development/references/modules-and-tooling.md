@@ -3,7 +3,7 @@
 ## Resolve the effective build contract
 
 - Identify the module root for every touched package. A repository may contain nested modules, a `go.work`, vendored dependencies, or generated subtrees.
-- Read the `go` directive as the module's minimum language/toolchain contract and the `toolchain` directive as a toolchain-selection suggestion.
+- Resolve the `go` and `toolchain` directives using the behavior of every supported invoking toolchain. Record the effective language version, minimum-toolchain enforcement, and any per-file version constraints that affect touched packages.
 - Respect repository `GOTOOLCHAIN`, workspace, proxy, checksum, private-module, and vendor policies without persisting new global configuration.
 - Use the repository's wrapper, task runner, or CI command when it encodes flags, tags, environment, generation, or cross-platform behavior.
 
@@ -19,6 +19,7 @@
 ## Respect packages, generation, and build selection
 
 - Preserve build constraints, filename suffix selection, cgo conditions, and target-specific implementations.
+- For every affected supported target, inspect both selected and complementary files so build constraints, filename suffixes, cgo/pure-Go alternatives, and version-constrained implementations select exactly one complete path. Widen only to the repository's declared matrix.
 - Run an existing `go generate` directive only when its inputs or outputs are in scope. Inspect generated diffs and avoid editing generated output directly.
 - Keep generation reproducible with repository-pinned tools where available; do not install unrequested latest generators globally.
 - Check embed patterns and packaged files when moving or renaming resources.
