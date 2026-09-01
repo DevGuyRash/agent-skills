@@ -124,7 +124,7 @@ Common commands:
 - `just bootstrap` — install packaging prerequisites used by the repo scripts
 - `just verify` — run the fast local verification surface (`fmt-check`, `lint`, `test`)
 - `just ci` — run bootstrap, repository verification, and launcher checks without rewriting tracked distribution payloads
-- `scripts/install-all` / `just install-all` — add the sparse `agent-tooling` marketplace to enabled hosts, then install each host's selected catalog entries
+- `scripts/install-all` / `just install-all` — reconcile selected catalog entries by version and source digest without touching already-current plugins
 - `just dist-host` — build and stage host-platform packaged binaries into plugin-local skill `dist/` trees
 - `just verify-packaging` — verify host refresh plus the committed dist completeness contract
 - `just verify-skill-launchers` — smoke-test plugin-local skill launchers against the staged binaries
@@ -149,7 +149,7 @@ By default it uses the GitHub marketplace source `DevGuyRash/agent-tooling` with
 - Codex: `.agents/plugins` plus `plugins`
 - Claude Code: `.claude-plugin` plus `plugins`
 
-The script reads each committed host marketplace independently, adds a marketplace only when that host has selected plugins, then installs each entry as `<plugin>@agent-tooling`. By default, every plugin is installed on each host where it is published.
+The script resolves the exact local or remote source, reads each host marketplace independently, and identifies every selected plugin by version plus a canonical source-tree digest. It adds missing marketplace/plugin state and updates only a proven identity difference. A second run against unchanged source performs discovery and verification but invokes no marketplace or plugin mutations. Its atomic receipt is `${XDG_STATE_HOME:-~/.local/state}/agent-tooling/install-all.json`.
 
 Filter the dynamic plugin list with repeatable CSV/glob flags:
 
@@ -173,7 +173,7 @@ The `just` recipe forwards the same flags:
 just install-all --exclude 'software-development'
 ```
 
-Use `scripts/install-all --help` for source, scope, host, filter, and dry-run options. `--replace-marketplace` first checks whether the named marketplace exists, skips an already-absent registration, and limits Claude removal to the selected `--claude-scope`. The script does not replace or unset `CODEX_HOME`.
+Use `scripts/install-all --help` for source, scope, host, filter, force, and dry-run options. A source mismatch fails before mutation unless `--replace-marketplace` is explicit; replacement invalidates the matching receipt identity and rematerializes selected plugins while limiting Claude removal to the selected `--claude-scope`. `--force` explicitly reinstalls every selected plugin and permits a downgrade. The script shares syscfg's agent-plugin lifecycle lock, does not replace or unset `CODEX_HOME`, and prints a restart warning only after replacing a plugin root.
 
 ### `software-development` migration
 
