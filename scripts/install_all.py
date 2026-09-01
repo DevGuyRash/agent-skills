@@ -242,8 +242,11 @@ def normalize_source(value: str | None) -> str | None:
 def marketplace_source(item: Mapping[str, object]) -> str | None:
     nested = item.get("marketplaceSource")
     candidates = [
+        nested.get("repo") if isinstance(nested, dict) else None,
+        nested.get("url") if isinstance(nested, dict) else None,
+        nested.get("path") if isinstance(nested, dict) else None,
         nested.get("source") if isinstance(nested, dict) else None,
-        item.get("source"), item.get("repo"), item.get("url"), item.get("path"),
+        item.get("repo"), item.get("url"), item.get("path"), item.get("source"),
     ]
     return next((value for value in candidates if isinstance(value, str) and value), None)
 

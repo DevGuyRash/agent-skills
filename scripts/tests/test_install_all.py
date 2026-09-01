@@ -34,7 +34,7 @@ def write_fake_cli(path: Path, command_name: str) -> None:
                 state = json.loads(state_path.read_text(encoding="utf-8"))
             else:
                 configured = json.loads(os.environ.get("AGENT_TOOLING_FAKE_MARKETPLACES", "{{}}"))
-                state = {{"marketplaces": [{{"name": name}} for name in configured.get({command_name!r}, [])], "installed": []}}
+                state = {{"marketplaces": [item if isinstance(item, dict) else {{"name": item}} for item in configured.get({command_name!r}, [])], "installed": []}}
 
             def save():
                 state_path.write_text(json.dumps(state), encoding="utf-8")
@@ -194,7 +194,7 @@ class InstallAllTests(unittest.TestCase):
         repo_root: Path,
         temp_root: Path,
         *args: str,
-        fake_marketplaces: dict[str, list[str]] | None = None,
+        fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         install_all = repo_root / "scripts" / "install-all"
         bin_dir = temp_root / "bin"
@@ -237,7 +237,7 @@ class InstallAllTests(unittest.TestCase):
     def run_install_all_process(
         self,
         *args: str,
-        fake_marketplaces: dict[str, list[str]] | None = None,
+        fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         with tempfile.TemporaryDirectory(prefix="install-all-test-") as tmp:
             tmp_path = Path(tmp)
@@ -385,6 +385,45 @@ class InstallAllTests(unittest.TestCase):
         self.assertNotEqual(0, proc.returncode)
         self.assertIn("source mismatch", proc.stderr)
         self.assertEqual([], mutation_calls(calls))
+
+    def test_claude_github_marketplace_uses_repo_as_the_source_identity(self) -> None:
+        proc, calls = self.run_install_all_process(
+            "--claude-only",
+            "--include",
+            "goalspec",
+            fake_marketplaces={
+                "claude": [
+                    {
+                        "name": "agent-tooling",
+                        "source": "github",
+                        "repo": "DevGuyRash/agent-tooling",
+                    }
+                ]
+            },
+        )
+
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+        self.assertFalse(
+            any(
+                call["args"][:3] == ["plugin", "marketplace", "add"]
+                for call in mutation_calls(calls)
+            )
+        )
+        self.assertEqual(
+            [
+                {
+                    "command": "claude",
+                    "args": [
+                        "plugin",
+                        "install",
+                        "--scope",
+                        "user",
+                        "goalspec@agent-tooling",
+                    ],
+                }
+            ],
+            mutation_calls(calls),
+        )
 
     def test_local_source_omits_sparse_and_ref_flags(self) -> None:
         calls = self.run_install_all("--source", str(REPO_ROOT), "--codex-only")
