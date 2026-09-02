@@ -55,10 +55,11 @@ cleanup() {
 
 trap cleanup EXIT
 
-git init -q "$TEST_REPO"
-mkdir -p "$TEST_REPO/.local"
-
+# Initialize from the unmanaged fixture directory so the global Git dispatcher
+# can use the ordinary human Git lane without a repository-path override.
 cd "$TEST_REPO"
+git init -q
+mkdir -p .local
 
 # ═══════════════════════════════════════════════════════════════════════
 # Test 1: v5 filing with flags — stored shape, key order, talkback

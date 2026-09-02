@@ -231,7 +231,39 @@ class PluginPortLiveTests(unittest.TestCase):
             timeout=120,
         )
         self.assertEqual(0, prompt.returncode, prompt.stdout + prompt.stderr)
-        self.assertIn("plugin-port-live/live-claude/1.0.0/skills/ping/SKILL.md", prompt.stdout)
+        messages = json.loads(prompt.stdout)
+        developer_text = "\n".join(
+            part["text"]
+            for message in messages
+            if message.get("role") == "developer"
+            for part in message.get("content", [])
+            if part.get("type") == "input_text" and isinstance(part.get("text"), str)
+        )
+        expected_skill_root = (
+            codex_home
+            / "plugins"
+            / "cache"
+            / "plugin-port-live"
+            / "live-claude"
+            / "1.0.0"
+            / "skills"
+        )
+        root_line = next(
+            (
+                line
+                for line in developer_text.splitlines()
+                if f"`{expected_skill_root}`" in line
+            ),
+            None,
+        )
+        self.assertIsNotNone(root_line, developer_text)
+        assert root_line is not None
+        skill_root_alias = root_line.split("`")[1]
+        self.assertIn(
+            f"- live-claude:ping: Confirm the live Claude command is visible. "
+            f"(file: {skill_root_alias}/ping/SKILL.md)",
+            developer_text,
+        )
 
 
 if __name__ == "__main__":

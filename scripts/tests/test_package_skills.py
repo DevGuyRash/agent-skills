@@ -10,6 +10,7 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "package_skills.py"
@@ -28,12 +29,15 @@ class PackageSkillsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.TemporaryDirectory(prefix="package-skills-test-")
         self.repo = Path(self.tmpdir.name)
-        subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
+        self.git("init", "-q", ".")
         self.original_repo_root = package_skills.REPO_ROOT
         self.original_config_path = package_skills.CONFIG_PATH
         package_skills.REPO_ROOT = self.repo
         package_skills.CONFIG_PATH = self.repo / "packaging" / "skills.toml"
         self.addCleanup(self.restore_module_paths)
+
+    def git(self, *arguments: str) -> None:
+        subprocess.run(["git", *arguments], cwd=self.repo, check=True)
 
     def tearDown(self) -> None:
         self.tmpdir.cleanup()
@@ -173,7 +177,7 @@ class PackageSkillsTests(unittest.TestCase):
         payload = self.repo / "plugins" / "tool" / "skills" / "tool" / "dist" / "linux-x86_64" / "tool"
         write(payload, "linux binary\n")
         payload.chmod(0o755)
-        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+        self.git("add", ".")
 
         package_skills.verify_complete("required")
 
@@ -182,7 +186,7 @@ class PackageSkillsTests(unittest.TestCase):
         repo_payload = self.repo / "plugins" / "tool" / "skills" / "tool" / "dist" / "linux-x86_64" / "tool"
         write(repo_payload, "old payload\n")
         repo_payload.chmod(0o755)
-        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+        self.git("add", ".")
 
         artifact_root = self.repo / "artifact-downloads"
         artifact_payload = artifact_root / "skill-dist-linux-x86_64" / "plugins" / "tool" / "skills" / "tool" / "dist" / "linux-x86_64" / "tool"
@@ -268,8 +272,8 @@ class PackageSkillsTests(unittest.TestCase):
         os.environ["PATH"] = "/tmp/bin:/dev-cache/intercepts:/usr/bin"
         os.environ["RUSTFLAGS"] = "-C target-cpu=native"
         self.addCleanup(setattr, package_skills, "REPO_ROOT", original_repo_root)
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
 
         env = package_skills.build_env()
 
@@ -287,8 +291,8 @@ class PackageSkillsTests(unittest.TestCase):
         original_env = os.environ.copy()
         os.environ["CARGO_HOME"] = "/custom/cargo"
         os.environ["RUSTUP_HOME"] = "/custom/rustup"
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
 
         env = package_skills.build_env_for_root(
             Path("/workspace/repo"), "x86_64-pc-windows-msvc"
@@ -304,8 +308,8 @@ class PackageSkillsTests(unittest.TestCase):
     def test_container_rustflags_use_fixed_container_prefixes(self) -> None:
         original_env = os.environ.copy()
         os.environ["RUSTFLAGS"] = "-C target-cpu=native"
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
 
         flags = package_skills.container_rustflags()
 
@@ -320,8 +324,8 @@ class PackageSkillsTests(unittest.TestCase):
         os.environ.pop("AGENT_TOOLING_DIST_BUILD_MODE", None)
         os.environ.pop("AGENT_SKILLS_DIST_BUILD_MODE", None)
         package_skills.docker_available = lambda: True
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
         self.addCleanup(setattr, package_skills, "docker_available", original_docker_available)
 
         self.assertTrue(package_skills.use_container_build("linux-x86_64"))
@@ -331,8 +335,8 @@ class PackageSkillsTests(unittest.TestCase):
         original_env = os.environ.copy()
         os.environ.pop("AGENT_TOOLING_DIST_BUILD_MODE", None)
         os.environ["AGENT_SKILLS_DIST_BUILD_MODE"] = "host"
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
 
         self.assertEqual(package_skills.dist_build_mode(), "host")
 
@@ -342,8 +346,8 @@ class PackageSkillsTests(unittest.TestCase):
         os.environ["AGENT_TOOLING_DIST_BUILD_MODE"] = "container"
         os.environ.pop("AGENT_SKILLS_DIST_BUILD_MODE", None)
         package_skills.docker_available = lambda: False
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
         self.addCleanup(setattr, package_skills, "docker_available", original_docker_available)
 
         with self.assertRaises(SystemExit) as ctx:
@@ -390,8 +394,8 @@ class PackageSkillsTests(unittest.TestCase):
         original_env = os.environ.copy()
         os.environ.pop("AGENT_TOOLING_DIST_BUILD_MODE", None)
         os.environ.pop("AGENT_SKILLS_DIST_BUILD_MODE", None)
-        self.addCleanup(os.environ.clear)
         self.addCleanup(os.environ.update, original_env)
+        self.addCleanup(os.environ.clear)
         self._stub_docker(on_path=True, info_returncode=1)
 
         self.assertFalse(package_skills.use_container_build("linux-x86_64"))
@@ -578,7 +582,7 @@ class PackageSkillsTests(unittest.TestCase):
             "[toolchain]\nchannel = \"stable\"\n",
         )
         write(self.repo / "plugins" / "release-tool" / "skills" / "release-tool" / "scripts" / "release-tool", "#!/bin/sh\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+        self.git("add", ".")
 
         original_run = package_skills.subprocess.run
         original_stage_from_frozen_index = package_skills.stage_from_frozen_index
@@ -592,7 +596,7 @@ class PackageSkillsTests(unittest.TestCase):
             calls.append((list(cmd), kwargs.get("cwd")))
             if cmd[:3] == ["git", "write-tree", "--missing-ok"]:
                 return subprocess.CompletedProcess(cmd, 0, "tree123\n", "")
-            if cmd[:2] == ["git", "checkout-index"]:
+            if cmd[:2] == [str(package_skills.SYSTEM_GIT), "checkout-index"]:
                 return original_run(cmd, *args, **kwargs)
             if cmd[:3] == ["git", "status", "--short"]:
                 return subprocess.CompletedProcess(cmd, 0, "M " + cmd[-1] + "\n", "")
@@ -660,7 +664,11 @@ class PackageSkillsTests(unittest.TestCase):
         self.assertEqual(payload["artifacts"][0]["recipe_version"], "0.23.1")
         self.assertEqual(payload["artifacts"][0]["dev_cache_cas_digest"], "cache123")
         self.assertEqual(
-            sum(1 for cmd, _ in calls if cmd[:2] == ["git", "checkout-index"]),
+            sum(
+                1
+                for cmd, _ in calls
+                if cmd[:2] == [str(package_skills.SYSTEM_GIT), "checkout-index"]
+            ),
             2,
         )
         self.assertTrue(
@@ -680,6 +688,39 @@ class PackageSkillsTests(unittest.TestCase):
                 for cmd, _ in calls
             )
         )
+
+    def test_frozen_index_export_uses_isolated_absolute_system_git(self) -> None:
+        original_run = package_skills.subprocess.run
+        observed: dict[str, object] = {}
+
+        def fake_run(cmd, *args, **kwargs):
+            observed["cmd"] = list(cmd)
+            observed["env"] = dict(kwargs.get("env", {}))
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        package_skills.subprocess.run = fake_run
+        self.addCleanup(setattr, package_skills.subprocess, "run", original_run)
+        with mock.patch.dict(
+            os.environ,
+            {
+                "PATH": "/attacker/bin:/usr/bin",
+                "GIT_DIR": "/attacker/repository",
+                "GIT_CONFIG_GLOBAL": "/attacker/gitconfig",
+                "GIT_ASKPASS": "/attacker/askpass",
+                "SSH_AUTH_SOCK": "/attacker/agent.sock",
+            },
+        ):
+            package_skills.export_frozen_index_tree(self.repo / "frozen")
+
+        self.assertEqual(observed["cmd"][:2], ["/usr/bin/git", "checkout-index"])
+        environment = observed["env"]
+        self.assertNotIn("GIT_DIR", environment)
+        self.assertNotIn("SSH_AUTH_SOCK", environment)
+        self.assertEqual(environment["GIT_CONFIG_GLOBAL"], "/dev/null")
+        self.assertEqual(environment["GIT_CONFIG_NOSYSTEM"], "1")
+        self.assertEqual(environment["GIT_TERMINAL_PROMPT"], "0")
+        self.assertEqual(environment["GIT_ASKPASS"], "/usr/bin/false")
+        self.assertEqual(environment["SSH_ASKPASS"], "/usr/bin/false")
 
     def test_release_tool_versions_use_the_plugin_executables_directly(self) -> None:
         calls: list[tuple[list[str], str]] = []
@@ -809,7 +850,7 @@ class PackageSkillsTests(unittest.TestCase):
         }
         receipt_path = self.repo / "plugins/release-tool/skills/release-tool/dist/receipt.json"
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", "."], check=True)
+        self.git("add", ".")
 
         original_stage = package_skills.stage_from_frozen_index
         package_skills.stage_from_frozen_index = lambda *_args, **_kwargs: (_ for _ in ()).throw(
@@ -822,33 +863,33 @@ class PackageSkillsTests(unittest.TestCase):
         missing_toolchain = json.loads(json.dumps(receipt))
         del missing_toolchain["toolchain"]
         write(receipt_path, json.dumps(missing_toolchain, sort_keys=True) + "\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        self.git("add", str(receipt_path.relative_to(self.repo)))
         with self.assertRaises(SystemExit) as toolchain_error:
             package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("toolchain", str(toolchain_error.exception))
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        self.git("add", str(receipt_path.relative_to(self.repo)))
 
         missing_cache_binding = json.loads(json.dumps(receipt))
         del missing_cache_binding["artifacts"][0]["dev_cache_cas_digest"]
         write(receipt_path, json.dumps(missing_cache_binding, sort_keys=True) + "\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        self.git("add", str(receipt_path.relative_to(self.repo)))
         with self.assertRaises(SystemExit) as cache_error:
             package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("dev-cache CAS digest", str(cache_error.exception))
         write(receipt_path, json.dumps(receipt, sort_keys=True) + "\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", str(receipt_path.relative_to(self.repo))], check=True)
+        self.git("add", str(receipt_path.relative_to(self.repo)))
 
         write(self.repo / "crates/release-tool/src/main.rs", "fn main() { println!(\"changed\"); }\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", "crates/release-tool/src/main.rs"], check=True)
+        self.git("add", "crates/release-tool/src/main.rs")
         with self.assertRaises(SystemExit) as source_error:
             package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("source digest", str(source_error.exception))
 
         write(self.repo / "crates/release-tool/src/main.rs", original_source)
-        subprocess.run(["git", "-C", str(self.repo), "add", "crates/release-tool/src/main.rs"], check=True)
+        self.git("add", "crates/release-tool/src/main.rs")
         write(artifact, "mutated\n")
-        subprocess.run(["git", "-C", str(self.repo), "add", str(artifact.relative_to(self.repo))], check=True)
+        self.git("add", str(artifact.relative_to(self.repo)))
         with self.assertRaises(SystemExit) as artifact_error:
             package_skills.verify_dist_receipt("required", source="index", skill_names=["release-tool"])
         self.assertIn("artifact digest", str(artifact_error.exception))

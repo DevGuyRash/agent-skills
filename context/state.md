@@ -1,6 +1,3 @@
-Friction diagnostics 5.2.0 is in the tree; installed copies still carry the previous version (`plugin_check` reports `install_drift` on both skills).
-
-- Reinstall both harnesses (`scripts/install-all --<host>-only --source ~/repos/agent-tooling --include friction-diagnostics`) so Claude's version-keyed cache picks it up; Codex references the tree live. Push to GitHub main and re-add the remote source when remote-tracked installs are wanted.
 - Live-verify on Claude: boundary presence lines at session start in a repo with open events; filing right after a resume stamps the CURRENT session id (sidecar); `pgrep -af zsh` shows no duplicate FRICTION\_ export growth.
 - Live-verify on Codex: the ported SessionStart hook fires; note whether hook stdout enters context (boundary lines are best-effort there); filing under `codex exec` still stamps CODEX_THREAD_ID.
 - Trigger boundary probes (`evals/trigger-prompts.json` in both skills) still need a formal skill-surfacing eval run per harness.

@@ -31,6 +31,7 @@ ROOT_WATCH_PATHS = [
     Path("Cargo.lock"),
     Path("rust-toolchain.toml"),
 ]
+SYSTEM_GIT = Path("/usr/bin/git")
 
 
 def load_config() -> dict[str, dict[str, object]]:
@@ -964,14 +965,50 @@ def git_index_tree() -> str:
     return tree
 
 
+def isolated_system_git_environment() -> dict[str, str]:
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("GIT_")
+        and key
+        not in {
+            "GH_TOKEN",
+            "GITHUB_TOKEN",
+            "SSH_AGENT_PID",
+            "SSH_ASKPASS",
+            "SSH_ASKPASS_REQUIRE",
+            "SSH_AUTH_SOCK",
+        }
+    }
+    environment.update(
+        {
+            "PATH": "/usr/bin:/bin",
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_ASKPASS": "/usr/bin/false",
+            "GIT_SSH_COMMAND": "/usr/bin/false",
+            "GIT_SSH_VARIANT": "ssh",
+            "GIT_PROTOCOL_FROM_USER": "0",
+            "GIT_ALLOW_PROTOCOL": "file",
+            "SSH_ASKPASS": "/usr/bin/false",
+            "SSH_ASKPASS_REQUIRE": "force",
+        }
+    )
+    return environment
+
+
 def export_frozen_index_tree(destination: Path) -> None:
+    if not SYSTEM_GIT.is_file() or not os.access(SYSTEM_GIT, os.X_OK):
+        raise SystemExit(f"required system Git executable is unavailable: {SYSTEM_GIT}")
     destination.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["git", "checkout-index", "--all", f"--prefix={destination}/"],
+        [str(SYSTEM_GIT), "checkout-index", "--all", f"--prefix={destination}/"],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
+        env=isolated_system_git_environment(),
     )
 
 
