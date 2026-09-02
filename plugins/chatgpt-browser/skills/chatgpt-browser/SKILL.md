@@ -16,7 +16,14 @@ Use ChatGPT through the user's authorized interactive browser while preserving c
 
 ## Respect ownership and authority
 
-- The user's explicit browser choice SHALL win. Otherwise you SHALL use the host's `Browser` capability when available, then another suitable host-provided interactive browser that can reuse the user's authorized session. You SHALL NOT select standalone or external Playwright while a suitable built-in browser capability exists. Standalone automation MAY be used when no suitable built-in capability exists. You SHALL follow the selected capability's own mechanics and SHALL NOT install or improvise browser control without authority. Playwright-compatible methods exposed inside the selected built-in browser surface are part of that surface, not standalone or external Playwright.
+The user's explicit browser choice SHALL win. Otherwise use the first suitable capability available on the current host in this order:
+
+1. [@Browser](plugin://browser@openai-bundled)
+2. [@chrome](plugin://chrome@openai-bundled)
+3. Another suitable host-provided interactive browser other than the lower-tier generic Computer Use or standalone or external Playwright.
+4. Generic host-provided Computer Use without assuming a specific plugin.
+5. Standalone or external Playwright.
+- Missing named-plugin tiers are unavailable and do not block fallback on hosts that do not provide them. Follow the selected capability's own mechanics and do not install or improvise browser control without authority. Playwright-compatible methods exposed inside a selected built-in browser remain part of that browser's tier.
 - Use this skill only for ChatGPT-specific conversation judgment. Leave generic browser work, browser testing, OpenAI API work, and generic second-model review to their owners.
 - Reuse the signed-in browser and useful ChatGPT tabs when available.
 - If ChatGPT is signed out, ask the user to sign in manually in that browser and continue after confirmation.
@@ -36,8 +43,8 @@ Treat effects separately:
 ## Orient before acting
 
 - Inspect the signed-in state, current Project and chat, chat durability, selected model and reasoning level, selected app or GPT, composer, attachments, and generation state.
-- Refresh only when the page is stale or failed. First protect or resolve any unsent draft, pending upload, or active generation that a refresh could lose.
-- After refresh or navigation recovery, reverify the account, Project and chat, model and reasoning level, app or GPT, composer, and attachments.
+- Refresh only when the page is stale or failed, or when the generation-recovery rule below permits it. First protect any unsent draft, pending upload, attachment, or other recoverable state that refresh could lose.
+- After refresh or navigation recovery, reverify the account, Project and chat, model and reasoning level, app or GPT, composer, attachments, and the same turn and generation when applicable.
 
 ## Place the conversation
 
@@ -72,11 +79,11 @@ Apply this precedence:
 
 ## Maintain a reasoning conversation
 
-- These invariants govern every message you send to ChatGPT, including the opening, questions, corrections, disagreements, and follow-ups. The conversation SHALL remain a continuation of the user's task; it SHALL NOT become a sequence of tasks authored by you.
-- Speak with ChatGPT conversationally as a reasoning collaborator with independent judgment. Use the conversation for genuine inquiry, brainstorming, feedback, disagreement, and exploration. You SHALL NOT address ChatGPT as an executor receiving a work order or turn your message into an instruction brief or specification unless that form is itself required by the user or a real consumer interface.
-- Carry forward the user's desired result, authorized decision-relevant reality, genuine fixed requirements, and needed inputs. You MAY state what you observe, think, doubt, or disagree with and ask genuine questions that arise from the work. Those contributions SHALL retain their actual authority: your perspective is not a user requirement, settled decision, or task boundary.
-- A question, proposed direction, downstream need, or anticipated next step that originates with you SHALL remain evidence about the state of the work. You SHALL NOT convert it into ChatGPT's assignment, required deliverable, scope, agenda, decomposition, completion standard, answer form, or presumed direction.
-- You SHALL own context integrity, browser custody, authority preservation, observable verification, and truthful representation of your perspective. When judgment is delegated to higher-reasoning ChatGPT, ChatGPT SHALL own every task judgment left open by the user and any real consumer interface, including whether your framing is sound, which open issues matter, and what response best advances the user's outcome. You SHALL NOT prescribe or constrain how it derives or expresses that response beyond requirements actually set by the user or a real consumer interface.
+- Every message you send to ChatGPT SHALL be a conversational, declarative contribution to an ongoing exchange, not an instruction brief or work order. In the opening turn, establish the user's objective, the authorized decision-relevant reality ChatGPT cannot otherwise know, and requirements genuinely fixed by the user or a real consumer interface.
+- After that baseline, continue from the shared context. Later turns SHOULD add only new or corrected decision-relevant reality, genuine disagreement, or the live uncertainty worth exploring; repeat the baseline only after context loss, a new chat, or a material state change.
+- Speak naturally in your own voice about observations, hypotheses, doubts, proposals, disagreements, and questions. These remain revisable perspectives and SHALL NOT become a persona, forced choice, scope, procedure, agenda, decomposition, response schema or count, completion standard, or any other assignment not established by legitimate authority.
+- Let questions arise from the conversation as genuine inquiry. Do not bundle them into an authoritative questionnaire, impose a fixed message template or arbitrary question limit, or turn the exchange into a procedural checklist.
+- ChatGPT owns every judgment left open by genuine requirements and, subject only to those requirements, the form of its response. Leave it free to challenge the framing, pursue the issues it finds material, ask its own questions, and decide what best advances the user's objective.
 
 ## Supply reliable context
 
@@ -96,14 +103,13 @@ Apply this precedence:
 
 - Recognize that sending can permanently retain the prompt and attachments.
 - Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
-- Send once, identify the resulting user turn, and bind every later wait and read check to the same tab, chat, turn, and generation. Confirm either unambiguous live activity or a newly completed response surface belonging to that turn. Do not resend merely because a host wait or browser operation ends.
-- Treat an enabled same-turn stop, cancel, or interrupt action—and any live thinking, searching, tool use, streaming, or continuation status—as activity. Identify controls from their current semantic role and state, not a fixed label, icon, class, or coordinate. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user has explicitly supplied you with mid-turn instructions.
+- Send once, identify the resulting user turn, and bind all later waits, inspections, recovery, and reading to the same tab, chat, turn, and generation. A host wait ending or browser operation timing out is not evidence that the generation ended and does not authorize resending.
+- While generation remains active, partial reasoning, answer fragments, and status text are provisional UI state only: their substance SHALL NOT become task evidence, steer the caller's work, or be returned as the result. Inspect them only as needed to establish activity. An enabled same-turn semantic stop, cancel, or interrupt control—or live thinking, searching, tool use, streaming, or continuation state—is affirmative activity and means keep waiting. Identify controls from their current semantic role and state rather than fixed labels, selectors, icons, or coordinates. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user explicitly supplied mid-turn instructions.
 - After a response, you SHALL NOT request a rewrite, refinement, expansion, reduction, or reorganization merely to make the answer fit your preferred next step. You MAY continue with new or corrected decision-relevant reality, an observably unmet user-set or external interface, or a genuine material question, disagreement, or uncertainty that could change the user's outcome or the correctness of work serving it. Preserve its actual authority and leave the response judgment to ChatGPT.
-- Do not infer a stall or completion from elapsed time, unchanged response text or DOM length, repeated activity wording, an operation timeout, a substantial-looking response, or completed-looking controls.
-- Prefer a native semantic wait only when the current host has demonstrated that it tracks the same turn and cannot report completion while activity persists. Otherwise use bounded external host waits; after each resumption, inspect only the same activity signal. Continue a host-provided wait or continuation handle when available.
-- Claim natural completion only when the new same-turn response surface is present, no live activity or continuation status remains, and the activity signal is unambiguously absent on two checks separated by a settle wait. If activity reappears, restart settling. If activity was never observed, require independent positive identification of the new same-turn response; absence alone is not completion evidence.
-- An explicit stopped or interrupted state is not natural completion. Any ambiguous check, failed operation, navigation, tab closure, execution-context loss, or inability to associate state with the same turn is inconclusive. Two endpoint samples do not prove literal continuous absence; when such proof is required, report inconclusive.
-- Keep waiting in the host. Do not implement waiting through page-executed observers, timers, polling, network requests, persisted scripts, DOM mutation, clicks, or event dispatch, because those create uncontrolled page state and can outlive browser custody. Do not impose a short overall deadline; continue bounded waits without narrating unchanged state.
+- Elapsed time, unchanged text or DOM length, repeated status wording, operation timeouts, a substantial-looking fragment, or completed-looking controls establish neither a frozen generation nor completion. Prefer bounded, low-token host waits or a trustworthy same-turn continuation handle; after each resumption, inspect only enough live state to distinguish activity, completion, explicit failure, or ambiguity. Do not impose a short overall deadline or narrate unchanged state.
+- Claim natural completion only when a newly identified same-turn response is present and affirmative activity or continuation is unambiguously absent on two checks separated by a settle wait. If activity reappears, keep waiting. A stopped or interrupted state is not natural completion, and absence of activity without positive identification of the new same-turn response is insufficient.
+- When a wait or inspection fails, becomes ambiguous, or loses association, dynamically inspect the live UI through safe, reversible, semantically appropriate controls to re-establish the tab, chat, turn, and generation. A reasoning or status disclosure MAY be monitored for evidence of changing activity, but its substance remains provisional. Automatic refresh is a last resort after safer recovery fails, only for a positively identified durable non-temporary chat after protecting refresh-sensitive state; never refresh a temporary chat. After recovery, reverify every bound identity and resume waiting or read the settled final response. Report an explicit visible UI failure when present; otherwise unresolved state is inconclusive rather than frozen or failed.
+- Keep ordinary waiting in the host. Do not create page-executed observers, timers, polling, network requests, persisted scripts, DOM mutations, clicks, or event dispatch merely to wait; safe reversible live-UI inspection for ambiguous-state recovery is not a waiting loop.
 - Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use separate tabs and preferably separate chats, or serialize the cycle. Never coordinate browser ownership through repository files, temporary files, page globals, or shared locks.
 
 ### Read the complete response
