@@ -13,6 +13,7 @@ from pathlib import Path
 from scripts.install_all import (
     HostState,
     Identity,
+    InstallError,
     InstalledArtifact,
     hash_tree,
     parse_args,
@@ -72,6 +73,8 @@ def write_fake_cli(path: Path, command_name: str) -> None:
             elif sys.argv[1:3] in (["plugin", "add"], ["plugin", "install"], ["plugin", "update"]):
                 args = sys.argv[1:]
                 selector = next(value for value in args[2:] if "@" in value)
+                if selector == os.environ.get("AGENT_TOOLING_FAKE_FAIL_PLUGIN"):
+                    raise SystemExit("injected plugin mutation failure")
                 versions = json.loads(os.environ["AGENT_TOOLING_FAKE_VERSIONS"])
                 current = next((item for item in state["installed"] if item["pluginId"] == selector), None)
                 if current is None:
@@ -251,6 +254,77 @@ class InstallAllTests(unittest.TestCase):
 
         self.assertFalse(plan.mutates)
 
+    def test_same_version_changed_content_updates_exactly_once(self) -> None:
+        plugin_id = "example@agent-tooling"
+        args = parse_args(["--codex-only", "--source", str(REPO_ROOT)])
+        args.resolved_source = str(REPO_ROOT.resolve())
+        args.source_local = True
+        plan = plan_host(
+            "codex",
+            HostState(
+                "codex",
+                str(REPO_ROOT),
+                True,
+                {plugin_id: InstalledArtifact("1.0.0")},
+            ),
+            {plugin_id: Identity("1.0.0", "b" * 64)},
+            {
+                "schema_version": 1,
+                "marketplace": "agent-tooling",
+                "hosts": {
+                    "codex": {
+                        "plugins": {
+                            plugin_id: {"version": "1.0.0", "digest": "a" * 64}
+                        }
+                    }
+                },
+            },
+            args,
+        )
+
+        self.assertEqual((), plan.install)
+        self.assertEqual((plugin_id,), plan.update)
+
+    def test_downgrade_and_incomparable_versions_fail_before_mutation_unless_forced(self) -> None:
+        plugin_id = "example@agent-tooling"
+        state = HostState(
+            "codex",
+            str(REPO_ROOT),
+            True,
+            {plugin_id: InstalledArtifact("2.0.0")},
+        )
+        receipt = {
+            "schema_version": 1,
+            "marketplace": "agent-tooling",
+            "hosts": {"codex": {"plugins": {plugin_id: {"version": "2.0.0", "digest": "a" * 64}}}},
+        }
+        args = parse_args(["--codex-only", "--source", str(REPO_ROOT)])
+        args.resolved_source = str(REPO_ROOT.resolve())
+        args.source_local = True
+
+        with self.assertRaisesRegex(InstallError, "downgrade requires --force"):
+            plan_host("codex", state, {plugin_id: Identity("1.0.0", "b" * 64)}, receipt, args)
+        with self.assertRaisesRegex(InstallError, "incomparable plugin version"):
+            plan_host("codex", state, {plugin_id: Identity("next", "b" * 64)}, receipt, args)
+
+        args.force = True
+        forced = plan_host(
+            "codex",
+            state,
+            {plugin_id: Identity("1.0.0", "b" * 64)},
+            receipt,
+            args,
+        )
+        self.assertEqual((plugin_id,), forced.update)
+
+    def test_artifact_digest_rejects_escaping_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="install-all-symlink-") as tmp:
+            root = Path(tmp) / "plugin"
+            root.mkdir()
+            (root / "escape").symlink_to(Path(tmp).parent)
+            with self.assertRaisesRegex(InstallError, "symlink escapes"):
+                hash_tree(root)
+
     def _run_install_all_process(
         self,
         repo_root: Path,
@@ -259,6 +333,7 @@ class InstallAllTests(unittest.TestCase):
         fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
         fake_installed: dict[str, list[dict[str, object]]] | None = None,
         client_runs_git: bool = False,
+        fail_plugin: str | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         install_all = repo_root / "scripts" / "install-all"
         bin_dir = temp_root / "bin"
@@ -289,6 +364,7 @@ class InstallAllTests(unittest.TestCase):
             "AGENT_TOOLING_FAKE_MARKETPLACES": json.dumps(fake_marketplaces or {}),
             "AGENT_TOOLING_FAKE_INSTALLED": json.dumps(fake_installed or {}),
             "AGENT_TOOLING_FAKE_CLIENT_RUNS_GIT": "1" if client_runs_git else "0",
+            "AGENT_TOOLING_FAKE_FAIL_PLUGIN": fail_plugin or "",
             "AGENT_TOOLING_FAKE_VERSIONS": json.dumps(versions),
             "AGENT_TOOLING_FAKE_GIT_SOURCE": str(repo_root),
             "AGENT_TOOLING_FAKE_GIT_LOG": str(git_log_path),
@@ -313,6 +389,7 @@ class InstallAllTests(unittest.TestCase):
         fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
         fake_installed: dict[str, list[dict[str, object]]] | None = None,
         client_runs_git: bool = False,
+        fail_plugin: str | None = None,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         with tempfile.TemporaryDirectory(prefix="install-all-test-") as tmp:
             tmp_path = Path(tmp)
@@ -323,6 +400,7 @@ class InstallAllTests(unittest.TestCase):
                 fake_marketplaces=fake_marketplaces,
                 fake_installed=fake_installed,
                 client_runs_git=client_runs_git,
+                fail_plugin=fail_plugin,
             )
 
     def run_install_all_with_catalogs(
@@ -497,6 +575,70 @@ class InstallAllTests(unittest.TestCase):
         self.assertNotEqual(0, proc.returncode)
         self.assertIn("source mismatch", proc.stderr)
         self.assertEqual([], mutation_calls(calls))
+
+    def test_failed_update_preserves_previous_receipt(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="install-all-failed-receipt-") as tmp:
+            temp_root = Path(tmp)
+            receipt = temp_root / "state" / "agent-tooling" / "install-all.json"
+            receipt.parent.mkdir(parents=True)
+            prior = {
+                "schema_version": 1,
+                "marketplace": "agent-tooling",
+                "hosts": {
+                    "codex": {
+                        "source": str(REPO_ROOT),
+                        "scope": "user",
+                        "plugins": {
+                            "goalspec@agent-tooling": {
+                                "version": "0.0.1",
+                                "digest": "a" * 64,
+                            }
+                        },
+                    }
+                },
+            }
+            receipt.write_text(json.dumps(prior, sort_keys=True) + "\n", encoding="utf-8")
+            before = receipt.read_bytes()
+
+            proc, calls = self._run_install_all_process(
+                REPO_ROOT,
+                temp_root,
+                "--codex-only",
+                "--source",
+                str(REPO_ROOT),
+                "--include",
+                "goalspec",
+                fake_marketplaces={
+                    "codex": [
+                        {
+                            "name": "agent-tooling",
+                            "source": str(REPO_ROOT),
+                        }
+                    ]
+                },
+                fake_installed={
+                    "codex": [
+                        {
+                            "pluginId": "goalspec@agent-tooling",
+                            "version": "0.0.1",
+                            "enabled": True,
+                        }
+                    ]
+                },
+                fail_plugin="goalspec@agent-tooling",
+            )
+
+            self.assertNotEqual(0, proc.returncode)
+            self.assertEqual(before, receipt.read_bytes())
+            self.assertEqual(
+                [
+                    {
+                        "command": "codex",
+                        "args": ["plugin", "add", "goalspec@agent-tooling"],
+                    }
+                ],
+                mutation_calls(calls),
+            )
 
     def test_claude_github_marketplace_uses_repo_as_the_source_identity(self) -> None:
         proc, calls = self.run_install_all_process(
