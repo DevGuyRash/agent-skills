@@ -75,6 +75,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default=os.environ.get("AGENT_TOOLING_MARKETPLACE_SOURCE", CANONICAL_SOURCE))
     parser.add_argument("--ref", default=os.environ.get("AGENT_TOOLING_MARKETPLACE_REF", "main"))
+    parser.add_argument(
+        "--public-git-command",
+        default=os.environ.get("AGENT_TOOLING_GIT_COMMAND"),
+        help="Exact Git executable exposed to marketplace clients (default: /usr/bin/git or PATH).",
+    )
     parser.add_argument("--claude-scope", default=os.environ.get("AGENT_TOOLING_CLAUDE_SCOPE", "user"))
     parser.add_argument("--codex-only", action="store_true")
     parser.add_argument("--claude-only", action="store_true")
@@ -98,7 +103,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return args
 
 
-def run(argv: Sequence[str], *, dry_run: bool = False) -> str:
+def run(
+    argv: Sequence[str],
+    *,
+    dry_run: bool = False,
+    environment: Mapping[str, str] | None = None,
+) -> str:
     if dry_run:
         print("+ " + shlex.join(argv))
         return ""
@@ -112,6 +122,7 @@ def run(argv: Sequence[str], *, dry_run: bool = False) -> str:
         errors="replace",
         check=False,
         timeout=600,
+        env=environment,
     )
     if completed.returncode:
         detail = (completed.stderr or completed.stdout).strip()
@@ -119,8 +130,8 @@ def run(argv: Sequence[str], *, dry_run: bool = False) -> str:
     return completed.stdout
 
 
-def run_json(argv: Sequence[str]) -> object:
-    output = run(argv)
+def run_json(argv: Sequence[str], *, environment: Mapping[str, str] | None = None) -> object:
+    output = run(argv, environment=environment)
     try:
         return json.loads(output)
     except json.JSONDecodeError as exc:
@@ -251,15 +262,18 @@ def marketplace_source(item: Mapping[str, object]) -> str | None:
     return next((value for value in candidates if isinstance(value, str) and value), None)
 
 
-def discover(host: str, command: str) -> HostState:
-    raw_marketplaces = run_json([command, "plugin", "marketplace", "list", "--json"])
+def discover(host: str, command: str, environment: Mapping[str, str]) -> HostState:
+    raw_marketplaces = run_json(
+        [command, "plugin", "marketplace", "list", "--json"],
+        environment=environment,
+    )
     items = raw_marketplaces.get("marketplaces", []) if isinstance(raw_marketplaces, dict) else raw_marketplaces
     if not isinstance(items, list):
         raise InstallError(f"{host} marketplace list has invalid shape")
     matches = [item for item in items if isinstance(item, dict) and item.get("name") == MARKETPLACE]
     if len(matches) > 1:
         raise InstallError(f"{host} reports duplicate {MARKETPLACE} marketplaces")
-    raw_plugins = run_json([command, "plugin", "list", "--json"])
+    raw_plugins = run_json([command, "plugin", "list", "--json"], environment=environment)
     installed_items = raw_plugins.get("installed", []) if isinstance(raw_plugins, dict) else raw_plugins
     if not isinstance(installed_items, list):
         raise InstallError(f"{host} plugin list has invalid shape")
@@ -370,18 +384,38 @@ def mutation(command: str, host: str, operation: str, plugin_id: str | None, arg
     return [command, "plugin", "update", "--scope", args.claude_scope, plugin_id]
 
 
-def apply(plan: HostPlan, args: argparse.Namespace) -> None:
+def apply(plan: HostPlan, args: argparse.Namespace, environment: Mapping[str, str]) -> None:
     command = plan.state.command
     if plan.replace_marketplace:
-        run(mutation(command, plan.host, "remove-marketplace", None, args), dry_run=args.dry_run)
+        run(
+            mutation(command, plan.host, "remove-marketplace", None, args),
+            dry_run=args.dry_run,
+            environment=environment,
+        )
     if plan.add_marketplace or plan.replace_marketplace:
-        run(mutation(command, plan.host, "add-marketplace", None, args), dry_run=args.dry_run)
+        run(
+            mutation(command, plan.host, "add-marketplace", None, args),
+            dry_run=args.dry_run,
+            environment=environment,
+        )
     elif plan.update and not args.source_local:
-        run(mutation(command, plan.host, "refresh", None, args), dry_run=args.dry_run)
+        run(
+            mutation(command, plan.host, "refresh", None, args),
+            dry_run=args.dry_run,
+            environment=environment,
+        )
     for plugin_id in plan.install:
-        run(mutation(command, plan.host, "install", plugin_id, args), dry_run=args.dry_run)
+        run(
+            mutation(command, plan.host, "install", plugin_id, args),
+            dry_run=args.dry_run,
+            environment=environment,
+        )
     for plugin_id in plan.update:
-        run(mutation(command, plan.host, "update", plugin_id, args), dry_run=args.dry_run)
+        run(
+            mutation(command, plan.host, "update", plugin_id, args),
+            dry_run=args.dry_run,
+            environment=environment,
+        )
 
 
 def write_receipt(path: Path, payload: object) -> None:
@@ -414,7 +448,68 @@ def lifecycle_lock() -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def resolved_source(args: argparse.Namespace) -> Iterator[Path]:
+def public_git_environment(command: Path) -> Iterator[dict[str, str]]:
+    with tempfile.TemporaryDirectory(prefix="agent-tooling-public-git-") as raw:
+        private_bin = Path(raw)
+        if os.name == "nt":
+            if '"' in str(command):
+                raise InstallError(f"Git executable path cannot contain a quote: {command}")
+            (private_bin / "git.cmd").write_text(
+                f'@echo off\r\n"{command}" %*\r\n',
+                encoding="utf-8",
+            )
+            (private_bin / "gh.cmd").write_text("@echo off\r\nexit /b 1\r\n", encoding="utf-8")
+        else:
+            (private_bin / "git").symlink_to(command)
+            false_command = next(
+                (candidate for candidate in (Path("/usr/bin/false"), Path("/bin/false")) if candidate.is_file()),
+                None,
+            )
+            if false_command is None:
+                raise InstallError("a system false executable is required to isolate Git authentication")
+            (private_bin / "gh").symlink_to(false_command)
+
+        environment = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("GIT_")
+            and key not in {"GH_TOKEN", "GITHUB_TOKEN", "SSH_ASKPASS", "SSH_AUTH_SOCK"}
+        }
+        environment["PATH"] = str(private_bin) + os.pathsep + os.environ.get("PATH", os.defpath)
+        environment["GIT_CONFIG_GLOBAL"] = os.devnull
+        environment["GIT_CONFIG_NOSYSTEM"] = "1"
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        if os.name != "nt":
+            environment["GIT_ASKPASS"] = str(false_command)
+            environment["GIT_SSH_COMMAND"] = str(false_command)
+            environment["SSH_ASKPASS"] = str(false_command)
+        yield environment
+
+
+def resolve_public_git(raw_command: str | None) -> Path:
+    command = raw_command
+    if command is None:
+        system_git = Path("/usr/bin/git")
+        command = str(system_git) if system_git.is_file() else shutil.which("git")
+    elif not Path(command).expanduser().is_absolute():
+        command = shutil.which(command)
+    if command is None:
+        raise InstallError("Git is required to resolve and install marketplace sources")
+    try:
+        resolved = Path(command).expanduser().resolve(strict=True)
+    except OSError as exc:
+        raise InstallError(f"public Git executable is unavailable: {command}: {exc}") from exc
+    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+        raise InstallError(f"public Git command is not an executable regular file: {resolved}")
+    return resolved
+
+
+@contextlib.contextmanager
+def resolved_source(
+    args: argparse.Namespace,
+    public_git: Path,
+    environment: Mapping[str, str],
+) -> Iterator[Path]:
     source = Path(args.source).expanduser()
     if source.exists() or source.is_absolute() or args.source.startswith(("./", "../")):
         try:
@@ -425,15 +520,11 @@ def resolved_source(args: argparse.Namespace) -> Iterator[Path]:
         args.resolved_source = str(root)
         yield root
         return
-    configured_git = os.environ.get("AGENT_TOOLING_GIT_COMMAND")
-    git = configured_git or ("/usr/bin/git" if Path("/usr/bin/git").is_file() else shutil.which("git"))
-    if git is None:
-        raise InstallError("Git is required to resolve the remote marketplace source")
     with tempfile.TemporaryDirectory(prefix="agent-tooling-install-") as raw:
         root = Path(raw) / "source"
         remote = args.source if "://" in args.source or args.source.startswith("git@") else f"https://github.com/{args.source}.git"
-        clone = [str(Path(git).resolve()), "clone", "--quiet", "--depth", "1", "--branch", args.ref, remote, str(root)]
-        run(clone)
+        clone = [str(public_git), "clone", "--quiet", "--depth", "1", "--branch", args.ref, remote, str(root)]
+        run(clone, environment=environment)
         args.source_local = False
         args.resolved_source = normalize_source(args.source)
         yield root
@@ -442,7 +533,12 @@ def resolved_source(args: argparse.Namespace) -> Iterator[Path]:
 def main(argv: Sequence[str] | None = None) -> int:
     try:
         args = parse_args(argv)
-        with resolved_source(args) as root:
+        public_git = resolve_public_git(args.public_git_command)
+        with public_git_environment(public_git) as environment, resolved_source(
+            args,
+            public_git,
+            environment,
+        ) as root:
             catalogs = {host: read_catalog(root, host) for host in ("codex", "claude")}
             selected = select(catalogs, args)
             receipt_file = receipt_path()
@@ -457,15 +553,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                     command = shutil.which(command_name)
                     if command is None:
                         raise InstallError(f"missing required command: {command_name}")
-                    state = discover(host, str(Path(command).resolve()))
+                    state = discover(host, str(Path(command).resolve()), environment)
                     plans.append(plan_host(host, state, plugins, receipt, args))
                 for plan in plans:
-                    apply(plan, args)
+                    apply(plan, args, environment)
                 if args.dry_run:
                     return 0
                 next_hosts: dict[str, object] = dict(receipt.get("hosts", {}))
                 for plan in plans:
-                    observed = discover(plan.host, plan.state.command)
+                    observed = discover(plan.host, plan.state.command, environment)
                     if not observed.marketplace_present or normalize_source(observed.marketplace_source) != normalize_source(args.resolved_source):
                         raise InstallError(f"{plan.host} marketplace verification failed")
                     for plugin_id, identity in plan.selected.items():

@@ -26,6 +26,7 @@ def write_fake_cli(path: Path, command_name: str) -> None:
             #!{sys.executable}
             import json
             import os
+            import subprocess
             import sys
             from pathlib import Path
 
@@ -34,7 +35,8 @@ def write_fake_cli(path: Path, command_name: str) -> None:
                 state = json.loads(state_path.read_text(encoding="utf-8"))
             else:
                 configured = json.loads(os.environ.get("AGENT_TOOLING_FAKE_MARKETPLACES", "{{}}"))
-                state = {{"marketplaces": [item if isinstance(item, dict) else {{"name": item}} for item in configured.get({command_name!r}, [])], "installed": []}}
+                installed = json.loads(os.environ.get("AGENT_TOOLING_FAKE_INSTALLED", "{{}}"))
+                state = {{"marketplaces": [item if isinstance(item, dict) else {{"name": item}} for item in configured.get({command_name!r}, [])], "installed": installed.get({command_name!r}, [])}}
 
             def save():
                 state_path.write_text(json.dumps(state), encoding="utf-8")
@@ -58,7 +60,8 @@ def write_fake_cli(path: Path, command_name: str) -> None:
                 state["marketplaces"] = []
                 save()
             elif sys.argv[1:4] in (["plugin", "marketplace", "upgrade"], ["plugin", "marketplace", "update"]):
-                pass
+                if os.environ.get("AGENT_TOOLING_FAKE_CLIENT_RUNS_GIT") == "1":
+                    subprocess.run(["git", "--version"], check=True, stdin=subprocess.DEVNULL)
             elif sys.argv[1:3] in (["plugin", "add"], ["plugin", "install"], ["plugin", "update"]):
                 args = sys.argv[1:]
                 selector = next(value for value in args[2:] if "@" in value)
@@ -86,13 +89,27 @@ def write_fake_git(path: Path) -> None:
             import os
             import shutil
             import sys
+            import json
             from pathlib import Path
 
-            if sys.argv[1] != "clone":
-                raise SystemExit("only clone is supported")
-            shutil.copytree(Path(os.environ["AGENT_TOOLING_FAKE_GIT_SOURCE"]), Path(sys.argv[-1]))
+            with open(os.environ["AGENT_TOOLING_FAKE_GIT_LOG"], "a", encoding="utf-8") as handle:
+                handle.write(json.dumps(sys.argv[1:]) + "\\n")
+            if sys.argv[1:] == ["--version"]:
+                print("git version fake")
+            elif sys.argv[1] == "clone":
+                shutil.copytree(Path(os.environ["AGENT_TOOLING_FAKE_GIT_SOURCE"]), Path(sys.argv[-1]))
+            else:
+                raise SystemExit("unsupported git arguments")
             """
         ),
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+
+
+def write_rejecting_git(path: Path) -> None:
+    path.write_text(
+        f"#!{sys.executable}\nraise SystemExit('caller Git must not be used')\n",
         encoding="utf-8",
     )
     path.chmod(0o755)
@@ -195,15 +212,23 @@ class InstallAllTests(unittest.TestCase):
         temp_root: Path,
         *args: str,
         fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
+        fake_installed: dict[str, list[dict[str, object]]] | None = None,
+        client_runs_git: bool = False,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         install_all = repo_root / "scripts" / "install-all"
         bin_dir = temp_root / "bin"
         bin_dir.mkdir()
         log_path = temp_root / "cli.jsonl"
         log_path.touch()
+        git_log_path = temp_root / "git.jsonl"
+        git_log_path.touch()
         write_fake_cli(bin_dir / "codex", "codex")
         write_fake_cli(bin_dir / "claude", "claude")
-        write_fake_git(bin_dir / "git")
+        write_rejecting_git(bin_dir / "git")
+        public_bin_dir = temp_root / "public-bin"
+        public_bin_dir.mkdir()
+        public_git = public_bin_dir / "git"
+        write_fake_git(public_git)
         versions: dict[str, str] = {}
         for host, manifest_name in (("codex", ".codex-plugin/plugin.json"), ("claude", ".claude-plugin/plugin.json")):
             catalog_path = repo_root / (".agents/plugins/marketplace.json" if host == "codex" else ".claude-plugin/marketplace.json")
@@ -217,9 +242,12 @@ class InstallAllTests(unittest.TestCase):
             "PATH": f"{bin_dir}{os.pathsep}{path_value}{os.pathsep}{os.defpath}",
             "AGENT_TOOLING_FAKE_CLI_LOG": str(log_path),
             "AGENT_TOOLING_FAKE_MARKETPLACES": json.dumps(fake_marketplaces or {}),
+            "AGENT_TOOLING_FAKE_INSTALLED": json.dumps(fake_installed or {}),
+            "AGENT_TOOLING_FAKE_CLIENT_RUNS_GIT": "1" if client_runs_git else "0",
             "AGENT_TOOLING_FAKE_VERSIONS": json.dumps(versions),
             "AGENT_TOOLING_FAKE_GIT_SOURCE": str(repo_root),
-            "AGENT_TOOLING_GIT_COMMAND": str(bin_dir / "git"),
+            "AGENT_TOOLING_FAKE_GIT_LOG": str(git_log_path),
+            "AGENT_TOOLING_GIT_COMMAND": str(public_git),
             "XDG_STATE_HOME": str(temp_root / "state"),
         }
         proc = subprocess.run(
@@ -238,6 +266,8 @@ class InstallAllTests(unittest.TestCase):
         self,
         *args: str,
         fake_marketplaces: dict[str, list[str | dict[str, str]]] | None = None,
+        fake_installed: dict[str, list[dict[str, object]]] | None = None,
+        client_runs_git: bool = False,
     ) -> tuple[subprocess.CompletedProcess[str], list[dict[str, object]]]:
         with tempfile.TemporaryDirectory(prefix="install-all-test-") as tmp:
             tmp_path = Path(tmp)
@@ -246,6 +276,8 @@ class InstallAllTests(unittest.TestCase):
                 tmp_path,
                 *args,
                 fake_marketplaces=fake_marketplaces,
+                fake_installed=fake_installed,
+                client_runs_git=client_runs_git,
             )
 
     def run_install_all_with_catalogs(
@@ -315,6 +347,41 @@ class InstallAllTests(unittest.TestCase):
         self.assertEqual(marketplace_plugin_selectors(CODEX_MARKETPLACE), codex_plugins)
         self.assertEqual(marketplace_plugin_selectors(CLAUDE_MARKETPLACE), claude_plugins)
         self.assertFalse(any(args[:2] == ["plugin", "update"] for args in claude_calls))
+
+    def test_client_marketplace_refresh_uses_the_exact_public_git(self) -> None:
+        goalspec = json.loads(
+            (REPO_ROOT / "plugins" / "goalspec" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        proc, calls = self.run_install_all_process(
+            "--codex-only",
+            "--include",
+            "goalspec",
+            "--force",
+            fake_marketplaces={
+                "codex": [
+                    {
+                        "name": "agent-tooling",
+                        "source": "DevGuyRash/agent-tooling",
+                    }
+                ]
+            },
+            fake_installed={
+                "codex": [
+                    {
+                        "pluginId": "goalspec@agent-tooling",
+                        "version": goalspec["version"],
+                        "enabled": True,
+                    }
+                ]
+            },
+            client_runs_git=True,
+        )
+
+        self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+        self.assertIn(
+            {"command": "codex", "args": ["plugin", "marketplace", "upgrade", "agent-tooling"]},
+            mutation_calls(calls),
+        )
 
     def test_second_local_install_invokes_no_mutating_client_commands(self) -> None:
         with tempfile.TemporaryDirectory(prefix="install-all-idempotency-") as tmp:
