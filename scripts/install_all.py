@@ -350,7 +350,13 @@ def plan_host(host: str, state: HostState, selected: Mapping[str, Identity], rec
         current = installed.version
         previous = None if args.replace_marketplace else receipt_identity(receipt, host, plugin_id)
         observed_digest = hash_tree(installed.root) if installed.root is not None else None
-        if previous is not None and observed_digest is not None and observed_digest != previous.digest:
+        exact_candidate = current == candidate.version and observed_digest == candidate.digest
+        if (
+            previous is not None
+            and observed_digest is not None
+            and observed_digest != previous.digest
+            and not exact_candidate
+        ):
             raise InstallError(f"installed plugin content drifted after its receipt: {host} {plugin_id}")
         before_digest = observed_digest or (previous.digest if previous is not None else None)
         changed_digest = before_digest is not None and before_digest != candidate.digest

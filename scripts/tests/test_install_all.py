@@ -10,7 +10,14 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from scripts.install_all import hash_tree
+from scripts.install_all import (
+    HostState,
+    Identity,
+    InstalledArtifact,
+    hash_tree,
+    parse_args,
+    plan_host,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -205,6 +212,44 @@ class InstallAllTests(unittest.TestCase):
             (root / ".git" / "index").write_text("second", encoding="utf-8")
             (root / ".in_use").write_text("second", encoding="utf-8")
             self.assertEqual(first, hash_tree(root))
+
+    def test_exact_candidate_adopts_a_stale_receipt_without_mutation(self) -> None:
+        plugin_id = "goalspec@agent-tooling"
+        plugin_root = REPO_ROOT / "plugins" / "goalspec"
+        manifest = json.loads(
+            (plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        candidate = Identity(manifest["version"], hash_tree(plugin_root))
+        args = parse_args(["--codex-only", "--source", str(REPO_ROOT)])
+        args.resolved_source = str(REPO_ROOT.resolve())
+        args.source_local = True
+        plan = plan_host(
+            "codex",
+            HostState(
+                "codex",
+                str(REPO_ROOT),
+                True,
+                {plugin_id: InstalledArtifact(candidate.version, plugin_root)},
+            ),
+            {plugin_id: candidate},
+            {
+                "schema_version": 1,
+                "marketplace": "agent-tooling",
+                "hosts": {
+                    "codex": {
+                        "plugins": {
+                            plugin_id: {
+                                "version": candidate.version,
+                                "digest": "0" * 64,
+                            }
+                        }
+                    }
+                },
+            },
+            args,
+        )
+
+        self.assertFalse(plan.mutates)
 
     def _run_install_all_process(
         self,
