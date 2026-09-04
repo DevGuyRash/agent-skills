@@ -43,9 +43,16 @@ Treat effects separately:
 
 ## Orient before acting
 
-- Inspect the signed-in state, current Project and chat, chat durability, selected model and reasoning level, selected app or GPT, composer, attachments, and generation state.
+- Inspect the signed-in state, active conversation surface, current Project and chat, chat durability, selected model and reasoning level, selected app or GPT, composer, attachments, and generation state.
 - Refresh only when the page is stale or failed, or when the generation-recovery rule below permits it. First protect any unsent draft, pending upload, attachment, or other recoverable state that refresh could lose.
-- After refresh or navigation recovery, reverify the account, Project and chat, model and reasoning level, app or GPT, composer, attachments, and the same turn and generation when applicable.
+- After refresh, navigation recovery, or a surface switch, reverify the account, active conversation surface, Project and chat, chat durability, model and reasoning level, app or GPT, composer, attachments, and the same turn and generation when applicable.
+
+## Choose the conversation surface
+
+- Treat Chat and Work as distinct conversation surfaces whose available chat durability, temporary-chat behavior, Projects, files, plugins, models, reasoning controls, fast mode, and composer controls may differ.
+- Follow the user's explicit Chat or Work choice. Otherwise use Chat. Do not select Work merely because it exposes a stronger model, higher reasoning effort, or an apparently relevant capability.
+- Use Work only when the user explicitly requests it, selects an existing Work conversation, or authorizes a switch after learning that a requested capability is available only there.
+- If the intended surface or capability cannot be selected and positively verified, report the constraint and do not silently substitute another surface.
 
 ## Place the conversation
 
@@ -69,9 +76,9 @@ Apply this precedence:
 
 ## Select models, apps, and GPTs
 
-- Unless the user explicitly requests a different selection or asks not to maximize capability, choose the live UI's most capable model and highest reasoning effort compatible with the requested app, GPT, tools, and context. Report any compatibility constraint that prevents this default.
+- Unless the user explicitly requests a different selection or asks not to maximize capability, choose the active conversation surface's most capable model and highest reasoning effort compatible with the requested app, GPT, tools, and context. Report any compatibility constraint that prevents this default.
 - When a user says to use a label that corresponds to a model, compact preset, or reasoning-effort option, interpret it as that selection. This meaning takes precedence over the same label in account-plan UI; bare `Pro` means the Pro selection unless the user explicitly refers to an account, plan, or subscription.
-- Treat model selection as one composed state that may appear as a compact Power preset or as separate advanced Model and Effort controls. An explicitly named dimension wins; otherwise match the requested label against the compact preset and every advanced dimension while preserving unrelated selections.
+- Treat the conversation surface, model, and reasoning effort as one composed selection state that may appear as a compact Power preset or as separate advanced Model and Effort controls. An explicitly named dimension wins; otherwise match the requested label against the compact preset and every advanced dimension while preserving unrelated selections.
 - Scope matching and verification to the active selector or composer control; account-plan badges and unrelated page text are not selection evidence.
 - Never silently substitute or declare a requested selection unavailable until every live selection dimension has been inspected.
 - Before sending, require positive visible evidence of the intended selection. If verification is absent or inconclusive, do not send.
@@ -109,13 +116,13 @@ Apply this precedence:
 ## Send, wait, and return the result
 
 - Recognize that sending can permanently retain the prompt and attachments.
-- Before sending, verify chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
+- Before sending, verify the active conversation surface, chat durability, Project association, model and reasoning or GPT selection, prompt, and attachments.
 - Send once, identify the resulting user turn, and bind all later waits, inspections, recovery, and reading to the same tab, chat, turn, and generation. A host wait ending or browser operation timing out is not evidence that the generation ended and does not authorize resending.
 - While generation remains active, partial reasoning, answer fragments, and status text are provisional UI state only: their substance SHALL NOT become task evidence, steer the caller's work, or be returned as the result. Inspect them only as needed to establish activity. An enabled same-turn semantic stop, cancel, or interrupt control—or live thinking, searching, tool use, streaming, or continuation state—is affirmative activity and means keep waiting. Identify controls from their current semantic role and state rather than fixed labels, selectors, icons, or coordinates. Never activate an answer-sooner control or send a follow-up, `continue`, correction, or steering prompt while activity remains unless the user explicitly supplied mid-turn instructions.
 - After a response, you SHALL NOT request a rewrite, refinement, expansion, reduction, or reorganization merely to make the answer fit your preferred next step. You MAY continue with new or corrected decision-relevant reality, an observably unmet user-set or external interface, or a genuine material question, disagreement, or uncertainty that could change the user's outcome or the correctness of work serving it. Preserve its actual authority and leave the response judgment to ChatGPT.
 - Elapsed time, unchanged text or DOM length, repeated status wording, operation timeouts, a substantial-looking fragment, or completed-looking controls establish neither a frozen generation nor completion. Prefer bounded, low-token host waits or a trustworthy same-turn continuation handle; after each resumption, inspect only enough live state to distinguish activity, completion, explicit failure, or ambiguity. Do not impose a short overall deadline or narrate unchanged state.
 - Claim natural completion only when a newly identified same-turn response is present and affirmative activity or continuation is unambiguously absent on two checks separated by a settle wait. If activity reappears, keep waiting. A stopped or interrupted state is not natural completion, and absence of activity without positive identification of the new same-turn response is insufficient.
-- When a wait or inspection fails, becomes ambiguous, or loses association, dynamically inspect the live UI through safe, reversible, semantically appropriate controls to re-establish the tab, chat, turn, and generation. A reasoning or status disclosure MAY be monitored for evidence of changing activity, but its substance remains provisional. Automatic refresh is a last resort after safer recovery fails, only for a positively identified durable non-temporary chat after protecting refresh-sensitive state; never refresh a temporary chat. After recovery, reverify every bound identity and resume waiting or read the settled final response. Report an explicit visible UI failure when present; otherwise unresolved state is inconclusive rather than frozen or failed.
+- When a wait or inspection fails, becomes ambiguous, or loses association, dynamically inspect the live UI through safe, reversible, semantically appropriate controls to re-establish the tab, conversation surface, chat, turn, and generation. A reasoning or status disclosure MAY be monitored for evidence of changing activity, but its substance remains provisional. Automatic refresh is a last resort after safer recovery fails, only for a positively identified durable non-temporary chat after protecting refresh-sensitive state; never refresh a temporary chat. After recovery, reverify every bound identity and resume waiting or read the settled final response. Report an explicit visible UI failure when present; otherwise unresolved state is inconclusive rather than frozen or failed.
 - Keep ordinary waiting in the host. Do not create page-executed observers, timers, polling, network requests, persisted scripts, DOM mutations, clicks, or event dispatch merely to wait; safe reversible live-UI inspection for ambiguous-state recovery is not a waiting loop.
 - Give the complete send/wait/read cycle exclusive use of its tab. Concurrent agents use separate tabs and preferably separate chats, or serialize the cycle. Never coordinate browser ownership through repository files, temporary files, page globals, or shared locks.
 
