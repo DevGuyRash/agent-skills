@@ -34,6 +34,7 @@ Treat effects separately:
 
 - Inspecting account, chat, Project, selection, attachments, and response state is read-only.
 - Creating a Project or chat, uploading context, and sending a message are persistent mutations.
+- The placement rules below provide standing authority to create only the exact `Temp` Project when their criteria apply. Creating any other Project requires an explicit user request or separate authorization.
 - Connecting or authorizing an app, granting permissions, purchasing, publishing, or invoking an outward action requires separate user authority.
 - Existing Projects, chats, drafts, files, credentials, grants, and history are protected state. Never delete, rename, move, edit, or archive them without explicit authority.
 - Before leaving any chat, resolve the loss risk from its unsent draft, pending attachments, or active generation. Do not clear or overwrite pre-existing composer state to make room for the new task.
@@ -51,15 +52,17 @@ Treat effects separately:
 Apply this precedence:
 
 1. Follow the user's explicit choice of existing chat, new chat, Project, ordinary chat, or temporary chat.
-2. Otherwise, enter a relevant existing Project and create a fresh chat inside it.
-3. If no relevant Project exists, ask before creating one.
-4. If durable organization is unnecessary or declined, use a temporary chat for disposable work, or an ordinary chat when requested.
+2. Otherwise, enter an unambiguously relevant existing Project and create a fresh chat inside it.
+3. If no relevant Project exists and the user asked for a Project without naming another destination, or the work benefits from durable organization because it involves multiple related questions, likely future follow-ups, reusable file context, or long-term continuity, locate and reuse the exact `Temp` Project. If it does not exist, create it, then create a fresh chat inside it.
+4. Otherwise, use a temporary chat for disposable work.
 
 - Enter a Project before creating its chat, then visibly verify that the new chat belongs to that Project before sending substantive context.
-- Create a concise task- or domain-oriented Project name only after authorization.
+- Use only an unambiguous Project match. If multiple Projects could be relevant or multiple exact-name `Temp` Projects exist, ask rather than guess.
+- Create a task- or domain-oriented Project other than `Temp` only when the user explicitly requests or authorizes it.
 - Prefer multiple focused chats in one Project over one indefinitely growing thread.
 - Do not assume another Project chat's discussion or files are active context.
 - Prefer a fresh chat to repurposing an existing thread unless the user chose that thread.
+- Use an ordinary unprojected chat only when the user explicitly requests one. If the intended Project, `Temp`, or temporary mode cannot be selected and verified, do not silently fall back to the general chat queue.
 - When—and only when—using a temporary chat, select the live option that permits plugins and custom instructions (currently `Personalized`) and positively verify both temporary mode and that selection before sending. If selection or verification fails, do not send. Do not change this setting for an ordinary chat. Treat the temporary chat as disposable and potentially unrecoverable; extract the needed result before leaving.
 - Do not claim temporary-chat Project inheritance, file persistence, or recoverability without current visible evidence.
 - Start a fresh chat when the subject changes materially, patch history becomes long, files are substantially replaced, stale assumptions repeat, context becomes confused, or answer quality declines. Do not impose a universal turn count.
@@ -87,17 +90,21 @@ Apply this precedence:
 
 ## Supply reliable context
 
-- Supply or attach every authorized, decision-relevant local input that ChatGPT cannot inspect; a local path alone does not grant access. Avoid duplicate copies of the same current context in one turn.
+- Before composing the opening turn or rebuilding a baseline, inspect the authorized local task surface and form a candidate inventory. It SHALL include the primary artifacts and every supporting source file, test, configuration, document, log, dataset, image, or other input that could materially affect ChatGPT's judgment and is likely to fit the selected model and live upload surface. Inclusion is the default; do not limit discovery to paths the user happened to name.
+- Supply the maximal relevant candidate set as actual attachments or pasted content. A local path, summary, Project membership, or mention does not supply a file; Project placement does not replace message-level attachment unless the identical current file is visibly available to this chat. Avoid duplicate copies of the same current context in one turn.
+- Before each later turn, update the inventory for new, changed, or newly relevant files and supply them. Do not reattach unchanged files while the same chat's baseline remains reliable.
 - When a plan or artifact is under review, you SHALL supply the complete current artifact. You SHALL NOT replace the reviewed object with a summary, selected questions, or a template for ChatGPT's response.
-- Before sending, verify filenames, attachment count, previews, and completed uploads; remove only duplicate or stale attachments added by the current invocation. Ask before changing attachments that were already present.
+- Prefer original files in their native formats, especially images and documents, while live count, size, and type limits permit. If those limits block direct supply, create one or more task-scoped temporary ZIP bundles that preserve relative paths and file identity. Split bundles only as observed limits require, never alter the source tree, and remove the temporary bundles after the send/read lifecycle.
+- If all relevant context still cannot fit, prioritize the complete current primary artifact followed by its closest decision-relevant dependencies, and report material omissions truthfully to the caller.
+- Do not tell ChatGPT to read, inspect, open, unpack, or use supplied files, and do not explain how to do so. Do not summarize a file as a substitute for supplying it; attach it and continue the conversation naturally. Mention file identity or revision only when needed to disambiguate the context.
+- Before sending, compare the candidate inventory with the final composer and attachment tray, then verify filenames, attachment count, previews, and completed uploads. Do not send while an avoidable relevant candidate is omitted, an upload failed, or attachment identity remains uncertain. Remove only duplicate or stale attachments added by the current invocation; ask before changing attachments that were already present.
 - Compare the before/after attachment inventory before removing anything; treat an attachment with uncertain identity as pre-existing protected state.
 - When identity matters, add a filename plus revision, digest, inventory, or unique marker and verify it from the attachment surface.
 - Keep short text inline. Long pasted text may appear as an attachment-like pill, currently familiar as `Pasted text`; this still supplies the text, so do not repaste it merely because it left the visible composer body.
 - Inspect the whole composer and attachment tray; an unchanged editable text body does not prove that a paste or attachment failed.
 - Expect images and documents to appear as thumbnails, filename pills, or previews. Wait for processing to finish before sending.
-- If an input limit or unsupported type blocks context, split or bundle it while preserving identity and order.
 - When starting or moving to a fresh chat, supply the complete current baseline. Use patches only while that baseline remains reliable, identifying each patch's base revision and affected files. When patches accumulate, files are substantially replaced, or state is lost, resend the complete current baseline rather than extend the patch history.
-- Exclude credentials, secrets, browser data, generated dependencies, build outputs, and irrelevant history.
+- Exclude credentials, secrets, browser data, generated dependencies, build outputs, duplicates, stale revisions, and irrelevant history.
 
 ## Send, wait, and return the result
 
